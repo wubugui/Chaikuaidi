@@ -27,7 +27,7 @@ export const QUOTES: ItemDef[] = [
   },
   {
     id: 'q_speed', name: '语录·时间就是仇人', emoji: '🗯️', kind: 'quote', rarity: 'epic', baseValue: 0,
-    quote: { text: '时间就是金钱，箱子就是仇人。', label: '自动拆解 +20%', type: 'autoPower', amount: 0.2 },
+    quote: { text: '时间就是金钱，箱子就是仇人。', label: '自动产线 +20%', type: 'autoPower', amount: 0.2 },
   },
   {
     id: 'q_machine', name: '语录·人挡拆人', emoji: '🗯️', kind: 'quote', rarity: 'legendary', baseValue: 0,

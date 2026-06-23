@@ -6,7 +6,7 @@ import { UPGRADE_MAP } from '../data/upgrades';
 import { MUTATION_MAP } from '../data/mutations';
 import type { MaterialId } from '../data/materials';
 import type { PassiveType } from '../data/types';
-import { AUTO_PER_WORKER, BASE_DELIVER_INTERVAL, BASE_QUOTE_SLOTS, type GameState } from './state';
+import { BASE_DELIVER_INTERVAL, BASE_QUOTE_SLOTS, type GameState } from './state';
 
 function up(s: GameState, id: string): number {
   return s.upgrades[id] ?? 0;
@@ -105,12 +105,9 @@ export function affinityOf(s: GameState, material: MaterialId): number {
   return def.affinity[material] ?? 0;
 }
 
-/** 每秒自动总伤害 */
-export function autoPower(s: GameState): number {
-  const workers = up(s, 'autoWorker');
-  if (workers <= 0) return 0;
-  const perWorker = AUTO_PER_WORKER * (1 + up(s, 'autoPower') * UPGRADE_MAP.autoPower.effect);
-  return workers * perWorker * globalClickMult(s) * (1 + bonus(s, 'autoPower'));
+/** 自动产线提速倍率（收藏/语录的「自动拆解 +%」被动现在加速自动拆转区/管线/提炼炉） */
+export function autoLineSpeed(s: GameState): number {
+  return 1 + bonus(s, 'autoPower');
 }
 
 /** 幸运值合计 */

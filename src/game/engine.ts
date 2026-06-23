@@ -16,7 +16,7 @@ import { TOOL_MAP } from '../data/tools';
 import type { ParcelSizeId, Rarity } from '../data/types';
 import { randInt, weightedPick } from '../lib/rng';
 import {
-  autoPower,
+  autoLineSpeed,
   benchCapacity,
   bodyAffinity,
   toolBaseDamage,
@@ -542,7 +542,7 @@ function tickAutoLines(d: GameState, dtSec: number, rand: () => number, out: Eng
     const bp = BLUEPRINT_MAP[Object.keys(BLUEPRINT_MAP).find((k) => BLUEPRINT_MAP[k].result.id === devId) ?? ''];
     const mat = bp?.autolineMaterial;
     if (!mat) continue; // 非自动线设备（分拣机等）无 tick 行为
-    d.deviceAccum[devId] = (d.deviceAccum[devId] ?? 0) + dtSec * count;
+    d.deviceAccum[devId] = (d.deviceAccum[devId] ?? 0) + dtSec * count * autoLineSpeed(d);
     let safety = 50;
     while (d.deviceAccum[devId] >= AUTO_LINE_INTERVAL && safety-- > 0) {
       // 找一个匹配材质、且（无变异门 或 已拥有变异）的积压快递
@@ -621,7 +621,7 @@ function tickRefinery(d: GameState, dtSec: number) {
   const count = d.devices?.[REFINERY_DEVICE] ?? 0;
   if (count <= 0) return;
   if (!d.deviceEnabled?.[REFINERY_DEVICE]) return; // 默认关停
-  d.deviceAccum[REFINERY_DEVICE] = (d.deviceAccum[REFINERY_DEVICE] ?? 0) + dtSec * count;
+  d.deviceAccum[REFINERY_DEVICE] = (d.deviceAccum[REFINERY_DEVICE] ?? 0) + dtSec * count * autoLineSpeed(d);
   let safety = 50;
   while (d.deviceAccum[REFINERY_DEVICE] >= REFINE_INTERVAL && safety-- > 0) {
     const recipe = pickAutoRefine(d);
@@ -648,7 +648,7 @@ function tickPipelines(d: GameState, dtSec: number, rand: () => number, out: Eng
     const count = d.devices[pipelineId] ?? 0;
     if (count <= 0) continue;
     if (!d.deviceEnabled?.[pipelineId]) continue; // 默认关停
-    d.deviceAccum[pipelineId] = (d.deviceAccum[pipelineId] ?? 0) + dtSec * count;
+    d.deviceAccum[pipelineId] = (d.deviceAccum[pipelineId] ?? 0) + dtSec * count * autoLineSpeed(d);
     let safety = 50;
     while (d.deviceAccum[pipelineId] >= PIPELINE_INTERVAL && safety-- > 0) {
       const idx = d.backlog.findIndex((p) => p.requirePipeline === pipelineId);
@@ -753,11 +753,7 @@ export function doTick(d: GameState, dtSec: number, rand: () => number, out: Eng
 
   refillBench(d);
 
-  // 自动拆
-  const auto = autoPower(d);
-  if (auto > 0 && d.workbench.length > 0) {
-    damageBench(d, auto * dtSec, rand, out);
-  }
+  // 工作台只手动拆（已删除「自动拆包工」）；自动化全部交给下面的产线/管线/提炼炉
 
   // 自动拆转区：消化积压区
   tickAutoLines(d, dtSec, rand, out);

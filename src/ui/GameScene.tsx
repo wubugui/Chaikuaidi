@@ -5,7 +5,7 @@ import { MATERIALS } from '../data/materials';
 import { PARCEL_MAP } from '../data/parcels';
 import { MUTATION_MAP, type MutationId } from '../data/mutations';
 import { TOOL_MAP } from '../data/tools';
-import { autoPower, benchCapacity, bodyAffinity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
+import { benchCapacity, bodyAffinity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
 import { effectiveAffinity, type FeedbackLevel } from '../game/engine';
 import { on } from '../game/events';
 import { useGame } from '../game/store';
@@ -70,7 +70,6 @@ export function GameScene() {
 
   const s = useGame();
   const cPower = clickPowerBase(s);
-  const aPower = autoPower(s);
   const cap = benchCapacity(s);
   const cMult = comboMult(s);
 
@@ -287,7 +286,6 @@ export function GameScene() {
       {/* 小标牌 */}
       <div className="sceneMeta">
         <span title="单次拆解（不含连击）">💪{fmt(cPower)}</span>
-        {aPower > 0 && <span title="每秒自动拆解">🤖{fmt(aPower)}/s</span>}
         <span title="同时处理">📦{workbench.length}/{cap}</span>
         <span title="待拆队列">📥{queueLen}</span>
       </div>

@@ -44,7 +44,7 @@ export const ITEMS: ItemDef[] = [
   // ---- 收藏品（唯一 + 被动加成）----
   {
     id: 'snail', name: '邻居的蜗牛', emoji: '🐌', kind: 'collectible', rarity: 'rare', baseValue: 0,
-    passive: { label: '自动拆速 +5%', type: 'autoPower', amount: 0.05 },
+    passive: { label: '自动产线 +5%', type: 'autoPower', amount: 0.05 },
   },
   {
     id: 'doll', name: '缺只眼的玩偶', emoji: '🧸', kind: 'collectible', rarity: 'rare', baseValue: 0,
@@ -108,7 +108,7 @@ export const ITEMS: ItemDef[] = [
   { id:'fossil',   name:'三叶虫化石', emoji:'🦴', kind:'collectible', rarity:'epic',      baseValue:0, passive:{ label:'幸运 +12%',     type:'luck',      amount:0.12 } },
   { id:'iou',      name:'一张借条',   emoji:'📜', kind:'collectible', rarity:'rare',      baseValue:0, passive:{ label:'售价 +8%',      type:'sellPrice', amount:0.08 } },
   { id:'amberbug', name:'琥珀里的虫', emoji:'🐛', kind:'collectible', rarity:'rare',      baseValue:0, passive:{ label:'到货速度 +6%',   type:'autoSpeed', amount:0.06 } },
-  { id:'mammoth',  name:'迷你冰封猛犸',emoji:'🦣', kind:'collectible', rarity:'legendary', baseValue:0, passive:{ label:'自动拆解 +20%',  type:'autoPower', amount:0.2 } },
+  { id:'mammoth',  name:'迷你冰封猛犸',emoji:'🦣', kind:'collectible', rarity:'legendary', baseValue:0, passive:{ label:'自动产线 +20%',  type:'autoPower', amount:0.2 } },
   { id:'note',     name:'折叠的纸条',  emoji:'📝', kind:'collectible', rarity:'epic',      baseValue:0, passive:{ label:'连击上限 +0.5',  type:'comboCap',  amount:0.5 } },
   { id:'glove',    name:'冻住的手套（里面好像有东西）', emoji:'🧤', kind:'collectible', rarity:'epic', baseValue:0, passive:{ label:'点击拆解 +14%', type:'clickPower', amount:0.14 } },
   { id:'hatchling',name:'孵出来的小东西', emoji:'🐣', kind:'collectible', rarity:'legendary', baseValue:0, passive:{ label:'幸运 +22%', type:'luck', amount:0.22 } },
@@ -137,7 +137,7 @@ export const ITEMS: ItemDef[] = [
 
   // ---- 离谱货专属收藏品（轰开高达/变形金刚/飞船/方碑才出）----
   { id:'persona', name:'人格核心', emoji:'🧠', kind:'collectible', rarity:'absurd', baseValue:0,
-    passive:{ label:'自动拆解 +25%', type:'autoPower', amount:0.25 } },
+    passive:{ label:'自动产线 +25%', type:'autoPower', amount:0.25 } },
   { id:'antimatter', name:'一小瓶反物质', emoji:'🌀', kind:'sellable', rarity:'absurd', baseValue:120 },
   { id:'mechcore', name:'机甲核心', emoji:'🦿', kind:'sellable', rarity:'legendary', baseValue:35 },
   { id:'livingmetal', name:'活体金属', emoji:'🧫', kind:'sellable', rarity:'absurd', baseValue:55 },
@@ -155,7 +155,7 @@ export const ITEMS: ItemDef[] = [
   { id:'u_singularity', name:'一小撮奇点', emoji:'🌀', kind:'collectible', rarity:'absurd', baseValue:0,
     passive:{ label:'幸运 +40%', type:'luck', amount:0.4 } }, // 粒子对撞机
   { id:'u_fuelrod', name:'还温热的燃料棒', emoji:'🟩', kind:'collectible', rarity:'absurd', baseValue:0,
-    passive:{ label:'自动拆解 +35%', type:'autoPower', amount:0.35 } }, // 核电站
+    passive:{ label:'自动产线 +35%', type:'autoPower', amount:0.35 } }, // 核电站
   { id:'u_zerogcoffee', name:'失重的咖啡', emoji:'☕', kind:'collectible', rarity:'legendary', baseValue:0,
     passive:{ label:'到货速度 +25%', type:'autoSpeed', amount:0.25 } }, // 空间站
   { id:'u_deedstack', name:'27 张房产证', emoji:'📑', kind:'collectible', rarity:'legendary', baseValue:0,

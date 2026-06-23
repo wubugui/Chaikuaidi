@@ -11,8 +11,6 @@ const UPGRADE_STAGE: Record<string, number> = {
   clickPower: 1,
   clickSpeed: 1,
   deliverRate: 2,
-  autoWorker: 2,
-  autoPower: 2,
   luck: 2,
   workbench: 3,
   sellPrice: 3,

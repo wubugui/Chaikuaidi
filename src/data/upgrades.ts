@@ -15,8 +15,6 @@ export function upgradeBulkCost(def: UpgradeDef, level: number, n: number): numb
 export const UPGRADES: UpgradeDef[] = [
   { id: 'clickPower', name: '拆解力度', emoji: '💪', desc: '点击拆解值 +20%/级', baseCost: 30, growth: 1.15, maxLevel: 0, effect: 0.2 },
   { id: 'clickSpeed', name: '拆解手速', emoji: '⚡', desc: '点击冷却 -2%/级（上限 -80%）', baseCost: 50, growth: 1.18, maxLevel: 40, effect: 0.02 },
-  { id: 'autoWorker', name: '自动拆包工', emoji: '🧑‍🏭', desc: '+1 自动拆包人手', baseCost: 200, growth: 1.25, maxLevel: 0, effect: 1 },
-  { id: 'autoPower', name: '自动拆解值', emoji: '🔧', desc: '自动伤害 +25%/级', baseCost: 300, growth: 1.2, maxLevel: 0, effect: 0.25 },
   { id: 'workbench', name: '工作台扩容', emoji: '🏭', desc: '同时处理 +1 个快递', baseCost: 1000, growth: 1.6, maxLevel: 20, effect: 1 },
   { id: 'luck', name: '幸运值', emoji: '🍀', desc: '高稀有度权重 +5%/级', baseCost: 500, growth: 1.3, maxLevel: 0, effect: 0.05 },
   { id: 'deliverRate', name: '到货速率', emoji: '📥', desc: '免费到货间隔 -3%/级（上限 -90%）', baseCost: 150, growth: 1.22, maxLevel: 60, effect: 0.03 },

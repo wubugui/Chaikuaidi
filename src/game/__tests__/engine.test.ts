@@ -58,11 +58,22 @@ describe('auto unpacking via tick', () => {
     expect(d.queue.length).toBeGreaterThan(0); // deliveries accumulate
   });
 
-  it('auto-unpacks when workers are present', () => {
+  it('工作台不再自动拆（已删自动拆包工），只手动', () => {
     const { d, rand } = withStarter();
-    d.upgrades.autoWorker = 5;
-    d.upgrades.autoPower = 5;
+    const before = d.totalUnpacked;
+    // 没有任何已启用的自动设备 → 工作台上的货不会自己被拆
     for (let i = 0; i < 60; i++) doTick(d, 1, rand, newOut());
+    expect(d.totalUnpacked).toBe(before);
+  });
+
+  it('已启用的自动拆转区会消化积压区', () => {
+    const { d, rand } = withStarter();
+    for (let i = 0; i < 5; i++) d.backlog.push(makeParcel('small', rand)); // 纸壳货
+    d.devices['autoline_paper'] = 1;
+    d.deviceEnabled['autoline_paper'] = true;
+    const before = d.backlog.length;
+    for (let i = 0; i < 80; i++) doTick(d, 1, rand, newOut());
+    expect(d.backlog.length).toBeLessThan(before);
     expect(d.totalUnpacked).toBeGreaterThan(0);
   });
 });
@@ -70,8 +81,10 @@ describe('auto unpacking via tick', () => {
 describe('selling', () => {
   it('sellAll converts inventory to money', () => {
     const { d, rand } = withStarter();
-    d.upgrades.autoWorker = 8;
-    d.upgrades.autoPower = 8;
+    // 用已启用的自动拆转区消化一批积压货来填库存
+    for (let i = 0; i < 12; i++) d.backlog.push(makeParcel('small', rand));
+    d.devices['autoline_paper'] = 2;
+    d.deviceEnabled['autoline_paper'] = true;
     for (let i = 0; i < 80; i++) doTick(d, 1, rand, newOut());
     const moneyBefore = d.money;
     const gained = sellAll(d, null);
@@ -86,16 +99,23 @@ describe('selling', () => {
 });
 
 describe('offline settlement', () => {
-  it('earns money offline when auto workers exist', () => {
+  it('有已启用的自动产线时离线能产出', () => {
     const { d, rand } = withStarter();
-    d.upgrades.autoWorker = 10;
-    d.upgrades.autoPower = 10;
+    for (let i = 0; i < 40; i++) d.backlog.push(makeParcel('small', rand));
+    d.devices['autoline_paper'] = 2;
+    d.deviceEnabled['autoline_paper'] = true;
     d.autoSellUnlocked = true;
     d.autoSellEnabled = true;
     const res = settleOffline(d, 3600, rand); // 1 hour
     expect(res.opened).toBeGreaterThan(0);
     expect(res.cash).toBeGreaterThan(0);
     expect(res.seconds).toBe(3600);
+  });
+
+  it('没有任何自动设备时离线不产出（工作台纯手动）', () => {
+    const { d, rand } = withStarter();
+    const res = settleOffline(d, 3600, rand);
+    expect(res.opened).toBe(0);
   });
 
   it('ignores trivially short absences', () => {
