@@ -33,15 +33,15 @@ describe('App renders', () => {
 });
 
 describe('isShowcase threshold', () => {
-  it('only legendary+ full-screens (manual rare/epic are pops, not showcases)', () => {
+  it('只有「离谱」(absurd) 才全屏；普通/稀有/史诗/传说都是小浮窗', () => {
     expect(isShowcase(reveal('common', true))).toBe(false);
     expect(isShowcase(reveal('rare', true))).toBe(false);
     expect(isShowcase(reveal('epic', true))).toBe(false);
-    expect(isShowcase(reveal('legendary', true))).toBe(true);
+    expect(isShowcase(reveal('legendary', true))).toBe(false);
     expect(isShowcase(reveal('absurd', true))).toBe(true);
   });
-  it('auto reveals also only showcase at legendary+', () => {
-    expect(isShowcase(reveal('epic', false))).toBe(false);
-    expect(isShowcase(reveal('legendary', false))).toBe(true);
+  it('自动揭晓同样只在离谱档全屏', () => {
+    expect(isShowcase(reveal('legendary', false))).toBe(false);
+    expect(isShowcase(reveal('absurd', false))).toBe(true);
   });
 });

@@ -30,7 +30,8 @@ const SHOW_MS: Record<Rarity, number> = {
  * 普通/稀有/史诗都不全屏——稀有/史诗交给 PopReveal 小弹窗，普通无弹窗。
  */
 export function isShowcase(r: RevealData): boolean {
-  return rarityRank(r.topRarity) >= rarityRank('legendary');
+  // 只有「离谱」(absurd, 0.5%) 这种概率低到离谱的才全屏特写；传说及以下走不挡操作的小浮窗
+  return rarityRank(r.topRarity) >= rarityRank('absurd');
 }
 
 /** 该揭晓是否需要「✅ 收下」确认：演出级（传说+）才需要刻意收下 */
