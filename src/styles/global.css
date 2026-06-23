@@ -411,6 +411,20 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .riTag { font-size: 13px; font-weight: 800; color: var(--gold); margin-top: 3px; }
 .riNew { margin-top: 6px; font-size: 11px; font-weight: 900; color: #1a1330; background: var(--gold); border-radius: 999px; padding: 2px 10px; display: inline-block; animation: throb 0.6s ease-in-out infinite; }
 .revealHint { font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 4px; z-index: 2; animation: hintPulse 1s ease-in-out infinite; }
+.revealConfirm {
+  margin-top: 14px; z-index: 3; cursor: pointer;
+  font-size: 20px; font-weight: 900; letter-spacing: 1px;
+  color: #120c1e; background: var(--rc, #fff);
+  border: 3px solid var(--rc, #fff); border-radius: 999px;
+  padding: 14px 42px; min-width: 220px;
+  box-shadow: 0 0 26px var(--rc, #fff), 0 8px 22px #000a;
+  text-shadow: 0 1px 1px #fff6;
+  animation: confirmPop 0.34s cubic-bezier(.2,1.6,.5,1) backwards, confirmThrob 1.2s ease-in-out 0.34s infinite;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.revealConfirm:active { transform: scale(0.95); }
+@keyframes confirmPop { from { transform: translateY(20px) scale(0.6); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+@keyframes confirmThrob { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 .riDestroyed { filter: grayscale(0.8); opacity: 0.6; }
 .riDestroyed .riEmoji { position: relative; display: inline-block; }
 .riDestroyedOverlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; font-size: 0.55em; display: flex; align-items: center; justify-content: center; pointer-events: none; }

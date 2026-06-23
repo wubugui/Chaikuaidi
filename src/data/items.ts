@@ -116,6 +116,12 @@ export const ITEMS: ItemDef[] = [
   // ---- 原石扑空（价值 0，非收藏）----
   { id:'hollow', name:'空心的……啥也没有', emoji:'💨', kind:'sellable', rarity:'common', baseValue:0 },
 
+  // ---- 陌生女人箱·重口联想掉落（暗黑喜剧，emoji 占位）----
+  { id:'bra',     name:'蕾丝内衣',   emoji:'👙', kind:'sellable',   rarity:'rare',   baseValue:6 },
+  { id:'panties', name:'一打内裤',   emoji:'🩲', kind:'sellable',   rarity:'common', baseValue:2 },
+  { id:'stocking',name:'单只黑丝',   emoji:'🥿', kind:'collectible', rarity:'rare',  baseValue:0, passive:{ label:'幸运 +6%', type:'luck', amount:0.06 } }, // 「另一只的故事你不会想知道」
+  { id:'condom',  name:'用过的……套', emoji:'🎈', kind:'sellable',   rarity:'common', baseValue:0 }, // 纯恶心整活，0元，扑空级失落
+
   // ---- 暴躁老哥语录（可装备，详见 quotes.ts）----
   ...QUOTES,
 ];

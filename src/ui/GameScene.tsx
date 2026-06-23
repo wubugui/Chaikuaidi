@@ -4,7 +4,7 @@ import { ITEM_MAP } from '../data/items';
 import { MATERIALS } from '../data/materials';
 import { PARCEL_MAP } from '../data/parcels';
 import { MUTATION_MAP, type MutationId } from '../data/mutations';
-import { recommendedToolFor, TOOL_MAP } from '../data/tools';
+import { TOOL_MAP } from '../data/tools';
 import { autoPower, benchCapacity, bodyAffinity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
 import { effectiveAffinity, type FeedbackLevel } from '../game/engine';
 import { on } from '../game/events';
@@ -316,12 +316,11 @@ export function GameScene() {
               const pct = Math.max(0, (p.sealHP / p.sealMax) * 100);
               const dmgStage = pct < 34 ? ' d2' : pct < 67 ? ' d1' : '';
               const mat = MATERIALS[p.material] ?? MATERIALS.paper;
-              const eff = effAff(s, p);
-              const gated = eff <= 0;
-              const danger = !!p.danger && !gated;
+              // 软梯度后唯一的硬门槛 = 缺少指定变异
               const needMut = p.requireMutation && !s.mutations.includes(p.requireMutation)
                 ? MUTATION_MAP[p.requireMutation] : null;
-              const rec = gated && !needMut ? recommendedToolFor(p.material) : null;
+              const gated = !!needMut; // eff<=0 仅可能因变异门
+              const danger = !!p.danger && !gated;
               return (
                 <div
                   className={'bigBox' + (!gated && pct < 100 ? ' hurt' : '') + dmgStage + (gated ? ' gated' : '')}
@@ -336,11 +335,9 @@ export function GameScene() {
                     <div className="bigBoxEmoji" key={swing} style={{ fontSize: boxSize }}>{p.emoji}</div>
                     {!gated && pct < 67 && <span className="crack c1">💢</span>}
                     {!gated && pct < 34 && <span className="crack c2">💥</span>}
-                    {gated && (
-                      <div className={'gateOverlay' + (needMut ? ' mutGate' : '')}>
-                        {needMut
-                          ? <>🧬 需要变异：{needMut.emoji}{needMut.name}</>
-                          : <>🔒 需要 {rec ? rec.emoji + rec.name : '更强工具'}</>}
+                    {needMut && (
+                      <div className="gateOverlay mutGate">
+                        🧬 需要变异：{needMut.emoji}{needMut.name}
                       </div>
                     )}
                   </div>

@@ -23,10 +23,15 @@ const SHOW_MS: Record<Rarity, number> = {
   absurd: 3400,
 };
 
-/** 只有「演出级」的开箱才走全屏特写 */
+/** 只有「演出级」的开箱才走全屏特写：手动 稀有+ ／ 自动 传说+ */
 export function isShowcase(r: RevealData): boolean {
   const rank = rarityRank(r.topRarity);
-  return r.manual ? rank >= rarityRank('epic') : rank >= rarityRank('legendary');
+  return r.manual ? rank >= rarityRank('rare') : rank >= rarityRank('legendary');
+}
+
+/** 该揭晓是否需要「✅ 收下」确认（稀有+ 不会被误触吞掉） */
+function needsConfirm(r: RevealData): boolean {
+  return rarityRank(r.topRarity) >= rarityRank('rare');
 }
 
 export function RevealLayer() {
@@ -72,6 +77,8 @@ export function RevealLayer() {
     clearTimeout(timer.current);
     setPhase('show');
     sfxLoot(r.topRarity);
+    // 稀有+ 必须点「✅ 收下」才推进，不自动消失也不被误触吞掉
+    if (needsConfirm(r)) return;
     timer.current = setTimeout(advance, SHOW_MS[r.topRarity]);
   }, [advance]);
 
@@ -93,11 +100,13 @@ export function RevealLayer() {
   const topR = RARITIES[current.topRarity];
   const grand = rarityRank(current.topRarity) >= rarityRank('epic');
   const huge = rarityRank(current.topRarity) >= rarityRank('legendary');
+  const confirm = needsConfirm(current); // 稀有+ 只能靠按钮推进
 
-  // 点击：偷窥阶段直接爆开；否则推进到下一个
+  // 背景点击：偷窥阶段直接爆开；show 阶段——稀有+ 不响应背景点击（防误触），
+  // 普通演出（理论上不出现）仍可点背景推进
   const onTap = () => {
     if (phase === 'peek') goBurst(current);
-    else if (phase === 'show') advance();
+    else if (phase === 'show' && !confirm) advance();
   };
 
   return (
@@ -168,7 +177,17 @@ export function RevealLayer() {
             })}
           </div>
 
-          <div className="revealHint">👆 点击收取</div>
+          {confirm ? (
+            <button
+              className={'revealConfirm r-' + current.topRarity}
+              style={{ ['--rc' as any]: topR.color, borderColor: topR.color }}
+              onPointerDown={(e) => { e.stopPropagation(); advance(); }}
+            >
+              ✅ 收下{queue.current.length > 0 ? `（还有 ${queue.current.length}）` : ''}
+            </button>
+          ) : (
+            <div className="revealHint">👆 点击收取</div>
+          )}
         </div>
       )}
     </div>

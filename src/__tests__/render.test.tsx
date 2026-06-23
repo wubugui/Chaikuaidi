@@ -3,6 +3,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import App from '../App';
+import { isShowcase } from '../ui/effects/RevealLayer';
+import type { RevealData } from '../game/events';
+
+function reveal(topRarity: RevealData['topRarity'], manual: boolean): RevealData {
+  return { id: 1, parcelEmoji: '📦', parcelName: 't', items: [], topRarity, manual };
+}
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -23,5 +29,17 @@ describe('App renders', () => {
       root.unmount();
     });
     div.remove();
+  });
+});
+
+describe('isShowcase threshold', () => {
+  it('manual rare reveal is a showcase; manual common is not', () => {
+    expect(isShowcase(reveal('rare', true))).toBe(true);
+    expect(isShowcase(reveal('epic', true))).toBe(true);
+    expect(isShowcase(reveal('common', true))).toBe(false);
+  });
+  it('auto reveals only showcase at legendary+', () => {
+    expect(isShowcase(reveal('epic', false))).toBe(false);
+    expect(isShowcase(reveal('legendary', false))).toBe(true);
   });
 });

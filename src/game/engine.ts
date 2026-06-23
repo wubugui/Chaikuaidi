@@ -362,20 +362,29 @@ export function doClick(d: GameState, now: number, rand: () => number, out: Engi
  *   但危险品 + 不安全工具时仍固定 0.5——肉身不能拆弹，照样会被炸（保留连锁触发）。
  * 兼容旧签名：UI 可只传 (toolId, p)；引擎传入 bodyAff / hasRequiredMutation。
  */
+/** 普通材质：任何工具都能慢慢啃，给一个软地板（用对工具才快） */
+const NORMAL_MATERIALS: ReadonlySet<MaterialId> = new Set<MaterialId>([
+  'paper', 'wood', 'metal', 'stone', 'organic', 'anomaly',
+]);
+/** 软梯度地板：普通材质用错工具也能慢慢撬（小伤害，靠换工具看伤害数字去发现最优解） */
+const SOFT_FLOOR = 0.15;
+
 export function effectiveAffinity(
   toolId: string,
   p: Parcel,
   bodyAff = 0,
   hasRequiredMutation = true,
 ): number {
-  // 变异门：缺少指定变异时硬锁
+  // 变异门：缺少指定变异时硬锁（唯一保留的硬门槛 → 返回 0）
   if (p.requireMutation && !hasRequiredMutation) return 0;
   const real = TOOL_MAP[toolId as keyof typeof TOOL_MAP]?.affinity[p.material] ?? 0;
-  // 危险品 + 不安全工具：固定 0.5，肉身也不能拆弹（仍会触发爆炸）
+  // 危险品 + 不安全工具：固定 0.5，肉身也不能拆弹（仍会触发爆炸）；不套软地板
   if (p.danger && !toolIsSafe(toolId)) return Math.max(real, 0.5);
   const eff = Math.max(real, bodyAff);
   // 满足变异门时，肉身保证能撬开
   if (p.requireMutation && hasRequiredMutation) return Math.max(eff, 2);
+  // 普通材质：软梯度地板——任何工具都能慢慢啃，用对工具才快
+  if (NORMAL_MATERIALS.has(p.material)) return Math.max(eff, SOFT_FLOOR);
   return eff;
 }
 
@@ -392,7 +401,7 @@ function damageBench(d: GameState, dmg: number, rand: () => number, out: EngineO
   for (const p of d.workbench) {
     const eff = effAffFor(d, p);
     if (eff <= 0) {
-      // 硬门槛：撬不动，零伤害
+      // 硬门槛（仅变异门缺变异时）：撬不动，零伤害 + 闷响不震屏
       raiseFeedback(out, 'ineffective');
       remaining.push(p);
       continue;

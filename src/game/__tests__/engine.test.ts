@@ -171,6 +171,27 @@ describe('mutations', () => {
     expect(d.dangerStreak).toBe(0); // 变异后垫刀清零
   });
 
+  it('soft gradient: a wood parcel hit by bare hand (no wood affinity) still chips and opens', () => {
+    // hand 对 wood 亲和度为 0 —— 软地板让它仍能慢慢撬开（>0），最终开箱
+    const woodBox = makeParcel('crate', () => 0.5, { material: 'wood', sealMax: 5, pool: ['socks'] });
+    expect(effectiveAffinity('hand', woodBox, 0, true)).toBeGreaterThan(0); // 软地板 0.15
+
+    const rand = mulberry32(3);
+    const d = initialState();
+    d.ownedTools = ['hand'];
+    d.currentTool = 'hand';
+    d.workbench.push(makeParcel('crate', rand, { material: 'wood', sealMax: 5, lootMin: 1, lootMax: 1, pool: ['socks'] }));
+    for (let i = 0; i < 500 && d.totalUnpacked === 0; i++) doClick(d, Date.now() + i * 10, rand, newOut());
+    expect(d.totalUnpacked).toBe(1); // 慢但终究开了
+  });
+
+  it('a requireMutation parcel still takes 0 (hard gate) even on a normal material', () => {
+    // 变异门优先于软地板：缺变异 → 硬 0，任何工具都撬不动
+    const p = makeParcel('crate', () => 0.5, { material: 'metal', sealMax: 50, requireMutation: 'brasshead', pool: ['titanium'] });
+    expect(effectiveAffinity('press', p, 0, false)).toBe(0);
+    expect(effectiveAffinity('hand', p, 0, false)).toBe(0);
+  });
+
   it('a requireMutation parcel is gated without the mutation, crackable with it', () => {
     const p = makeParcel('crate', () => 0.5, { material: 'metal', sealMax: 50, requireMutation: 'brasshead', pool: ['titanium'] });
     // 无变异：任何工具都撬不动（hasRequiredMutation=false）
