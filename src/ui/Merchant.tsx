@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { MATERIALS } from '../data/materials';
 import { MUTATION_MAP } from '../data/mutations';
 import { GIANT_MAP, PIPELINE_NAME } from '../data/giants';
+import { ABSURD_MAP } from '../data/absurd';
+import { ORDNANCE_MAP } from '../data/ordnance';
 import { CONTAINERS, LUGGAGE } from '../data/shop';
 import { factoryFree } from '../game/state';
 import { useGame } from '../game/store';
@@ -45,23 +47,27 @@ export function Merchant() {
       <div className="merchantList">
         {merchant.offers.map((o) => {
           const giant = o.kind === 'giant' ? GIANT_MAP[o.id] : undefined;
+          const absurd = o.kind === 'absurd' ? ABSURD_MAP[o.id] : undefined;
           const good =
             o.kind === 'container'
               ? CONTAINERS.find((c) => c.id === o.id)
               : o.kind === 'giant'
                 ? giant
-                : LUGGAGE.find((l) => l.id === o.id);
+                : o.kind === 'absurd'
+                  ? absurd
+                  : LUGGAGE.find((l) => l.id === o.id);
           if (!good) return null;
           const isContainer = o.kind === 'container';
           const base = good.price;
           const mat =
-            isContainer || giant
+            isContainer || giant || absurd
               ? MATERIALS[(good as { material: keyof typeof MATERIALS }).material]
               : null;
           const danger = isContainer && (good as { danger?: boolean }).danger;
           const needMut = isContainer ? (good as { requireMutation?: string }).requireMutation : undefined;
           const mut = needMut ? MUTATION_MAP[needMut as keyof typeof MUTATION_MAP] : null;
-          const noSpace = !!giant && free < giant.space;
+          const ord = absurd ? ORDNANCE_MAP[absurd.requireOrdnance] : null;
+          const noSpace = (!!giant && free < giant.space) || (!!absurd && free < absurd.space);
           const soldOut = o.stock <= 0;
           return (
             <div className={'merchantOffer' + (soldOut ? ' soldout' : '')} key={o.id}>
@@ -74,6 +80,11 @@ export function Merchant() {
                   {giant && (
                     <span className="giantPipeTag">
                       🏭{PIPELINE_NAME[giant.requirePipeline]} · 占 {giant.space} 格
+                    </span>
+                  )}
+                  {absurd && (
+                    <span className="absurdTag">
+                      💥 需 {ord?.emoji}{ord?.name} 轰开 · 占 {absurd.space} 格
                     </span>
                   )}
                 </div>

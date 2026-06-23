@@ -4,6 +4,7 @@ import { FIRST_VISIT_DELAY } from '../data/merchant';
 import type { MutationId } from '../data/mutations';
 import type { ParcelSizeId, Rarity, ToolId } from '../data/types';
 import { FACTORY_BASE_SPACE, PIPELINE_SPACE } from '../data/giants';
+import { REFINERY_DEVICE, REFINERY_SPACE } from '../data/refine';
 
 export interface Parcel {
   id: number;
@@ -20,8 +21,9 @@ export interface Parcel {
   danger?: boolean;      // 危险品：用错工具开箱会爆炸
   requireMutation?: MutationId; // 变异门：没有该变异时任何工具都撬不动
   requirePipeline?: string; // 巨型货门：仅对应拆卸管线能开，任何手动工具亲和度=0（最高优先级硬门）
+  requireOrdnance?: string; // 离谱货门：任何工具/管线都开不了，只能用对应军火「轰开」
   partBonus?: number;    // 额外零件掉率加成（巨型货爆很多零件）
-  space?: number;        // 占用厂房格子（仅巨型货）
+  space?: number;        // 占用厂房格子（巨型货/离谱货）
 }
 
 export interface GameState {
@@ -77,6 +79,7 @@ export interface GameState {
   targetBlueprint: string | null;       // 当前目标图纸（其所需零件全局高亮）
   devices: Record<string, number>;      // 已建造设备 id -> 台数
   deviceAccum: Record<string, number>;  // 每种设备的累计计时（秒）
+  ordnance: Record<string, number>;     // 已造的一次性军火 id -> 数量
 
   // 厂房 / 巨型货 / 拆卸管线
   factorySpace: number; // 厂房总空间（基础 4，扩建 +2/次）
@@ -131,6 +134,7 @@ export function initialState(): GameState {
     targetBlueprint: null,
     devices: {},
     deviceAccum: {},
+    ordnance: {},
     factorySpace: FACTORY_BASE_SPACE,
     merchant: null,
     merchantNextAt: Date.now() + FIRST_VISIT_DELAY,
@@ -147,7 +151,7 @@ export function initialState(): GameState {
  */
 export function backlogGroupKey(p: Parcel, sizeName: string): string {
   const name = p.label ?? sizeName;
-  return [name, p.material, p.danger ? 'd' : '', p.requireMutation ?? ''].join('|');
+  return [name, p.material, p.danger ? 'd' : '', p.requireMutation ?? '', p.requireOrdnance ?? ''].join('|');
 }
 
 /**
@@ -157,11 +161,12 @@ export function backlogGroupKey(p: Parcel, sizeName: string): string {
 export function factoryUsed(s: GameState): number {
   let used = 0;
   for (const p of s.backlog) {
-    if (p.requirePipeline) used += p.space ?? 0;
+    // 巨型货 + 离谱货都占厂房空间
+    if (p.requirePipeline || p.requireOrdnance) used += p.space ?? 0;
   }
   const devices = s.devices ?? {};
   for (const devId of Object.keys(devices)) {
-    const each = PIPELINE_SPACE[devId];
+    const each = devId === REFINERY_DEVICE ? REFINERY_SPACE : PIPELINE_SPACE[devId];
     if (each) used += each * (devices[devId] ?? 0);
   }
   return used;

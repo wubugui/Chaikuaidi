@@ -848,3 +848,51 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .giantCard.locked { opacity: 0.5; }
 .giantBuyCol { display: flex; flex-direction: column; gap: 4px; align-items: stretch; margin-left: auto; }
+
+/* ===== P4b 元素提炼 / 军火 / 离谱货 ===== */
+/* 提炼炉面板 */
+.refineryPanel { display: flex; flex-direction: column; gap: 8px; }
+.refineryStatus {
+  font-size: 12px; padding: 8px 10px; border-radius: 11px;
+  background: var(--card); border: 1px solid var(--line); color: #c9bfe0;
+}
+.elemInvGrid { display: flex; flex-wrap: wrap; gap: 6px; }
+.elemChip {
+  display: flex; align-items: center; gap: 5px; padding: 4px 9px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-size: 12px;
+}
+.elemEmoji { font-size: 16px; }
+.elemName { color: #c9bfe0; }
+.elemCount { font-weight: 900; color: var(--gold); }
+.refineList { display: flex; flex-direction: column; gap: 8px; }
+.refineRow {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: var(--card);
+}
+.refineRow.tier2 { border-color: #a855f7; background: #6b3fa01a; }
+.refineInfo { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.refineName { font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+.tier2Tag {
+  font-size: 10px; background: #6b3fa033; border: 1px solid #a855f7;
+  border-radius: 999px; padding: 1px 7px; color: #d8b4fe;
+}
+.refineFlow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.refineReq { padding: 1px 6px; border-radius: 6px; border: 1px solid var(--line); }
+.refineReq.met { color: #34d399; }
+.refineReq.unmet { color: #ff6b6b; }
+.refineArrow { color: #888; }
+.refineOut { font-weight: 800; color: var(--gold); }
+.refineActions { display: flex; flex-direction: column; gap: 4px; align-items: stretch; margin-left: auto; }
+
+/* 军火库存 chip */
+.ordInvItem { cursor: default; }
+.ordInvName { font-size: 10px; color: #ffce3a; }
+
+/* 离谱货行 + 轰开按钮 */
+.absurdRow { border-color: #ec4899; background: #ec489915; }
+.absurdTag {
+  font-size: 10px; background: #ec489933; border: 1px solid #ec4899;
+  border-radius: 999px; padding: 1px 7px; color: #f9a8d4;
+}
+.boomBtn { background: linear-gradient(90deg, #ec4899, #f59e0b) !important; font-weight: 900; }
+.boomBtn:disabled { opacity: 0.45; }

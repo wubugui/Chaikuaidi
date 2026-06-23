@@ -127,6 +127,21 @@ export const ITEMS: ItemDef[] = [
   { id:'r_alloyblock', name:'合金块',   emoji:'🟦', kind:'material', rarity:'rare',   baseValue:8 },
   { id:'r_plastic',    name:'工程塑料', emoji:'🧴', kind:'material', rarity:'common', baseValue:2 },
 
+  // ---- 元素 🧪（由原料/零件精炼，平价回收，留着造军火）----
+  { id:'e_iron',     name:'铁',     emoji:'🧲', kind:'element', rarity:'common',    baseValue:5 },
+  { id:'e_copper',   name:'铜',     emoji:'🟠', kind:'element', rarity:'common',    baseValue:7 },
+  { id:'e_silicon',  name:'硅',     emoji:'⬜', kind:'element', rarity:'rare',      baseValue:12 },
+  { id:'e_titanium', name:'钛',     emoji:'⚪', kind:'element', rarity:'rare',      baseValue:18 },
+  { id:'e_rare',     name:'稀土',   emoji:'💜', kind:'element', rarity:'epic',      baseValue:30 },
+  { id:'e_uranium',  name:'浓缩铀', emoji:'☢️', kind:'element', rarity:'legendary', baseValue:60 },
+
+  // ---- 离谱货专属收藏品（轰开高达/变形金刚/飞船/方碑才出）----
+  { id:'persona', name:'人格核心', emoji:'🧠', kind:'collectible', rarity:'absurd', baseValue:0,
+    passive:{ label:'自动拆解 +25%', type:'autoPower', amount:0.25 } },
+  { id:'antimatter', name:'一小瓶反物质', emoji:'🌀', kind:'sellable', rarity:'absurd', baseValue:120 },
+  { id:'mechcore', name:'机甲核心', emoji:'🦿', kind:'sellable', rarity:'legendary', baseValue:35 },
+  { id:'livingmetal', name:'活体金属', emoji:'🧫', kind:'sellable', rarity:'absurd', baseValue:55 },
+
   // ---- 原石扑空（价值 0，非收藏）----
   { id:'hollow', name:'空心的……啥也没有', emoji:'💨', kind:'sellable', rarity:'common', baseValue:0 },
 
@@ -147,3 +162,6 @@ export const COLLECTION_TOTAL = COLLECTIBLES.length;
 
 /** 零件清单（拆解副产物，合成消耗） */
 export const PARTS = ITEMS.filter((i) => i.kind === 'part');
+
+/** 元素清单（精炼产物，造军火消耗） */
+export const ELEMENTS = ITEMS.filter((i) => i.kind === 'element');

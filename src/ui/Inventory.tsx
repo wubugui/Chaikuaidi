@@ -1,5 +1,6 @@
 import { AUTO_SELL_COST } from '../data/upgrades';
 import { ITEM_MAP } from '../data/items';
+import { ORDNANCE } from '../data/ordnance';
 import { RARITIES, RARITY_ORDER } from '../data/rarity';
 import { neededParts } from '../data/blueprints';
 import { sellBonus } from '../game/compute';
@@ -27,7 +28,12 @@ export function Inventory() {
   const byRarity = (a: string, b: string) =>
     RARITY_ORDER.indexOf(ITEM_MAP[b].rarity) - RARITY_ORDER.indexOf(ITEM_MAP[a].rarity);
   const partIds = allIds.filter((id) => ITEM_MAP[id].kind === 'part').sort(byRarity);
-  const ids = allIds.filter((id) => ITEM_MAP[id].kind !== 'part').sort(byRarity);
+  const elemIds = allIds.filter((id) => ITEM_MAP[id].kind === 'element').sort(byRarity);
+  const ids = allIds
+    .filter((id) => ITEM_MAP[id].kind !== 'part' && ITEM_MAP[id].kind !== 'element')
+    .sort(byRarity);
+  const ordnance = s.ordnance ?? {};
+  const ordIds = ORDNANCE.filter((o) => (ordnance[o.id] ?? 0) > 0);
   const totalValue = ids.reduce(
     (sum, id) => sum + sellValue(ITEM_MAP[id], ITEM_MAP[id].rarity, sellBonus(s)) * inventory[id],
     0,
@@ -95,6 +101,28 @@ export function Inventory() {
         </div>
       )}
 
+      {ordIds.length > 0 && (
+        <div className="invPartSec">
+          <div className="invGroupTitle">💥 军火 <span className="invGroupHint">用来「轰开」离谱货（去厂房）</span></div>
+          <div className="invGrid">
+            {ordIds.map((o) => (
+              <div key={o.id} className="invItem ordInvItem" title={`${o.name} · ${o.desc}`}>
+                <span className="invEmoji">{o.emoji}</span>
+                <span className="invCount">×{fmt(ordnance[o.id])}</span>
+                <span className="invVal ordInvName">{o.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {elemIds.length > 0 && (
+        <div className="invPartSec">
+          <div className="invGroupTitle">🧪 元素 <span className="invGroupHint">提炼产物，造军火用，尽量别卖</span></div>
+          <div className="invGrid">{elemIds.map(renderItem)}</div>
+        </div>
+      )}
+
       {partIds.length > 0 && (
         <div className="invPartSec">
           <div className="invGroupTitle">🔩 零件 <span className="invGroupHint">合成设备/工具用，尽量别卖</span></div>
@@ -103,7 +131,7 @@ export function Inventory() {
       )}
 
       <div className="invGrid">
-        {ids.length === 0 && partIds.length === 0 && <div className="invEmpty">还没拆出可卖的东西～</div>}
+        {ids.length === 0 && partIds.length === 0 && elemIds.length === 0 && <div className="invEmpty">还没拆出可卖的东西～</div>}
         {ids.map(renderItem)}
       </div>
     </div>

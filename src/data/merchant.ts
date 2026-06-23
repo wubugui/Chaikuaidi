@@ -1,10 +1,11 @@
 import { GIANTS } from './giants';
+import { ABSURDS } from './absurd';
 import { CONTAINERS, LUGGAGE } from './shop';
 
 /** 黑市商人当前的一条报价 */
 export interface MerchantOffer {
-  id: string;              // 商品 id（容器/行李/巨型货的 id）
-  kind: 'luggage' | 'container' | 'giant';
+  id: string;              // 商品 id（容器/行李/巨型货/离谱货的 id）
+  kind: 'luggage' | 'container' | 'giant' | 'absurd';
   price: number;           // 折后价
   stock: number;           // 本次到访的限量库存（卖一件减一）
 }
@@ -25,7 +26,7 @@ export const MERCHANT_ONLY_CONTAINERS: ReadonlySet<string> = new Set(['missile',
 
 interface PoolEntry {
   id: string;
-  kind: 'luggage' | 'container' | 'giant';
+  kind: 'luggage' | 'container' | 'giant' | 'absurd';
   basePrice: number;
   /** 抽中权重：越高级越稀有(权重越小)，但仍给点机会 */
   weight: number;
@@ -47,6 +48,10 @@ export const MERCHANT_POOL: PoolEntry[] = (() => {
   for (const g of GIANTS) {
     if (!g.merchantOnly) continue;
     pool.push({ id: g.id, kind: 'giant', basePrice: g.price, weight: 0.4 / Math.sqrt(g.price) });
+  }
+  // 离谱货（高达/变形金刚/外星飞船/黑方碑）：终极稀缺，只在黑市偶现，权重极小
+  for (const a of ABSURDS) {
+    pool.push({ id: a.id, kind: 'absurd', basePrice: a.price, weight: 0.25 / Math.sqrt(a.price) });
   }
   return pool;
 })();

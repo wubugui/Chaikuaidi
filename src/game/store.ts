@@ -14,12 +14,16 @@ import {
   GIANT_MAP, PIPELINE_SPACE, FACTORY_BASE_SPACE, FACTORY_EXPAND_STEP,
   factoryExpandCost, type GiantDef,
 } from '../data/giants';
+import { ABSURD_MAP, MONOLITH_REPUTATION, type AbsurdDef } from '../data/absurd';
+import { REFINERY_DEVICE, REFINERY_SPACE } from '../data/refine';
 import type { Rarity, ToolId } from '../data/types';
 import { emit, seedId } from './events';
 import {
   doClick,
   doTick,
+  forceOpenWithOrdnance,
   makeParcel,
+  manualRefine,
   newOut,
   refillBench,
   sellAll as engineSellAll,
@@ -38,6 +42,15 @@ function makeGiantParcel(g: GiantDef): Parcel {
     material: g.material, emoji: g.emoji, label: g.name, sealMax: g.sealMax,
     lootMin: g.lootMin, lootMax: g.lootMax, luckBonus: g.luckBonus, pool: g.pool,
     requirePipeline: g.requirePipeline, partBonus: g.partBonus, space: g.space,
+  });
+}
+
+/** 造一个离谱货快递（占厂房、只能用军火轰开，仅黑市） */
+function makeAbsurdParcel(a: AbsurdDef): Parcel {
+  return makeParcel('container', liveRand, {
+    material: a.material, emoji: a.emoji, label: a.name, sealMax: a.sealMax,
+    lootMin: a.lootMin, lootMax: a.lootMax, luckBonus: a.luckBonus, pool: a.pool,
+    requireOrdnance: a.requireOrdnance, partBonus: a.partBonus, space: a.space,
   });
 }
 
@@ -94,6 +107,8 @@ interface Actions {
   buyBlueprint: (id: string) => void;
   setTargetBlueprint: (id: string | null) => void;
   craftBlueprint: (id: string) => void;
+  refine: (recipeId: string) => void;
+  useOrdnance: (parcelId: number) => void;
   equipQuote: (id: string) => void;
   unequipQuote: (id: string) => void;
   markIntroSeen: () => void;
@@ -124,6 +139,7 @@ function draft(s: GameState): GameState {
     blueprints: s.blueprints.slice(),
     devices: { ...s.devices },
     deviceAccum: { ...s.deviceAccum },
+    ordnance: { ...s.ordnance },
   };
 }
 
@@ -346,14 +362,18 @@ export const useGame = create<Store>()(
         const offer = s.merchant.offers.find((o) => o.id === offerId);
         if (!offer || offer.stock <= 0 || s.money < offer.price) return;
         const giant = offer.kind === 'giant' ? GIANT_MAP[offer.id] : undefined;
-        // 巨型货：还需通过厂房空间门
+        const absurd = offer.kind === 'absurd' ? ABSURD_MAP[offer.id] : undefined;
+        // 巨型货 / 离谱货：还需通过厂房空间门
         if (giant && factoryFree(s) < giant.space) return;
+        if (absurd && factoryFree(s) < absurd.space) return;
         const good =
           offer.kind === 'container'
             ? CONTAINERS.find((c) => c.id === offer.id)
             : offer.kind === 'giant'
               ? giant
-              : LUGGAGE.find((l) => l.id === offer.id);
+              : offer.kind === 'absurd'
+                ? absurd
+                : LUGGAGE.find((l) => l.id === offer.id);
         if (!good) return;
         const d = draft(s);
         d.money -= offer.price;
@@ -369,7 +389,9 @@ export const useGame = create<Store>()(
             ? makeContainerParcel(good as ContainerDef)
             : offer.kind === 'giant'
               ? makeGiantParcel(good as GiantDef)
-              : makeLuggageParcel(good as LuggageDef),
+              : offer.kind === 'absurd'
+                ? makeAbsurdParcel(good as AbsurdDef)
+                : makeLuggageParcel(good as LuggageDef),
         );
         set(d);
       },
@@ -379,8 +401,8 @@ export const useGame = create<Store>()(
         if (s.workbench.length >= benchCapacity(s)) return;
         const idx = s.backlog.findIndex((p) => p.id === parcelId);
         if (idx < 0) return;
-        // 巨型货是管线专属：不允许手动上台（亲和度恒为 0，上台只会卡死工作台）
-        if (s.backlog[idx].requirePipeline) return;
+        // 巨型货是管线专属、离谱货是军火专属：不允许手动上台（亲和度恒为 0，上台只会卡死工作台）
+        if (s.backlog[idx].requirePipeline || s.backlog[idx].requireOrdnance) return;
         const d = draft(s);
         const [p] = d.backlog.splice(idx, 1);
         d.workbench.push(p);
@@ -497,9 +519,9 @@ export const useGame = create<Store>()(
           if ((s.inventory[inp.item] ?? 0) < inp.qty) return;
         }
         if (s.money < bp.moneyCost) return;
-        // 拆卸管线占厂房空间：放不下则拒绝
+        // 占厂房空间的设备（拆卸管线 / 提炼炉）：放不下则拒绝
         if (bp.result.type === 'device') {
-          const need = PIPELINE_SPACE[bp.result.id];
+          const need = bp.result.id === REFINERY_DEVICE ? REFINERY_SPACE : PIPELINE_SPACE[bp.result.id];
           if (need && factoryFree(s) < need) return;
         }
         const d = draft(s);
@@ -516,9 +538,44 @@ export const useGame = create<Store>()(
         } else if (bp.result.type === 'tool') {
           const tid = bp.result.id as ToolId;
           if (!d.ownedTools.includes(tid)) d.ownedTools.push(tid);
+        } else if (bp.result.type === 'ordnance') {
+          const oid = bp.result.id;
+          d.ordnance[oid] = (d.ordnance[oid] ?? 0) + 1;
         }
         set(d);
         emit('craft', id);
+      },
+
+      // 手动提炼：玩家强制跑一条配方（tier2 需提炼炉），输入足才生效
+      refine: (recipeId) => {
+        const s = get();
+        const d = draft(s);
+        if (manualRefine(d, recipeId)) set(d);
+      },
+
+      // 军火轰开离谱货（闭环高潮）：消一发对应军火 → force-open 离谱货 → 大爆闪 → 高概率变异
+      useOrdnance: (parcelId) => {
+        const s = get();
+        const idx = s.backlog.findIndex((p) => p.id === parcelId);
+        if (idx < 0) return;
+        const p = s.backlog[idx];
+        const need = p.requireOrdnance;
+        if (!need) return; // 不是离谱货
+        if ((s.ordnance[need] ?? 0) < 1) return; // 没有对应军火
+        const out = newOut();
+        const d = draft(s);
+        // 消一发军火
+        d.ordnance[need] = (d.ordnance[need] ?? 0) - 1;
+        if (d.ordnance[need] <= 0) delete d.ordnance[need];
+        // 离谱货离开积压区（腾出厂房空间）
+        const [parcel] = d.backlog.splice(idx, 1);
+        forceOpenWithOrdnance(d, parcel, liveRand, out);
+        // 黑方碑：额外大额信誉奖励
+        const absurd = ABSURD_MAP[Object.keys(ABSURD_MAP).find((k) => ABSURD_MAP[k].name === parcel.label) ?? ''];
+        if (absurd?.id === 'a_monolith') d.reputation += MONOLITH_REPUTATION;
+        checkAchievements(d, out);
+        set(d);
+        emitManual(out);
       },
 
       equipQuote: (id) => {
@@ -561,6 +618,7 @@ export const useGame = create<Store>()(
           offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
           sellAllItems, buyBatch, buyLuggage, buyContainer, buyGiant, expandFactory, buyFromMerchant, loadFromBacklog, dumpGroupToBelt,
           shelveToBacklog, buyPrestige, prestige, buyBlueprint, setTargetBlueprint, craftBlueprint,
+          refine, useOrdnance,
           equipQuote, unequipQuote, markIntroSeen,
           toggleAudio, hardReset, dismissOffline, ...rest
         } = s as Store;
@@ -570,6 +628,7 @@ export const useGame = create<Store>()(
         void buyGiant; void expandFactory;
         void buyFromMerchant; void loadFromBacklog; void dumpGroupToBelt; void shelveToBacklog;
         void prestige; void buyBlueprint; void setTargetBlueprint; void craftBlueprint;
+        void refine; void useOrdnance;
         void equipQuote; void unequipQuote; void markIntroSeen;
         void toggleAudio; void hardReset; void dismissOffline;
         return rest;
@@ -589,6 +648,7 @@ export const useGame = create<Store>()(
         if (state.targetBlueprint === undefined) state.targetBlueprint = null;
         if (state.devices === undefined) state.devices = {};
         if (state.deviceAccum === undefined) state.deviceAccum = {};
+        if (state.ordnance === undefined) state.ordnance = {};
         if (state.factorySpace === undefined) state.factorySpace = FACTORY_BASE_SPACE;
 
         // id 计数器抬升，避免 key 冲突

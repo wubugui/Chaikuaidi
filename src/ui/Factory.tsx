@@ -3,6 +3,7 @@ import {
   GIANTS, PIPELINE_INTERVAL, PIPELINE_NAME, PIPELINE_SPACE,
   factoryExpandCost, FACTORY_EXPAND_STEP,
 } from '../data/giants';
+import { ORDNANCE_MAP } from '../data/ordnance';
 import { factoryFree, factoryUsed, type Parcel } from '../game/state';
 import { useGame } from '../game/store';
 import { fmt, money } from '../lib/format';
@@ -16,15 +17,26 @@ interface GiantRow {
   requirePipeline: string;
 }
 
+interface AbsurdRow {
+  firstId: number;
+  emoji: string;
+  name: string;
+  space: number;
+  count: number;
+  requireOrdnance: string;
+}
+
 export function Factory() {
   const s = useGame();
   const m = useGame((st) => st.money);
   const stage = useGame((st) => st.stage);
   const backlog = useGame((st) => st.backlog);
   const devices = useGame((st) => st.devices);
+  const ordnance = useGame((st) => st.ordnance);
   const factorySpace = useGame((st) => st.factorySpace);
   const buyGiant = useGame((st) => st.buyGiant);
   const expandFactory = useGame((st) => st.expandFactory);
+  const useOrdnance = useGame((st) => st.useOrdnance);
 
   const used = factoryUsed(s);
   const free = factoryFree(s);
@@ -48,6 +60,25 @@ export function Factory() {
       });
   }
   const heldGiants = [...giantGroups.values()];
+
+  // 厂房里的离谱货分组（只能用军火轰开）
+  const absurdGroups = new Map<string, AbsurdRow>();
+  for (const p of backlog as Parcel[]) {
+    if (!p.requireOrdnance) continue;
+    const key = p.label ?? p.emoji;
+    const g = absurdGroups.get(key);
+    if (g) g.count += 1;
+    else
+      absurdGroups.set(key, {
+        firstId: p.id,
+        emoji: p.emoji,
+        name: p.label ?? '离谱货',
+        space: p.space ?? 0,
+        count: 1,
+        requireOrdnance: p.requireOrdnance,
+      });
+  }
+  const heldAbsurds = [...absurdGroups.values()];
 
   // 已建管线
   const pipelines = Object.keys(PIPELINE_SPACE)
@@ -103,6 +134,46 @@ export function Factory() {
             );
           })}
         </div>
+      )}
+
+      {/* 厂房里的离谱货（军火轰开） */}
+      {heldAbsurds.length > 0 && (
+        <>
+          <h3 className="shopSecTitle">💥 离谱货（军火轰开）</h3>
+          <p className="shopHint">高达/变形金刚/外星飞船/黑方碑——任何工具和管线都开不了，只能用对应军火「轰开」。轰开 = 大爆炸 + 高概率把老哥也炸出新变异！</p>
+          <div className="giantHeldList">
+            {heldAbsurds.map((a) => {
+              const ord = ORDNANCE_MAP[a.requireOrdnance];
+              const have = ordnance[a.requireOrdnance] ?? 0;
+              const canBoom = have >= 1;
+              return (
+                <div className="giantHeldRow absurdRow" key={a.name}>
+                  <span className="giantEmoji">{a.emoji}</span>
+                  <div className="giantInfo">
+                    <div className="giantName">
+                      {a.name} <span className="backlogCount">×{fmt(a.count)}</span>
+                      <span className="giantSpace">占 {a.space} 格</span>
+                    </div>
+                    <span className={canBoom ? 'giantProgress' : 'giantNeedPipe'}>
+                      💣 需要：{ord?.emoji}{ord?.name}（拥有 ×{fmt(have)}）
+                    </span>
+                  </div>
+                  <div className="giantBuyCol">
+                    <button
+                      className="btn buy boomBtn"
+                      disabled={!canBoom}
+                      onClick={() => useOrdnance(a.firstId)}
+                      title={canBoom ? '用军火轰开它' : `先去工坊造一发${ord?.name}`}
+                    >
+                      💥 轰开
+                    </button>
+                    {!canBoom && <span className="benchFullHint">没有{ord?.name}，去工坊合成</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* 已建拆卸管线 */}

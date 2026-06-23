@@ -17,6 +17,7 @@ interface Group {
   danger: boolean;
   needMut?: MutationId;
   requirePipeline?: string;
+  requireOrdnance?: string;
 }
 
 export function Backlog() {
@@ -46,6 +47,7 @@ export function Backlog() {
         danger: !!p.danger,
         needMut: p.requireMutation,
         requirePipeline: p.requirePipeline,
+        requireOrdnance: p.requireOrdnance,
       });
   }
   const list = [...groups.values()].sort((a, b) => b.count - a.count);
@@ -71,13 +73,18 @@ export function Backlog() {
                     {g.requirePipeline && (
                       <span className="giantPipeTag">🏭 需要管线：{PIPELINE_NAME[g.requirePipeline] ?? g.requirePipeline}</span>
                     )}
+                    {g.requireOrdnance && (
+                      <span className="absurdTag">💥 离谱货：去厂房用军火轰开</span>
+                    )}
                   </div>
                   <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
                     {mat.emoji} {mat.name}
                   </span>
                 </div>
                 <div className="backlogBtns">
-                  {g.requirePipeline ? (
+                  {g.requireOrdnance ? (
+                    <span className="benchFullHint">💥 离谱货：只能在「厂房」用军火轰开</span>
+                  ) : g.requirePipeline ? (
                     <span className="benchFullHint">🏭 巨型货：只能在「厂房」靠拆卸管线拆解</span>
                   ) : (
                     <>

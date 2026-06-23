@@ -11,7 +11,7 @@ export interface RolledItem {
 
 // 预建索引：rarity -> kind -> items
 const POOL: Record<Rarity, Record<string, ItemDef[]>> = {} as any;
-for (const r of RARITY_ORDER) POOL[r] = { sellable: [], material: [], collectible: [], quote: [], part: [] };
+for (const r of RARITY_ORDER) POOL[r] = { sellable: [], material: [], collectible: [], quote: [], part: [], element: [] };
 for (const it of ITEMS) POOL[it.rarity][it.kind].push(it);
 
 // 注意：零件 'part' 故意不入主掉落池——它只通过 rollPart 作为稀缺副产物掉落
@@ -80,8 +80,8 @@ export function rollItem(p: LootParams, rand: () => number, themePool?: string[]
 /** 售价计算 */
 export function sellValue(item: ItemDef, rarity: Rarity, sellMultBonus: number): number {
   if (item.kind === 'collectible' || item.kind === 'quote') return 0;
-  // 零件：按 baseValue 平价回收（不吃稀有度倍率），能卖但卖不出价——更想留着合成
-  if (item.kind === 'part') return Math.ceil(item.baseValue * (1 + sellMultBonus));
+  // 零件/元素：按 baseValue 平价回收（不吃稀有度倍率），能卖但卖不出价——更想留着合成
+  if (item.kind === 'part' || item.kind === 'element') return Math.ceil(item.baseValue * (1 + sellMultBonus));
   return Math.ceil(item.baseValue * RARITIES[rarity].sellMult * (1 + sellMultBonus));
 }
 

@@ -1,10 +1,12 @@
 import { BLUEPRINTS, DEVICE_BLUEPRINT, type BlueprintDef } from '../data/blueprints';
 import { AUTO_LINE_INTERVAL, factoryFree } from '../game/state';
 import { PIPELINE_INTERVAL, PIPELINE_NAME, PIPELINE_SPACE } from '../data/giants';
+import { REFINE_INTERVAL, REFINERY_DEVICE, REFINERY_SPACE } from '../data/refine';
+import { ORDNANCE } from '../data/ordnance';
 import { ITEM_MAP } from '../data/items';
 import { MATERIALS } from '../data/materials';
 import { useGame } from '../game/store';
-import { money } from '../lib/format';
+import { fmt, money } from '../lib/format';
 
 function deviceEffectLine(devId: string, count: number): string {
   const bp = DEVICE_BLUEPRINT[devId];
@@ -12,6 +14,10 @@ function deviceEffectLine(devId: string, count: number): string {
     const per = (PIPELINE_INTERVAL / count).toFixed(1);
     const what = devId === 'pipeline_heavy' ? '货轮/坦克' : '汽车/客机';
     return `${PIPELINE_NAME[devId]} ×${count}（占厂房 ${PIPELINE_SPACE[devId] * count} 格）：每 ~${per}s 拆掉一件${what}`;
+  }
+  if (devId === REFINERY_DEVICE) {
+    const per = (REFINE_INTERVAL / count).toFixed(1);
+    return `提炼炉 ×${count}（占厂房 ${REFINERY_SPACE * count} 格）：每 ~${per}s 自动精炼一炉元素`;
   }
   if (!bp) return `${devId} ×${count}`;
   if (bp.autolineMaterial) {
@@ -25,10 +31,10 @@ function deviceEffectLine(devId: string, count: number): string {
   return `${bp.name} ×${count}`;
 }
 
-/** 该图纸合成时是否被厂房空间卡住（拆卸管线占地） */
+/** 该图纸合成时是否被厂房空间卡住（拆卸管线/提炼炉占地） */
 function pipelineSpaceBlocked(s: ReturnType<typeof useGame.getState>, bp: BlueprintDef): boolean {
   if (bp.result.type !== 'device') return false;
-  const need = PIPELINE_SPACE[bp.result.id];
+  const need = bp.result.id === REFINERY_DEVICE ? REFINERY_SPACE : PIPELINE_SPACE[bp.result.id];
   return !!need && factoryFree(s) < need;
 }
 
@@ -47,11 +53,13 @@ export function Workshop() {
   const blueprints = useGame((st) => st.blueprints);
   const target = useGame((st) => st.targetBlueprint);
   const devices = useGame((st) => st.devices);
+  const ordnance = useGame((st) => st.ordnance);
   const buyBlueprint = useGame((st) => st.buyBlueprint);
   const setTarget = useGame((st) => st.setTargetBlueprint);
   const craft = useGame((st) => st.craftBlueprint);
 
   const builtIds = Object.keys(devices).filter((d) => (devices[d] ?? 0) > 0);
+  const ownedOrd = ORDNANCE.filter((o) => (ordnance[o.id] ?? 0) > 0);
 
   return (
     <div className="workshop">
@@ -63,7 +71,12 @@ export function Workshop() {
         const locked = stage < bp.unlockStage;
         const isTarget = target === bp.id;
         const canCraft = craftable(s, bp);
-        const built = bp.result.type === 'device' ? (devices[bp.result.id] ?? 0) : 0;
+        const built =
+          bp.result.type === 'device'
+            ? (devices[bp.result.id] ?? 0)
+            : bp.result.type === 'ordnance'
+              ? (ordnance[bp.result.id] ?? 0)
+              : 0;
         return (
           <div className={'bpCard' + (locked ? ' locked' : '') + (isTarget ? ' bpTarget' : '')} key={bp.id}>
             <div className="bpHead">
@@ -136,6 +149,20 @@ export function Workshop() {
             <div className="deviceRow" key={d}>
               <span className="deviceEmoji">{DEVICE_BLUEPRINT[d]?.emoji ?? '⚙️'}</span>
               <span className="deviceEffect">{deviceEffectLine(d, devices[d])}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <h3 className="shopSecTitle">💥 军火库</h3>
+      {ownedOrd.length === 0 ? (
+        <div className="invEmpty">还没造军火～用 🧪 元素合成核弹/EMP/轨道炮，去厂房「轰开」离谱货。</div>
+      ) : (
+        <div className="deviceList">
+          {ownedOrd.map((o) => (
+            <div className="deviceRow" key={o.id}>
+              <span className="deviceEmoji">{o.emoji}</span>
+              <span className="deviceEffect">{o.name} ×{fmt(ordnance[o.id])} —— {o.desc}</span>
             </div>
           ))}
         </div>

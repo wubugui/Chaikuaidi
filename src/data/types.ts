@@ -1,7 +1,7 @@
 import type { MaterialId } from './materials';
 
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'absurd';
-export type ItemKind = 'sellable' | 'material' | 'collectible' | 'quote' | 'part';
+export type ItemKind = 'sellable' | 'material' | 'collectible' | 'quote' | 'part' | 'element';
 export type ParcelSizeId = 'envelope' | 'small' | 'standard' | 'reinforced' | 'crate' | 'container';
 export type ToolId = 'hand' | 'cutter' | 'crowbar' | 'grinder' | 'chisel' | 'torch' | 'disarm' | 'press' | 'laserrig' | 'blackhole';
 

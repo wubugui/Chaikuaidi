@@ -30,6 +30,7 @@ import { emit, nextId } from './events';
 import { rollItem, rollPart, sellValue } from './systems/loot';
 import { BLUEPRINT_MAP, sorterBonus } from '../data/blueprints';
 import { PIPELINE_INTERVAL, PIPELINE_SPACE } from '../data/giants';
+import { REFINES, REFINE_INTERVAL, REFINE_MAP, REFINERY_DEVICE, type RefineRecipe } from '../data/refine';
 import { AUTO_LINE_INTERVAL, COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
 
 /** 反馈/震动分级（none<ineffective<hit<crack<open<danger） */
@@ -80,6 +81,7 @@ export interface ParcelOpts {
   danger?: boolean;
   requireMutation?: MutationId;
   requirePipeline?: string;
+  requireOrdnance?: string;
   partBonus?: number;
   space?: number;
 }
@@ -104,6 +106,7 @@ export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: Parcel
     danger: opts?.danger,
     requireMutation: opts?.requireMutation,
     requirePipeline: opts?.requirePipeline,
+    requireOrdnance: opts?.requireOrdnance,
     partBonus: opts?.partBonus,
     space: opts?.space,
   };
@@ -188,14 +191,29 @@ function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut)
  * 危险品意外爆炸时，小概率（垫刀递增）让老哥变异而非纯损失。
  * 返回触发的变异 id（若有），否则 null。掉落已经在意外中没了——变异是唯一的安慰。
  */
-function rollMutation(d: GameState, rand: () => number): MutationId | null {
+function rollMutation(d: GameState, rand: () => number, chanceOverride?: number): MutationId | null {
   // 还没拥有的变异
   const avail = MUTATIONS.filter((m) => !d.mutations.includes(m.id));
   if (avail.length === 0) return null; // 已集齐
-  const chance = Math.min(0.75, 0.12 + 0.06 * d.dangerStreak); // 垫刀：越炸越容易变
+  const chance = chanceOverride ?? Math.min(0.75, 0.12 + 0.06 * d.dangerStreak); // 垫刀：越炸越容易变
   if (rand() >= chance) return null;
   const pick = avail[weightedPick(avail.map((m) => m.weight), rand)];
   return pick.id;
+}
+
+/**
+ * 高概率变异授予（军火轰开离谱货的闭环高潮）：按固定高概率掷一次变异，
+ * 命中则永久叠加、重置垫刀、发 mutate 事件。返回是否变异。
+ */
+export function grantMutation(d: GameState, rand: () => number, chance = 0.6): boolean {
+  const mutId = rollMutation(d, rand, chance);
+  if (mutId) {
+    d.mutations.push(mutId);
+    d.dangerStreak = 0;
+    emit('mutate', mutId);
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -413,6 +431,8 @@ export function effectiveAffinity(
 ): number {
   // 巨型货门（最高优先级硬门）：必须靠拆卸管线开 → 任何手动工具/肉身/软地板亲和度都为 0
   if (p.requirePipeline) return 0;
+  // 离谱货门（同为最高优先级硬门）：只能用对应军火「轰开」→ 任何工具/管线亲和度都为 0
+  if (p.requireOrdnance) return 0;
   // 变异门：缺少指定变异时硬锁（唯一保留的硬门槛 → 返回 0）
   if (p.requireMutation && !hasRequiredMutation) return 0;
   const real = TOOL_MAP[toolId as keyof typeof TOOL_MAP]?.affinity[p.material] ?? 0;
@@ -482,7 +502,7 @@ export function tickMerchant(d: GameState, rand: () => number) {
           id: e.id,
           kind: e.kind,
           price: Math.round(e.basePrice * MERCHANT_DISCOUNT),
-          stock: e.kind === 'giant' ? 1 : randInt(1, 3, rand), // 巨型货限量 1
+          stock: e.kind === 'giant' || e.kind === 'absurd' ? 1 : randInt(1, 3, rand), // 巨型货/离谱货限量 1
         });
       }
       d.merchant = { until: now + MERCHANT_DURATION, offers };
@@ -526,6 +546,75 @@ function tickAutoLines(d: GameState, dtSec: number, rand: () => number, out: Eng
     if (d.backlog.findIndex((p) => p.material === mat) < 0) {
       d.deviceAccum[devId] = Math.min(d.deviceAccum[devId], AUTO_LINE_INTERVAL);
     }
+  }
+}
+
+/** 库存里是否够这条配方的全部输入 */
+export function canRefine(d: GameState, recipe: RefineRecipe): boolean {
+  for (const inp of recipe.inputs) {
+    if ((d.inventory[inp.item] ?? 0) < inp.qty) return false;
+  }
+  return true;
+}
+
+/** 执行一条配方：扣输入，加产物（纯库存操作，调用前请先 canRefine） */
+export function runRefine(d: GameState, recipe: RefineRecipe) {
+  for (const inp of recipe.inputs) {
+    d.inventory[inp.item] = (d.inventory[inp.item] ?? 0) - inp.qty;
+    if (d.inventory[inp.item] <= 0) delete d.inventory[inp.item];
+  }
+  d.inventory[recipe.output.item] = (d.inventory[recipe.output.item] ?? 0) + recipe.output.qty;
+}
+
+/** 是否建有提炼炉（tier2 配方/自动提炼需要它） */
+export function hasRefinery(d: GameState): boolean {
+  return (d.devices?.[REFINERY_DEVICE] ?? 0) > 0;
+}
+
+/**
+ * 手动提炼一条配方（玩家强制指定）。
+ * - 输入不足 → no-op。
+ * - tier2（稀土/浓缩铀）需建有提炼炉，否则拒绝。
+ * 返回是否成功。
+ */
+export function manualRefine(d: GameState, recipeId: string): boolean {
+  const recipe = REFINE_MAP[recipeId];
+  if (!recipe) return false;
+  if (recipe.tier === 2 && !hasRefinery(d)) return false;
+  if (!canRefine(d, recipe)) return false;
+  runRefine(d, recipe);
+  return true;
+}
+
+/** 自动提炼可跑的配方（提炼炉用）：优先 tier1，再 tier2，库存满足即跑 */
+function pickAutoRefine(d: GameState): RefineRecipe | null {
+  for (const tier of [1, 2] as const) {
+    for (const r of REFINES) {
+      if (r.tier === tier && canRefine(d, r)) return r;
+    }
+  }
+  return null;
+}
+
+/**
+ * 提炼炉步进：每座提炼炉按计时自动跑一条当前库存满足的配方（优先 tier1 再 tier2）。
+ * - 多座 = 更快。
+ * - 没有可提炼的配方时计时封顶，不堆积。
+ */
+function tickRefinery(d: GameState, dtSec: number) {
+  const count = d.devices?.[REFINERY_DEVICE] ?? 0;
+  if (count <= 0) return;
+  d.deviceAccum[REFINERY_DEVICE] = (d.deviceAccum[REFINERY_DEVICE] ?? 0) + dtSec * count;
+  let safety = 50;
+  while (d.deviceAccum[REFINERY_DEVICE] >= REFINE_INTERVAL && safety-- > 0) {
+    const recipe = pickAutoRefine(d);
+    if (!recipe) break; // 没有可提炼的，停在原地等
+    d.deviceAccum[REFINERY_DEVICE] -= REFINE_INTERVAL;
+    runRefine(d, recipe);
+  }
+  // 没有可提炼配方时计时封顶
+  if (!pickAutoRefine(d)) {
+    d.deviceAccum[REFINERY_DEVICE] = Math.min(d.deviceAccum[REFINERY_DEVICE], REFINE_INTERVAL);
   }
 }
 
@@ -589,7 +678,24 @@ export function doTick(d: GameState, dtSec: number, rand: () => number, out: Eng
   // 拆卸管线：消化厂房里的巨型货
   tickPipelines(d, dtSec, rand, out);
 
+  // 提炼炉：把原料/零件精炼成元素
+  tickRefinery(d, dtSec);
+
   refillStageAndUnpack(d);
+}
+
+/**
+ * 军火轰开离谱货（闭环高潮）：force-open 指定快递（绕过 requireOrdnance 硬门），
+ * 产出大额掉落 → 大爆闪 → 高概率变异。调用方负责消军火、判定门槛、腾厂房空间。
+ * @returns 是否触发了变异
+ */
+export function forceOpenWithOrdnance(d: GameState, p: Parcel, rand: () => number, out: EngineOut): boolean {
+  // 直接开箱（openParcel 不检查 requireOrdnance，硬门只在 effectiveAffinity/damageBench 里）
+  openParcel(d, p, rand, out);
+  raiseFeedback(out, 'danger');
+  emit('boom'); // 复用大爆闪
+  // 高概率变异：用核弹真的会把你自己也炸变异——这是离谱的预期收益
+  return grantMutation(d, rand, 0.6);
 }
 
 /** 手动卖一件 */

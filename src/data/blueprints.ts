@@ -3,7 +3,8 @@ import type { GameState } from '../game/state';
 
 export type CraftResult =
   | { type: 'device'; id: string } // 建造一台设备（自动拆转区等）
-  | { type: 'tool'; id: string }; // （预留）造工具
+  | { type: 'tool'; id: string } // （预留）造工具
+  | { type: 'ordnance'; id: string }; // 造一发一次性军火（原子弹/EMP/轨道炮）
 
 export interface BlueprintDef {
   id: string;
@@ -107,6 +108,54 @@ export const BLUEPRINTS: BlueprintDef[] = [
     inputs: [{ item: 'p_servo', qty: 8 }, { item: 'p_belt', qty: 8 }, { item: 'p_circuit', qty: 6 }, { item: 'p_spring', qty: 6 }],
     moneyCost: 40000,
     result: { type: 'device', id: 'pipeline_heavy' },
+    repeatable: true,
+  },
+  {
+    id: 'bp_refinery',
+    name: '提炼炉图纸',
+    emoji: '🧪',
+    desc: '建一座提炼炉（占厂房 2 格），自动把废铁/合金/塑料等原料精炼成铁/铜/硅/钛等元素，高级元素也得靠它。',
+    buyCost: 8000,
+    unlockStage: 4,
+    inputs: [{ item: 'p_servo', qty: 3 }, { item: 'p_circuit', qty: 4 }, { item: 'p_belt', qty: 2 }],
+    moneyCost: 6000,
+    result: { type: 'device', id: 'refinery' },
+    repeatable: true,
+  },
+  {
+    id: 'bp_nuke',
+    name: '原子弹图纸',
+    emoji: '💣',
+    desc: '合成一发原子弹💣——能轰开外星飞船🛸/黑方碑⬛。一次性，轰完就没。',
+    buyCost: 40000,
+    unlockStage: 4,
+    inputs: [{ item: 'e_uranium', qty: 2 }, { item: 'e_titanium', qty: 3 }, { item: 'p_circuit', qty: 4 }],
+    moneyCost: 30000,
+    result: { type: 'ordnance', id: 'nuke' },
+    repeatable: true,
+  },
+  {
+    id: 'bp_emp',
+    name: 'EMP 图纸',
+    emoji: '⚡',
+    desc: '合成一发 EMP⚡——瘫痪变形金刚🚙后拆解。一次性。',
+    buyCost: 30000,
+    unlockStage: 4,
+    inputs: [{ item: 'e_copper', qty: 4 }, { item: 'e_silicon', qty: 4 }, { item: 'p_servo', qty: 3 }],
+    moneyCost: 22000,
+    result: { type: 'ordnance', id: 'emp' },
+    repeatable: true,
+  },
+  {
+    id: 'bp_railgun',
+    name: '轨道炮图纸',
+    emoji: '🛰️',
+    desc: '合成一发轨道炮🛰️——击穿高达🤖/重甲。一次性。',
+    buyCost: 35000,
+    unlockStage: 4,
+    inputs: [{ item: 'e_titanium', qty: 4 }, { item: 'e_rare', qty: 3 }, { item: 'p_belt', qty: 4 }],
+    moneyCost: 26000,
+    result: { type: 'ordnance', id: 'railgun' },
     repeatable: true,
   },
 ];

@@ -5,6 +5,7 @@ import { Inventory } from './ui/Inventory';
 import { UpgradePanel } from './ui/UpgradePanel';
 import { Shop } from './ui/Shop';
 import { Workshop } from './ui/Workshop';
+import { Refinery } from './ui/Refinery';
 import { Backlog } from './ui/Backlog';
 import { Factory } from './ui/Factory';
 import { Merchant } from './ui/Merchant';
@@ -31,6 +32,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   upgrade: '🛠️ 升级 & 装备',
   shop: '🛒 进货批次',
   workshop: '🛠️ 工坊',
+  refinery: '🧪 元素提炼',
   backlog: '📥 积压区',
   factory: '🏭 厂房 & 拆卸管线',
   merchant: '🕶️ 黑市商人',
@@ -79,6 +81,7 @@ export default function App() {
               {active === 'upgrade' && <UpgradePanel />}
               {active === 'shop' && <Shop />}
               {active === 'workshop' && <Workshop />}
+              {active === 'refinery' && <Refinery />}
               {active === 'backlog' && <Backlog />}
               {active === 'factory' && <Factory />}
               {active === 'merchant' && <Merchant />}

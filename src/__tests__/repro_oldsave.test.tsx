@@ -81,6 +81,7 @@ describe('old-save rehydrate', () => {
       import('../ui/UpgradePanel').then((m) => m.UpgradePanel),
       import('../ui/Shop').then((m) => m.Shop),
       import('../ui/Workshop').then((m) => m.Workshop),
+      import('../ui/Refinery').then((m) => m.Refinery),
       import('../ui/Backlog').then((m) => m.Backlog),
       import('../ui/Factory').then((m) => m.Factory),
       import('../ui/Quotes').then((m) => m.Quotes),
