@@ -1,0 +1,118 @@
+import { ITEM_MAP } from '../data/items';
+import { PRESTIGE_MAP } from '../data/prestige';
+import { QUOTE_MAP } from '../data/quotes';
+import { TOOL_MAP } from '../data/tools';
+import { UPGRADE_MAP } from '../data/upgrades';
+import type { PassiveType } from '../data/types';
+import { AUTO_PER_WORKER, BASE_DELIVER_INTERVAL, BASE_QUOTE_SLOTS, type GameState } from './state';
+
+function up(s: GameState, id: string): number {
+  return s.upgrades[id] ?? 0;
+}
+function pres(s: GameState, id: string): number {
+  return s.prestigeTree[id] ?? 0;
+}
+
+/** 收藏品被动加成合计 */
+export function passiveBonus(s: GameState, type: PassiveType): number {
+  let sum = 0;
+  for (const id of s.collection) {
+    const it = ITEM_MAP[id];
+    if (it?.passive?.type === type) sum += it.passive.amount;
+  }
+  return sum;
+}
+
+/** 已装备语录的加成合计 */
+export function quoteBonus(s: GameState, type: PassiveType): number {
+  let sum = 0;
+  for (const id of s.equippedQuotes) {
+    const q = QUOTE_MAP[id];
+    if (q?.quote?.type === type) sum += q.quote.amount;
+  }
+  return sum;
+}
+
+/** 某类型的总加成（收藏被动 + 语录） */
+function bonus(s: GameState, type: PassiveType): number {
+  return passiveBonus(s, type) + quoteBonus(s, type);
+}
+
+/** 语录装备槽位数 */
+export function quoteSlots(s: GameState): number {
+  return BASE_QUOTE_SLOTS + pres(s, 'quoteSlot') * PRESTIGE_MAP.quoteSlot.effect;
+}
+
+/** 连击倍率 */
+export function comboMult(s: GameState): number {
+  const cap = 2 + up(s, 'comboCap') * UPGRADE_MAP.comboCap.effect + bonus(s, 'comboCap');
+  return 1 + Math.min(s.combo * 0.05, cap);
+}
+
+/** 全局拆解倍率（转生） */
+function globalClickMult(s: GameState): number {
+  return 1 + pres(s, 'globalClick') * PRESTIGE_MAP.globalClick.effect;
+}
+
+/** 单次点击拆解值 */
+export function clickPower(s: GameState): number {
+  const tool = TOOL_MAP[s.currentTool].power;
+  const upg = 1 + up(s, 'clickPower') * UPGRADE_MAP.clickPower.effect;
+  return tool * upg * comboMult(s) * globalClickMult(s) * (1 + bonus(s, 'clickPower'));
+}
+
+/** 不含连击的点击基础值（UI 展示用） */
+export function clickPowerBase(s: GameState): number {
+  const tool = TOOL_MAP[s.currentTool].power;
+  const upg = 1 + up(s, 'clickPower') * UPGRADE_MAP.clickPower.effect;
+  return tool * upg * globalClickMult(s) * (1 + bonus(s, 'clickPower'));
+}
+
+/** 每秒自动总伤害 */
+export function autoPower(s: GameState): number {
+  const workers = up(s, 'autoWorker');
+  if (workers <= 0) return 0;
+  const perWorker = AUTO_PER_WORKER * (1 + up(s, 'autoPower') * UPGRADE_MAP.autoPower.effect);
+  return workers * perWorker * globalClickMult(s) * (1 + bonus(s, 'autoPower'));
+}
+
+/** 幸运值合计 */
+export function luck(s: GameState): number {
+  return (
+    up(s, 'luck') * UPGRADE_MAP.luck.effect +
+    pres(s, 'globalLuck') * PRESTIGE_MAP.globalLuck.effect +
+    bonus(s, 'luck')
+  );
+}
+
+/** 售价加成合计 */
+export function sellBonus(s: GameState): number {
+  return (
+    up(s, 'sellPrice') * UPGRADE_MAP.sellPrice.effect +
+    pres(s, 'globalSell') * PRESTIGE_MAP.globalSell.effect +
+    bonus(s, 'sellPrice')
+  );
+}
+
+/** 工作台容量 */
+export function benchCapacity(s: GameState): number {
+  return 1 + up(s, 'workbench') * UPGRADE_MAP.workbench.effect;
+}
+
+/** 点击冷却(ms) */
+export function clickCooldown(s: GameState): number {
+  const reduce = Math.min(up(s, 'clickSpeed') * UPGRADE_MAP.clickSpeed.effect, 0.8);
+  return 120 * (1 - reduce);
+}
+
+/** 到货间隔(秒) */
+export function deliverInterval(s: GameState): number {
+  const reduce = Math.min(up(s, 'deliverRate') * UPGRADE_MAP.deliverRate.effect, 0.9);
+  const speed = 1 + passiveBonus(s, 'autoSpeed');
+  return (BASE_DELIVER_INTERVAL * (1 - reduce)) / speed;
+}
+
+/** 离线效率 */
+export function offlineEfficiency(s: GameState): number {
+  return 0.5 + pres(s, 'offline') * PRESTIGE_MAP.offline.effect;
+}
