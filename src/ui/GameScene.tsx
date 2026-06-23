@@ -265,7 +265,7 @@ export function GameScene() {
     };
   }, []);
 
-  const tool = TOOL_MAP[currentTool];
+  const tool = TOOL_MAP[currentTool] ?? TOOL_MAP.hand;
   const heat = combo >= 50 ? 'rage' : combo >= 20 ? 'hot' : combo >= 8 ? 'warm' : '';
   const n = workbench.length;
   const boxSize = n <= 1 ? 150 : n <= 2 ? 116 : n <= 4 ? 92 : n <= 6 ? 72 : 56;
@@ -315,7 +315,7 @@ export function GameScene() {
             workbench.map((p) => {
               const pct = Math.max(0, (p.sealHP / p.sealMax) * 100);
               const dmgStage = pct < 34 ? ' d2' : pct < 67 ? ' d1' : '';
-              const mat = MATERIALS[p.material];
+              const mat = MATERIALS[p.material] ?? MATERIALS.paper;
               const eff = effAff(s, p);
               const gated = eff <= 0;
               const danger = !!p.danger && !gated;

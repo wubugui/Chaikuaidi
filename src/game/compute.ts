@@ -78,8 +78,9 @@ function globalClickMult(s: GameState): number {
 
 /** 当前工具的实际威力（含每把工具的升级等级 +20%/级） */
 function toolPower(s: GameState): number {
-  const def = TOOL_MAP[s.currentTool];
-  const lvl = s.toolLevels[s.currentTool] ?? 0;
+  // 兜底：旧存档/未迁移完成时 currentTool 可能是非法 id
+  const def = TOOL_MAP[s.currentTool] ?? TOOL_MAP.hand;
+  const lvl = s.toolLevels?.[s.currentTool] ?? 0;
   return def.power * (1 + lvl * 0.2);
 }
 
@@ -100,7 +101,8 @@ export function clickPowerBase(s: GameState): number {
 
 /** 当前装备工具对某材质的亲和度（<=0 表示撬不动） */
 export function affinityOf(s: GameState, material: MaterialId): number {
-  return TOOL_MAP[s.currentTool].affinity[material] ?? 0;
+  const def = TOOL_MAP[s.currentTool] ?? TOOL_MAP.hand;
+  return def.affinity[material] ?? 0;
 }
 
 /** 每秒自动总伤害 */

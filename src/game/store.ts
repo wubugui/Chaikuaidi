@@ -398,21 +398,35 @@ export const useGame = create<Store>()(
         if (state.mutations === undefined) state.mutations = [];
         if (state.dangerStreak === undefined) state.dangerStreak = 0;
 
-        // 工具箱迁移：旧存档为单线性工具，映射到新工具体系
-        if (state.ownedTools === undefined) {
+        // 工具箱迁移：把任何旧的/非法的 currentTool 规范化，并保证 ownedTools 自洽。
+        // 注意：不能用 `ownedTools === undefined` 做判据——zustand 会把存档浅合并到
+        // 初始状态（ownedTools 已是 ['hand']），导致旧存档的迁移被跳过 → currentTool
+        // 仍是 'electric' 等旧 id → TOOL_MAP[currentTool] 为 undefined → 白屏。
+        {
           const TOOL_MIGRATE: Record<string, ToolId> = {
             nail: 'hand', hand: 'hand', key: 'cutter', cutter: 'cutter',
             scissors: 'crowbar', opener: 'chisel', electric: 'grinder',
             laser: 'laserrig', blackhole: 'blackhole',
           };
-          const mapped: ToolId = TOOL_MIGRATE[(state as any).currentTool] ?? 'hand';
           const order = TOOLS.map((t) => t.id);
-          const upTo = order.indexOf(mapped);
-          state.currentTool = mapped;
-          state.toolLevels = {} as Record<ToolId, number>;
-          state.ownedTools = order.slice(0, upTo + 1);
+          // 1) currentTool 非法 → 映射到新体系
+          if (!TOOL_MAP[state.currentTool as ToolId]) {
+            state.currentTool = TOOL_MIGRATE[(state as any).currentTool] ?? 'hand';
+          }
+          // 2) ownedTools 缺失/为空/被浅合并成只剩 ['hand'] 但 currentTool 更高 → 重建
+          const owned = Array.isArray(state.ownedTools) ? state.ownedTools : [];
+          const upTo = order.indexOf(state.currentTool);
+          const needRebuild = owned.length === 0 || order.indexOf(state.currentTool) > 0 && owned.length <= 1;
+          let next = needRebuild ? order.slice(0, upTo + 1) : owned.slice();
+          // 3) 过滤非法 id，保证含徒手与当前工具
+          next = next.filter((t: any) => !!TOOL_MAP[t as ToolId]);
+          if (!next.includes('hand')) next.unshift('hand');
+          if (!next.includes(state.currentTool)) next.push(state.currentTool);
+          state.ownedTools = next;
+          if (!state.toolLevels || typeof state.toolLevels !== 'object') {
+            state.toolLevels = {} as Record<ToolId, number>;
+          }
         }
-        if (state.toolLevels === undefined) state.toolLevels = {} as Record<ToolId, number>;
 
         // 旧存档的快递缺 material 字段则按尺寸回填
         for (const p of [...state.workbench, ...state.queue]) {
