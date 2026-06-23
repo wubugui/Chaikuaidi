@@ -7,6 +7,7 @@ import { autoPower, benchCapacity, clickCooldown, clickPowerBase, comboMult, sel
 import { on } from '../game/events';
 import { useGame } from '../game/store';
 import { sellValue } from '../game/systems/loot';
+import { sfxRip } from '../lib/audio';
 import { fmt, money } from '../lib/format';
 
 interface Particle { id: number; x: number; y: number; dx: number; dy: number; char: string; }
@@ -45,6 +46,9 @@ export function GameScene() {
   const holdRef = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const lastBarkRef = useRef(0);
+  const pausedRef = useRef(false); // 开箱特写时暂停砸击
+  const downRef = useRef(false); // 是否仍按住
+  const ptrRef = useRef({ x: 0, y: 0 });
 
   // 背包总价值
   const invIds = Object.keys(inventory).filter((id) => inventory[id] > 0);
@@ -53,12 +57,35 @@ export function GameScene() {
     0,
   );
 
+  // 拆出稀有时老哥惊呼
   useEffect(() => {
-    return on('loot', (b) => {
-      if (b.rarity === 'legendary' || b.rarity === 'absurd') {
+    return on('reveal', (r) => {
+      if (r.topRarity === 'legendary' || r.topRarity === 'absurd') {
         setBark({ id: pid++, text: BARKS_LUCKY[Math.floor(Math.random() * BARKS_LUCKY.length)] });
       }
     });
+  }, []);
+
+  // 开箱特写时暂停砸击；特写结束若还按着则继续
+  useEffect(() => {
+    const offStart = on('revealStart', () => {
+      pausedRef.current = true;
+      if (holdRef.current) {
+        clearTimeout(holdRef.current);
+        holdRef.current = null;
+      }
+    });
+    const offEnd = on('revealEnd', () => {
+      pausedRef.current = false;
+      if (downRef.current && holdRef.current === null) {
+        runHold();
+      }
+    });
+    return () => {
+      offStart();
+      offEnd();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -105,29 +132,55 @@ export function GameScene() {
     }, 650);
   };
 
-  const doOne = (clientX: number, clientY: number) => {
+  const doOne = () => {
+    if (pausedRef.current) return;
     click();
     setSwing((v) => v + 1);
-    spawnFx(clientX, clientY);
+    spawnFx(ptrRef.current.x, ptrRef.current.y);
+    sfxRip();
     maybeBark();
+  };
+
+  const runHold = () => {
+    if (pausedRef.current) return;
+    doOne();
+    holdRef.current = window.setTimeout(runHold, clickCooldown(useGame.getState()));
   };
 
   const startHold = (e: React.PointerEvent) => {
     e.preventDefault();
-    doOne(e.clientX, e.clientY);
-    const loop = () => {
-      doOne(e.clientX, e.clientY);
-      holdRef.current = window.setTimeout(loop, clickCooldown(useGame.getState()));
-    };
-    holdRef.current = window.setTimeout(loop, clickCooldown(useGame.getState()));
+    downRef.current = true;
+    ptrRef.current = { x: e.clientX, y: e.clientY };
+    if (holdRef.current === null && !pausedRef.current) runHold();
+  };
+  const moveHold = (e: React.PointerEvent) => {
+    if (downRef.current) ptrRef.current = { x: e.clientX, y: e.clientY };
   };
   const endHold = () => {
+    downRef.current = false;
     if (holdRef.current) {
       clearTimeout(holdRef.current);
       holdRef.current = null;
     }
   };
   useEffect(() => () => endHold(), []);
+
+  // 全局监听抬手：特写覆盖层在上面时也能正确停下连砸
+  useEffect(() => {
+    const up = () => {
+      downRef.current = false;
+      if (holdRef.current) {
+        clearTimeout(holdRef.current);
+        holdRef.current = null;
+      }
+    };
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    return () => {
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+    };
+  }, []);
 
   const tool = TOOL_MAP[currentTool];
   const heat = combo >= 50 ? 'rage' : combo >= 20 ? 'hot' : combo >= 8 ? 'warm' : '';
@@ -164,6 +217,7 @@ export function GameScene() {
         className="stage"
         ref={stageRef}
         onPointerDown={startHold}
+        onPointerMove={moveHold}
         onPointerUp={endHold}
         onPointerLeave={endHold}
         onPointerCancel={endHold}
@@ -175,10 +229,14 @@ export function GameScene() {
           ) : (
             workbench.map((p) => {
               const pct = Math.max(0, (p.sealHP / p.sealMax) * 100);
-              const hurt = pct < 100;
+              const dmgStage = pct < 34 ? ' d2' : pct < 67 ? ' d1' : '';
               return (
-                <div className={'bigBox' + (hurt ? ' hurt' : '')} key={p.id} style={{ width: boxSize * 1.15 }}>
-                  <div className="bigBoxEmoji" key={swing} style={{ fontSize: boxSize }}>{p.emoji}</div>
+                <div className={'bigBox' + (pct < 100 ? ' hurt' : '') + dmgStage} key={p.id} style={{ width: boxSize * 1.15 }}>
+                  <div className="bigBoxWrap">
+                    <div className="bigBoxEmoji" key={swing} style={{ fontSize: boxSize }}>{p.emoji}</div>
+                    {pct < 67 && <span className="crack c1">💢</span>}
+                    {pct < 34 && <span className="crack c2">💥</span>}
+                  </div>
                   <div className="bigBoxName">{PARCEL_MAP[p.size].name}</div>
                   <div className="bigHp"><div className="bigHpFill" style={{ width: pct + '%' }} /></div>
                 </div>

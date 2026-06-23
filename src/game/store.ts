@@ -4,6 +4,7 @@ import { ACHIEVEMENTS } from '../data/achievements';
 import { BATCHES } from '../data/shop';
 import { COLLECTION_TOTAL } from '../data/items';
 import { PRESTIGE_MAP, prestigeNodeCost, reputationFor } from '../data/prestige';
+import { rarityRank } from '../data/rarity';
 import { nextTool } from '../data/tools';
 import { AUTO_SELL_COST, UPGRADE_MAP, upgradeBulkCost } from '../data/upgrades';
 import type { Rarity } from '../data/types';
@@ -96,10 +97,22 @@ function checkAchievements(d: GameState, out: EngineOut) {
   }
 }
 
-function emitOut(out: EngineOut) {
-  for (const b of out.bursts) emit('loot', b);
+/** 手动拆：砸击音效 + 震屏 + 开箱特写（不放飞小图标，特写代替） */
+function emitManual(out: EngineOut) {
   if (out.opened > 0) emit('open');
   if (out.shake) emit('shake');
+  for (const r of out.reveals) {
+    r.manual = true;
+    emit('reveal', r);
+  }
+}
+
+/** 自动拆：战利品流（飞图标 + 音效），只有稀有以上才弹特写 */
+function emitAuto(out: EngineOut) {
+  for (const b of out.bursts) emit('loot', b);
+  for (const r of out.reveals) {
+    if (rarityRank(r.topRarity) >= rarityRank('epic')) emit('reveal', r);
+  }
 }
 
 export const useGame = create<Store>()(
@@ -114,7 +127,7 @@ export const useGame = create<Store>()(
         doClick(d, Date.now(), liveRand, out);
         checkAchievements(d, out);
         set(d);
-        emitOut(out);
+        emitManual(out);
       },
 
       tick: (dtSec) => {
@@ -124,7 +137,7 @@ export const useGame = create<Store>()(
         doTick(d, dtSec, liveRand, out);
         if (out.bursts.length || out.cash) checkAchievements(d, out);
         set(d);
-        emitOut(out);
+        emitAuto(out);
       },
 
       buyUpgrade: (id, n = 1) => {

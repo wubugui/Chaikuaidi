@@ -13,7 +13,7 @@ import {
   luck,
   sellBonus,
 } from './compute';
-import type { LootBurst } from './events';
+import type { LootBurst, RevealData, RevealItem } from './events';
 import { nextId } from './events';
 import { rollItem, sellValue } from './systems/loot';
 import { COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
@@ -21,13 +21,14 @@ import { COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
 /** 引擎输出收集器（供 UI 在 set 之后播放音效/特效） */
 export interface EngineOut {
   bursts: LootBurst[];
+  reveals: RevealData[];
   opened: number;
   shake: boolean;
   cash: number;
 }
 
 export function newOut(): EngineOut {
-  return { bursts: [], opened: 0, shake: false, cash: 0 };
+  return { bursts: [], reveals: [], opened: 0, shake: false, cash: 0 };
 }
 
 export function makeParcel(size: ParcelSizeId, rand: () => number): Parcel {
@@ -65,32 +66,35 @@ export function refillBench(d: GameState) {
   if (d.workbench.length > d.maxBatch) d.maxBatch = d.workbench.length;
 }
 
-function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut) {
+function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut): RevealItem {
   const item = ITEM_MAP[itemId];
   if (rarity === 'legendary') d.legendaryFound = true;
   if (rarity === 'absurd') d.absurdFound = true;
 
   let isNew = false;
+  let value = 0;
   if (item.kind === 'collectible') {
     if (!d.collection.includes(itemId)) {
       d.collection.push(itemId);
       isNew = true;
     } else {
-      // 重复收藏品折算现金
-      gainMoney(d, RARITIES[rarity].sellMult * 10, out);
+      value = RARITIES[rarity].sellMult * 10;
+      gainMoney(d, value, out); // 重复收藏品折算现金
     }
   } else if (item.kind === 'quote') {
     if (!d.quotes.includes(itemId)) {
       d.quotes.push(itemId);
       isNew = true;
     } else {
-      gainMoney(d, RARITIES[rarity].sellMult * 10, out);
+      value = RARITIES[rarity].sellMult * 10;
+      gainMoney(d, value, out);
     }
   } else {
     // 可卖/材料：按自动卖货规则处理
+    value = sellValue(item, rarity, sellBonus(d));
     const keepRank = d.autoSellKeepAbove ? rarityRank(d.autoSellKeepAbove) : Infinity;
     if (d.autoSellUnlocked && d.autoSellEnabled && rarityRank(rarity) < keepRank) {
-      gainMoney(d, sellValue(item, rarity, sellBonus(d)), out);
+      gainMoney(d, value, out);
     } else {
       d.inventory[itemId] = (d.inventory[itemId] ?? 0) + 1;
     }
@@ -103,16 +107,36 @@ function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut)
     newKind: isNew ? (item.kind === 'quote' ? 'quote' : 'collectible') : undefined,
     quoteText: isNew && item.kind === 'quote' ? item.quote?.text : undefined,
   });
+  return {
+    emoji: item.emoji,
+    name: item.name,
+    rarity,
+    kind: item.kind,
+    value,
+    isNew,
+    quoteText: item.kind === 'quote' ? item.quote?.text : undefined,
+  };
 }
 
 function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut) {
   d.totalUnpacked += 1;
   out.opened += 1;
   const lp = { luck: luck(d) };
+  const items: RevealItem[] = [];
   for (let i = 0; i < p.lootCount; i++) {
     const rolled = rollItem(lp, rand);
-    applyLoot(d, rolled.rarity, rolled.item.id, out);
+    items.push(applyLoot(d, rolled.rarity, rolled.item.id, out));
   }
+  let topRarity = items[0]?.rarity ?? 'common';
+  for (const it of items) if (rarityRank(it.rarity) > rarityRank(topRarity)) topRarity = it.rarity;
+  out.reveals.push({
+    id: nextId(),
+    parcelEmoji: p.emoji,
+    parcelName: PARCEL_MAP[p.size].name,
+    items,
+    topRarity,
+    manual: false,
+  });
 }
 
 /** 一次点击：群体作用于工作台所有快递 */

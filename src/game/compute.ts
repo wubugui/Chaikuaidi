@@ -102,7 +102,7 @@ export function benchCapacity(s: GameState): number {
 /** 点击冷却(ms) */
 export function clickCooldown(s: GameState): number {
   const reduce = Math.min(up(s, 'clickSpeed') * UPGRADE_MAP.clickSpeed.effect, 0.8);
-  return 120 * (1 - reduce);
+  return 170 * (1 - reduce);
 }
 
 /** 到货间隔(秒) */

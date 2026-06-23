@@ -1,4 +1,4 @@
-import type { Rarity } from '../data/types';
+import type { ItemKind, Rarity } from '../data/types';
 
 export interface LootBurst {
   id: number;
@@ -16,11 +16,35 @@ export interface FloatText {
   kind: 'damage' | 'cash' | 'combo';
 }
 
+/** 开箱特写里的单件战利品 */
+export interface RevealItem {
+  emoji: string;
+  name: string;
+  rarity: Rarity;
+  kind: ItemKind;
+  value: number; // 可卖/材料的售价；收藏/语录为 0
+  isNew: boolean; // 新收藏品/新语录
+  quoteText?: string;
+}
+
+/** 一次开箱事件（一个快递拆开后掉的东西） */
+export interface RevealData {
+  id: number;
+  parcelEmoji: string;
+  parcelName: string;
+  items: RevealItem[];
+  topRarity: Rarity;
+  manual: boolean; // 手动拆（走完整特写）还是自动拆出的稀有
+}
+
 type Handlers = {
   loot: (b: LootBurst) => void;
   float: (f: FloatText) => void;
   open: () => void;
   shake: () => void;
+  reveal: (r: RevealData) => void;
+  revealStart: () => void;
+  revealEnd: () => void;
 };
 
 const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
@@ -28,6 +52,9 @@ const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
   float: new Set(),
   open: new Set(),
   shake: new Set(),
+  reveal: new Set(),
+  revealStart: new Set(),
+  revealEnd: new Set(),
 };
 
 let uid = 1;
