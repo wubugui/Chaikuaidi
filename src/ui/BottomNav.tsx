@@ -1,4 +1,4 @@
-export type PanelId = 'bag' | 'upgrade' | 'shop' | 'workshop' | 'backlog' | 'merchant' | 'quotes' | 'mutations' | 'collection' | 'achievements' | 'prestige';
+export type PanelId = 'bag' | 'upgrade' | 'shop' | 'workshop' | 'backlog' | 'factory' | 'merchant' | 'quotes' | 'mutations' | 'collection' | 'achievements' | 'prestige';
 
 export interface NavItem {
   id: PanelId;
@@ -13,6 +13,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'shop', label: '进货', emoji: '🛒', minStage: 2 },
   { id: 'workshop', label: '工坊', emoji: '🔧', minStage: 2 },
   { id: 'backlog', label: '积压', emoji: '📥', minStage: 2 },
+  { id: 'factory', label: '厂房', emoji: '🏭', minStage: 3 },
   { id: 'merchant', label: '黑市', emoji: '🕶️', minStage: 2 },
   { id: 'quotes', label: '语录', emoji: '🗯️', minStage: 2 },
   { id: 'mutations', label: '变异', emoji: '🧬', minStage: 3 },

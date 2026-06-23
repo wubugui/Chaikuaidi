@@ -3,6 +3,7 @@ import type { MerchantOffer } from '../data/merchant';
 import { FIRST_VISIT_DELAY } from '../data/merchant';
 import type { MutationId } from '../data/mutations';
 import type { ParcelSizeId, Rarity, ToolId } from '../data/types';
+import { FACTORY_BASE_SPACE, PIPELINE_SPACE } from '../data/giants';
 
 export interface Parcel {
   id: number;
@@ -18,6 +19,9 @@ export interface Parcel {
   hollowChance?: number; // 扑空概率（原石）：开箱瞬间小概率啥也没有
   danger?: boolean;      // 危险品：用错工具开箱会爆炸
   requireMutation?: MutationId; // 变异门：没有该变异时任何工具都撬不动
+  requirePipeline?: string; // 巨型货门：仅对应拆卸管线能开，任何手动工具亲和度=0（最高优先级硬门）
+  partBonus?: number;    // 额外零件掉率加成（巨型货爆很多零件）
+  space?: number;        // 占用厂房格子（仅巨型货）
 }
 
 export interface GameState {
@@ -74,6 +78,9 @@ export interface GameState {
   devices: Record<string, number>;      // 已建造设备 id -> 台数
   deviceAccum: Record<string, number>;  // 每种设备的累计计时（秒）
 
+  // 厂房 / 巨型货 / 拆卸管线
+  factorySpace: number; // 厂房总空间（基础 4，扩建 +2/次）
+
   // 黑市商人
   merchant: { until: number; offers: MerchantOffer[] } | null; // 当前在场的黑市商人，null=不在
   merchantNextAt: number; // 下次到访时间戳(ms)
@@ -124,6 +131,7 @@ export function initialState(): GameState {
     targetBlueprint: null,
     devices: {},
     deviceAccum: {},
+    factorySpace: FACTORY_BASE_SPACE,
     merchant: null,
     merchantNextAt: Date.now() + FIRST_VISIT_DELAY,
     audioEnabled: true,
@@ -140,6 +148,28 @@ export function initialState(): GameState {
 export function backlogGroupKey(p: Parcel, sizeName: string): string {
   const name = p.label ?? sizeName;
   return [name, p.material, p.danger ? 'd' : '', p.requireMutation ?? ''].join('|');
+}
+
+/**
+ * 厂房已占用空间 = Σ(积压区里巨型货的 space) + Σ(已建拆卸管线的占地)。
+ * 巨型货拆开离开积压区后自动腾出空间；管线拆掉则需要专门移除（本期不提供拆除）。
+ */
+export function factoryUsed(s: GameState): number {
+  let used = 0;
+  for (const p of s.backlog) {
+    if (p.requirePipeline) used += p.space ?? 0;
+  }
+  const devices = s.devices ?? {};
+  for (const devId of Object.keys(devices)) {
+    const each = PIPELINE_SPACE[devId];
+    if (each) used += each * (devices[devId] ?? 0);
+  }
+  return used;
+}
+
+/** 厂房剩余空间 */
+export function factoryFree(s: GameState): number {
+  return (s.factorySpace ?? FACTORY_BASE_SPACE) - factoryUsed(s);
 }
 
 /** 语录装备槽位：基础 1 + 转生节点 */

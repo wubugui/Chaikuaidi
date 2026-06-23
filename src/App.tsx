@@ -6,6 +6,7 @@ import { UpgradePanel } from './ui/UpgradePanel';
 import { Shop } from './ui/Shop';
 import { Workshop } from './ui/Workshop';
 import { Backlog } from './ui/Backlog';
+import { Factory } from './ui/Factory';
 import { Merchant } from './ui/Merchant';
 import { MerchantBanner } from './ui/MerchantBanner';
 import { BoomFlash } from './ui/effects/BoomFlash';
@@ -31,6 +32,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   shop: '🛒 进货批次',
   workshop: '🛠️ 工坊',
   backlog: '📥 积压区',
+  factory: '🏭 厂房 & 拆卸管线',
   merchant: '🕶️ 黑市商人',
   quotes: '🗯️ 暴躁语录',
   mutations: '🧬 变异肉身',
@@ -78,6 +80,7 @@ export default function App() {
               {active === 'shop' && <Shop />}
               {active === 'workshop' && <Workshop />}
               {active === 'backlog' && <Backlog />}
+              {active === 'factory' && <Factory />}
               {active === 'merchant' && <Merchant />}
               {active === 'quotes' && <Quotes />}
               {active === 'mutations' && <Mutations />}

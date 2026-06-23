@@ -1,9 +1,10 @@
+import { GIANTS } from './giants';
 import { CONTAINERS, LUGGAGE } from './shop';
 
 /** 黑市商人当前的一条报价 */
 export interface MerchantOffer {
-  id: string;              // 商品 id（容器/行李的 id）
-  kind: 'luggage' | 'container';
+  id: string;              // 商品 id（容器/行李/巨型货的 id）
+  kind: 'luggage' | 'container' | 'giant';
   price: number;           // 折后价
   stock: number;           // 本次到访的限量库存（卖一件减一）
 }
@@ -24,13 +25,13 @@ export const MERCHANT_ONLY_CONTAINERS: ReadonlySet<string> = new Set(['missile',
 
 interface PoolEntry {
   id: string;
-  kind: 'luggage' | 'container';
+  kind: 'luggage' | 'container' | 'giant';
   basePrice: number;
   /** 抽中权重：越高级越稀有(权重越小)，但仍给点机会 */
   weight: number;
 }
 
-/** 商人备货池：商人专属容器（高权重稀缺感弱一点）+ 部分特殊行李 */
+/** 商人备货池：商人专属容器（高权重稀缺感弱一点）+ 部分特殊行李 + 商人专属巨型货 */
 export const MERCHANT_POOL: PoolEntry[] = (() => {
   const pool: PoolEntry[] = [];
   for (const c of CONTAINERS) {
@@ -41,6 +42,11 @@ export const MERCHANT_POOL: PoolEntry[] = (() => {
   for (const l of LUGGAGE) {
     if (l.unlockStage < 3) continue;
     pool.push({ id: l.id, kind: 'luggage', basePrice: l.price, weight: 0.6 / Math.sqrt(l.price) });
+  }
+  // 商人专属巨型货（货轮/坦克/飞机）：只能在黑市抢到，稀缺感强（权重小）
+  for (const g of GIANTS) {
+    if (!g.merchantOnly) continue;
+    pool.push({ id: g.id, kind: 'giant', basePrice: g.price, weight: 0.4 / Math.sqrt(g.price) });
   }
   return pool;
 })();

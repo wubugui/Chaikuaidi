@@ -121,6 +121,12 @@ export const ITEMS: ItemDef[] = [
   { id:'p_servo',  name:'伺服电机',   emoji:'🔧', kind:'part', rarity:'epic',   baseValue:20 },
   { id:'p_belt',   name:'传送带组件', emoji:'🎞️', kind:'part', rarity:'epic',   baseValue:24 },
 
+  // ---- 巨型货拆解原料（成堆掉落，P4b 精炼成元素）----
+  { id:'r_scrapiron',  name:'废铁',     emoji:'🧱', kind:'material', rarity:'common', baseValue:2 },
+  { id:'r_wireharness',name:'线束',     emoji:'🪢', kind:'material', rarity:'common', baseValue:3 },
+  { id:'r_alloyblock', name:'合金块',   emoji:'🟦', kind:'material', rarity:'rare',   baseValue:8 },
+  { id:'r_plastic',    name:'工程塑料', emoji:'🧴', kind:'material', rarity:'common', baseValue:2 },
+
   // ---- 原石扑空（价值 0，非收藏）----
   { id:'hollow', name:'空心的……啥也没有', emoji:'💨', kind:'sellable', rarity:'common', baseValue:0 },
 

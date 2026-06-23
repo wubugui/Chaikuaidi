@@ -1,5 +1,6 @@
 import { BLUEPRINTS, DEVICE_BLUEPRINT, type BlueprintDef } from '../data/blueprints';
-import { AUTO_LINE_INTERVAL } from '../game/state';
+import { AUTO_LINE_INTERVAL, factoryFree } from '../game/state';
+import { PIPELINE_INTERVAL, PIPELINE_NAME, PIPELINE_SPACE } from '../data/giants';
 import { ITEM_MAP } from '../data/items';
 import { MATERIALS } from '../data/materials';
 import { useGame } from '../game/store';
@@ -7,6 +8,11 @@ import { money } from '../lib/format';
 
 function deviceEffectLine(devId: string, count: number): string {
   const bp = DEVICE_BLUEPRINT[devId];
+  if (PIPELINE_SPACE[devId]) {
+    const per = (PIPELINE_INTERVAL / count).toFixed(1);
+    const what = devId === 'pipeline_heavy' ? '货轮/坦克' : '汽车/客机';
+    return `${PIPELINE_NAME[devId]} ×${count}（占厂房 ${PIPELINE_SPACE[devId] * count} 格）：每 ~${per}s 拆掉一件${what}`;
+  }
   if (!bp) return `${devId} ×${count}`;
   if (bp.autolineMaterial) {
     const mat = MATERIALS[bp.autolineMaterial];
@@ -19,10 +25,18 @@ function deviceEffectLine(devId: string, count: number): string {
   return `${bp.name} ×${count}`;
 }
 
+/** 该图纸合成时是否被厂房空间卡住（拆卸管线占地） */
+function pipelineSpaceBlocked(s: ReturnType<typeof useGame.getState>, bp: BlueprintDef): boolean {
+  if (bp.result.type !== 'device') return false;
+  const need = PIPELINE_SPACE[bp.result.id];
+  return !!need && factoryFree(s) < need;
+}
+
 function craftable(s: ReturnType<typeof useGame.getState>, bp: BlueprintDef): boolean {
   if (!s.blueprints.includes(bp.id)) return false;
   if (s.money < bp.moneyCost) return false;
   for (const inp of bp.inputs) if ((s.inventory[inp.item] ?? 0) < inp.qty) return false;
+  if (pipelineSpaceBlocked(s, bp)) return false;
   return true;
 }
 
@@ -103,6 +117,9 @@ export function Workshop() {
                   <button className="btn small primary" disabled={!canCraft} onClick={() => craft(bp.id)}>
                     合成
                   </button>
+                  {pipelineSpaceBlocked(s, bp) && (
+                    <span className="benchFullHint">🏭 厂房放不下，先去厂房扩建</span>
+                  )}
                 </>
               )}
             </div>

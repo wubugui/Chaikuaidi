@@ -29,6 +29,7 @@ import type { LootBurst, RevealData, RevealItem } from './events';
 import { emit, nextId } from './events';
 import { rollItem, rollPart, sellValue } from './systems/loot';
 import { BLUEPRINT_MAP, sorterBonus } from '../data/blueprints';
+import { PIPELINE_INTERVAL, PIPELINE_SPACE } from '../data/giants';
 import { AUTO_LINE_INTERVAL, COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
 
 /** 反馈/震动分级（none<ineffective<hit<crack<open<danger） */
@@ -78,6 +79,9 @@ export interface ParcelOpts {
   hollowChance?: number;
   danger?: boolean;
   requireMutation?: MutationId;
+  requirePipeline?: string;
+  partBonus?: number;
+  space?: number;
 }
 
 export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: ParcelOpts): Parcel {
@@ -99,6 +103,9 @@ export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: Parcel
     hollowChance: opts?.hollowChance,
     danger: opts?.danger,
     requireMutation: opts?.requireMutation,
+    requirePipeline: opts?.requirePipeline,
+    partBonus: opts?.partBonus,
+    space: opts?.space,
   };
 }
 
@@ -258,9 +265,13 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
     const item = applyLoot(d, rolled.rarity, rolled.item.id, out);
     items.push(item);
   }
-  // 零件副产物：独立于主掉落池的稀缺掉落（金属/危险货更易出；分拣机加成）
-  const partItem = rollPart(p.material, rand, sorterBonus(d));
-  if (partItem) {
+  // 零件副产物：独立于主掉落池的稀缺掉落（金属/危险货更易出；分拣机加成）。
+  // 巨型货（partBonus）一次拆解会喷出成堆零件：多掷几次 + 大幅提高掉率。
+  const partRolls = p.partBonus ? 6 : 1;
+  const partBonusTotal = sorterBonus(d) + (p.partBonus ?? 0);
+  for (let r = 0; r < partRolls; r++) {
+    const partItem = rollPart(p.material, rand, partBonusTotal);
+    if (!partItem) continue;
     d.inventory[partItem.id] = (d.inventory[partItem.id] ?? 0) + 1;
     out.bursts.push({ id: nextId(), emoji: partItem.emoji, rarity: partItem.rarity, isNewCollectible: false });
     items.push({
@@ -400,6 +411,8 @@ export function effectiveAffinity(
   bodyAff = 0,
   hasRequiredMutation = true,
 ): number {
+  // 巨型货门（最高优先级硬门）：必须靠拆卸管线开 → 任何手动工具/肉身/软地板亲和度都为 0
+  if (p.requirePipeline) return 0;
   // 变异门：缺少指定变异时硬锁（唯一保留的硬门槛 → 返回 0）
   if (p.requireMutation && !hasRequiredMutation) return 0;
   const real = TOOL_MAP[toolId as keyof typeof TOOL_MAP]?.affinity[p.material] ?? 0;
@@ -469,7 +482,7 @@ export function tickMerchant(d: GameState, rand: () => number) {
           id: e.id,
           kind: e.kind,
           price: Math.round(e.basePrice * MERCHANT_DISCOUNT),
-          stock: randInt(1, 3, rand),
+          stock: e.kind === 'giant' ? 1 : randInt(1, 3, rand), // 巨型货限量 1
         });
       }
       d.merchant = { until: now + MERCHANT_DURATION, offers };
@@ -516,6 +529,35 @@ function tickAutoLines(d: GameState, dtSec: number, rand: () => number, out: Eng
   }
 }
 
+/**
+ * 拆卸管线步进：每条拆卸管线按计时从积压区拉取「requirePipeline === 该管线 id」的巨型货自动开箱。
+ * - 这是巨型货被打开的唯一途径（手动工具亲和度恒为 0）。
+ * - 巨型货开箱后离开 backlog → 自动腾出厂房空间。
+ * - 没有匹配的巨型货时管线空转，计时封顶不堆积。
+ * - 多条同管线 = 更快。
+ */
+function tickPipelines(d: GameState, dtSec: number, rand: () => number, out: EngineOut) {
+  if (!d.devices) return;
+  for (const pipelineId of Object.keys(PIPELINE_SPACE)) {
+    const count = d.devices[pipelineId] ?? 0;
+    if (count <= 0) continue;
+    d.deviceAccum[pipelineId] = (d.deviceAccum[pipelineId] ?? 0) + dtSec * count;
+    let safety = 50;
+    while (d.deviceAccum[pipelineId] >= PIPELINE_INTERVAL && safety-- > 0) {
+      const idx = d.backlog.findIndex((p) => p.requirePipeline === pipelineId);
+      if (idx < 0) break; // 没有匹配的巨型货，空转
+      d.deviceAccum[pipelineId] -= PIPELINE_INTERVAL;
+      const [giant] = d.backlog.splice(idx, 1);
+      // 管线开巨型货时清掉硬门，否则 effAffFor 仍为 0 并不影响（直接 openParcel）。
+      openParcel(d, giant, rand, out, false, true /* 管线视为不安全开箱者 */);
+    }
+    // 空转时计时封顶
+    if (d.backlog.findIndex((p) => p.requirePipeline === pipelineId) < 0) {
+      d.deviceAccum[pipelineId] = Math.min(d.deviceAccum[pipelineId], PIPELINE_INTERVAL);
+    }
+  }
+}
+
 /** 游戏循环步进 */
 export function doTick(d: GameState, dtSec: number, rand: () => number, out: EngineOut) {
   tickMerchant(d, rand);
@@ -543,6 +585,9 @@ export function doTick(d: GameState, dtSec: number, rand: () => number, out: Eng
 
   // 自动拆转区：消化积压区
   tickAutoLines(d, dtSec, rand, out);
+
+  // 拆卸管线：消化厂房里的巨型货
+  tickPipelines(d, dtSec, rand, out);
 
   refillStageAndUnpack(d);
 }

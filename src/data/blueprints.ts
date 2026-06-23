@@ -85,6 +85,30 @@ export const BLUEPRINTS: BlueprintDef[] = [
     repeatable: true,
     autolineMaterial: 'stone',
   },
+  {
+    id: 'bp_pipeline_auto',
+    name: '轻型拆卸管线图纸',
+    emoji: '🏭',
+    desc: '建一条轻型拆卸管线（占厂房 2 格），自动把报废汽车 🚗 / 坠毁客机 ✈️ 慢慢肢解成成堆零件与原料。',
+    buyCost: 12000,
+    unlockStage: 3,
+    inputs: [{ item: 'p_servo', qty: 4 }, { item: 'p_belt', qty: 4 }, { item: 'p_circuit', qty: 4 }],
+    moneyCost: 8000,
+    result: { type: 'device', id: 'pipeline_auto' },
+    repeatable: true,
+  },
+  {
+    id: 'bp_pipeline_heavy',
+    name: '重型拆卸管线图纸',
+    emoji: '🏭',
+    desc: '建一条重型拆卸管线（占厂房 3 格），啃得动搁浅货轮 🚢 / 退役坦克 🚜——慢，但成吨地出货。',
+    buyCost: 60000,
+    unlockStage: 4,
+    inputs: [{ item: 'p_servo', qty: 8 }, { item: 'p_belt', qty: 8 }, { item: 'p_circuit', qty: 6 }, { item: 'p_spring', qty: 6 }],
+    moneyCost: 40000,
+    result: { type: 'device', id: 'pipeline_heavy' },
+    repeatable: true,
+  },
 ];
 
 export const BLUEPRINT_MAP: Record<string, BlueprintDef> = Object.fromEntries(

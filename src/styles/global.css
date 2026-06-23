@@ -806,3 +806,45 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   70% { transform: scale(1); opacity: 1; }
   100% { transform: scale(1) translateY(-30px); opacity: 0; }
 }
+
+/* ---- 厂房 / 巨型货 / 拆卸管线 ---- */
+.factoryPanel { display: flex; flex-direction: column; gap: 10px; }
+.factorySpaceBar {
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+  background: var(--card); display: flex; flex-direction: column; gap: 8px;
+}
+.factorySpaceHead { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.factorySpaceHead b { color: #ffce3a; }
+.factoryFree { color: var(--muted, #9c92b5); font-size: 12px; margin-left: auto; }
+.spaceBarTrack {
+  height: 12px; border-radius: 999px; background: #18122a;
+  border: 1px solid var(--line); overflow: hidden;
+}
+.spaceBarFill {
+  height: 100%; background: linear-gradient(90deg, #34d399, #ffce3a);
+  transition: width 0.3s ease;
+}
+.giantHeldList, .pipelineList, .giantShopList { display: flex; flex-direction: column; gap: 8px; }
+.giantHeldRow, .pipelineRow {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: var(--card);
+}
+.giantEmoji { font-size: 26px; }
+.giantInfo { display: flex; flex-direction: column; gap: 3px; }
+.giantName { font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.giantSpace {
+  font-size: 10px; background: #00000033; border: 1px solid var(--line);
+  border-radius: 999px; padding: 1px 7px; color: #c9bfe0;
+}
+.giantPipeTag {
+  font-size: 10px; background: #6b3fa033; border: 1px solid #a855f7;
+  border-radius: 999px; padding: 1px 7px; color: #d8b4fe;
+}
+.giantProgress { font-size: 11px; color: #34d399; }
+.giantNeedPipe { font-size: 11px; color: #ffce3a; }
+.giantCard {
+  display: flex; align-items: flex-start; gap: 10px;
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: var(--card);
+}
+.giantCard.locked { opacity: 0.5; }
+.giantBuyCol { display: flex; flex-direction: column; gap: 4px; align-items: stretch; margin-left: auto; }

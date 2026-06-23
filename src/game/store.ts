@@ -10,6 +10,10 @@ import { PARCEL_MAP } from '../data/parcels';
 import { TOOL_MAP, TOOLS, toolUpgradeCost } from '../data/tools';
 import { AUTO_SELL_COST, UPGRADE_MAP, upgradeBulkCost } from '../data/upgrades';
 import { BLUEPRINT_MAP } from '../data/blueprints';
+import {
+  GIANT_MAP, PIPELINE_SPACE, FACTORY_BASE_SPACE, FACTORY_EXPAND_STEP,
+  factoryExpandCost, type GiantDef,
+} from '../data/giants';
 import type { Rarity, ToolId } from '../data/types';
 import { emit, seedId } from './events';
 import {
@@ -24,9 +28,18 @@ import {
 } from './engine';
 import { benchCapacity, quoteSlots } from './compute';
 import { settleOffline, type OfflineResult } from './systems/offline';
-import { backlogGroupKey, initialState, type GameState, type Parcel } from './state';
+import { backlogGroupKey, factoryFree, initialState, type GameState, type Parcel } from './state';
 
 const liveRand = () => Math.random();
+
+/** 造一个巨型货快递（占厂房、需拆卸管线，仅 P4a） */
+function makeGiantParcel(g: GiantDef): Parcel {
+  return makeParcel('container', liveRand, {
+    material: g.material, emoji: g.emoji, label: g.name, sealMax: g.sealMax,
+    lootMin: g.lootMin, lootMax: g.lootMax, luckBonus: g.luckBonus, pool: g.pool,
+    requirePipeline: g.requirePipeline, partBonus: g.partBonus, space: g.space,
+  });
+}
 
 /** 造一个行李快递（买入/黑市共用） */
 function makeLuggageParcel(lug: LuggageDef): Parcel {
@@ -70,6 +83,8 @@ interface Actions {
   buyBatch: (batchId: string) => void;
   buyLuggage: (id: string) => void;
   buyContainer: (id: string) => void;
+  buyGiant: (id: string) => void;
+  expandFactory: () => void;
   buyFromMerchant: (offerId: string) => void;
   loadFromBacklog: (parcelId: number) => void;
   dumpGroupToBelt: (key: string) => void;
@@ -301,15 +316,44 @@ export const useGame = create<Store>()(
         set(d);
       },
 
+      // 巨型货：阶段 + 钱 + 厂房空间三重门，买入推入积压区（占厂房，仅拆卸管线能开）
+      buyGiant: (id) => {
+        const s = get();
+        const g = GIANT_MAP[id];
+        if (!g || g.merchantOnly) return;
+        if (s.stage < g.unlockStage || s.money < g.price) return;
+        if (factoryFree(s) < g.space) return; // 厂房放不下
+        const d = draft(s);
+        d.money -= g.price;
+        d.backlog.push(makeGiantParcel(g));
+        set(d);
+      },
+
+      // 扩建厂房：钱门，+2 空间，成本随已扩建次数指数增长
+      expandFactory: () => {
+        const s = get();
+        const cost = factoryExpandCost(s.factorySpace ?? FACTORY_BASE_SPACE);
+        if (s.money < cost) return;
+        const d = draft(s);
+        d.money -= cost;
+        d.factorySpace = (s.factorySpace ?? FACTORY_BASE_SPACE) + FACTORY_EXPAND_STEP;
+        set(d);
+      },
+
       buyFromMerchant: (offerId) => {
         const s = get();
         if (!s.merchant) return;
         const offer = s.merchant.offers.find((o) => o.id === offerId);
         if (!offer || offer.stock <= 0 || s.money < offer.price) return;
+        const giant = offer.kind === 'giant' ? GIANT_MAP[offer.id] : undefined;
+        // 巨型货：还需通过厂房空间门
+        if (giant && factoryFree(s) < giant.space) return;
         const good =
           offer.kind === 'container'
             ? CONTAINERS.find((c) => c.id === offer.id)
-            : LUGGAGE.find((l) => l.id === offer.id);
+            : offer.kind === 'giant'
+              ? giant
+              : LUGGAGE.find((l) => l.id === offer.id);
         if (!good) return;
         const d = draft(s);
         d.money -= offer.price;
@@ -323,7 +367,9 @@ export const useGame = create<Store>()(
         d.backlog.push(
           offer.kind === 'container'
             ? makeContainerParcel(good as ContainerDef)
-            : makeLuggageParcel(good as LuggageDef),
+            : offer.kind === 'giant'
+              ? makeGiantParcel(good as GiantDef)
+              : makeLuggageParcel(good as LuggageDef),
         );
         set(d);
       },
@@ -333,6 +379,8 @@ export const useGame = create<Store>()(
         if (s.workbench.length >= benchCapacity(s)) return;
         const idx = s.backlog.findIndex((p) => p.id === parcelId);
         if (idx < 0) return;
+        // 巨型货是管线专属：不允许手动上台（亲和度恒为 0，上台只会卡死工作台）
+        if (s.backlog[idx].requirePipeline) return;
         const d = draft(s);
         const [p] = d.backlog.splice(idx, 1);
         d.workbench.push(p);
@@ -449,6 +497,11 @@ export const useGame = create<Store>()(
           if ((s.inventory[inp.item] ?? 0) < inp.qty) return;
         }
         if (s.money < bp.moneyCost) return;
+        // 拆卸管线占厂房空间：放不下则拒绝
+        if (bp.result.type === 'device') {
+          const need = PIPELINE_SPACE[bp.result.id];
+          if (need && factoryFree(s) < need) return;
+        }
         const d = draft(s);
         for (const inp of bp.inputs) {
           d.inventory[inp.item] = (d.inventory[inp.item] ?? 0) - inp.qty;
@@ -506,7 +559,7 @@ export const useGame = create<Store>()(
       partialize: (s) => {
         const {
           offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
-          sellAllItems, buyBatch, buyLuggage, buyContainer, buyFromMerchant, loadFromBacklog, dumpGroupToBelt,
+          sellAllItems, buyBatch, buyLuggage, buyContainer, buyGiant, expandFactory, buyFromMerchant, loadFromBacklog, dumpGroupToBelt,
           shelveToBacklog, buyPrestige, prestige, buyBlueprint, setTargetBlueprint, craftBlueprint,
           equipQuote, unequipQuote, markIntroSeen,
           toggleAudio, hardReset, dismissOffline, ...rest
@@ -514,6 +567,7 @@ export const useGame = create<Store>()(
         void offline; void click; void tick; void buyUpgrade; void buyTool; void selectTool; void upgradeTool;
         void buyAutoSell;
         void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyLuggage; void buyContainer; void buyPrestige;
+        void buyGiant; void expandFactory;
         void buyFromMerchant; void loadFromBacklog; void dumpGroupToBelt; void shelveToBacklog;
         void prestige; void buyBlueprint; void setTargetBlueprint; void craftBlueprint;
         void equipQuote; void unequipQuote; void markIntroSeen;
@@ -535,6 +589,7 @@ export const useGame = create<Store>()(
         if (state.targetBlueprint === undefined) state.targetBlueprint = null;
         if (state.devices === undefined) state.devices = {};
         if (state.deviceAccum === undefined) state.deviceAccum = {};
+        if (state.factorySpace === undefined) state.factorySpace = FACTORY_BASE_SPACE;
 
         // id 计数器抬升，避免 key 冲突
         let maxId = 0;
