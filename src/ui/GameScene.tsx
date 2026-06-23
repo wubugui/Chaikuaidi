@@ -80,7 +80,6 @@ export function GameScene() {
   const holdRef = useRef<number | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const lastBarkRef = useRef(0);
-  const pausedRef = useRef(false); // 开箱特写时暂停砸击
   const downRef = useRef(false); // 是否仍按住
   const ptrRef = useRef({ x: 0, y: 0 });
 
@@ -145,27 +144,7 @@ export function GameScene() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 开箱特写时暂停砸击；特写结束若还按着则继续
-  useEffect(() => {
-    const offStart = on('revealStart', () => {
-      pausedRef.current = true;
-      if (holdRef.current) {
-        clearTimeout(holdRef.current);
-        holdRef.current = null;
-      }
-    });
-    const offEnd = on('revealEnd', () => {
-      pausedRef.current = false;
-      if (downRef.current && holdRef.current === null) {
-        runHold();
-      }
-    });
-    return () => {
-      offStart();
-      offEnd();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // P7：全屏特写已退役，不再暂停砸击（revealStart/revealEnd 不再 emit）。
 
   useEffect(() => {
     if (!bark) return;
@@ -212,7 +191,6 @@ export function GameScene() {
   };
 
   const doOne = () => {
-    if (pausedRef.current) return;
     // 本次点击是否对工作台任意一个箱子有效（决定是否放特效/音效）
     const st = useGame.getState();
     const effective = st.workbench.some((p) => effAff(st, p) > 0);
@@ -226,7 +204,6 @@ export function GameScene() {
   };
 
   const runHold = () => {
-    if (pausedRef.current) return;
     doOne();
     holdRef.current = window.setTimeout(runHold, clickCooldown(useGame.getState()));
   };
@@ -235,7 +212,7 @@ export function GameScene() {
     e.preventDefault();
     downRef.current = true;
     ptrRef.current = { x: e.clientX, y: e.clientY };
-    if (holdRef.current === null && !pausedRef.current) runHold();
+    if (holdRef.current === null) runHold();
   };
   const moveHold = (e: React.PointerEvent) => {
     if (downRef.current) ptrRef.current = { x: e.clientX, y: e.clientY };

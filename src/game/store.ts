@@ -148,6 +148,7 @@ function draft(s: GameState): GameState {
     missions: (s.missions ?? []).slice(),
     doneMissions: (s.doneMissions ?? []).slice(),
     boughtUniques: (s.boughtUniques ?? []).slice(),
+    recentLoot: (s.recentLoot ?? []).map((e) => ({ ...e })),
   };
 }
 
@@ -745,6 +746,7 @@ export const useGame = create<Store>()(
         }
         if (state.doneMissions === undefined) state.doneMissions = [];
         if (state.boughtUniques === undefined) state.boughtUniques = [];
+        if (!Array.isArray(state.recentLoot)) state.recentLoot = [];
 
         // id 计数器抬升，避免 key 冲突
         let maxId = 0;

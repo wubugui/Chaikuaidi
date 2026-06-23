@@ -97,6 +97,9 @@ export interface GameState {
   // 独一无二：买过一次后从黑市消失的离谱货 id
   boughtUniques: string[];
 
+  // 背包顶部「最近获得」集中区：稀有+ 掉落汇集到此供事后回顾（最新在前，最多 12 条）
+  recentLoot: { itemId: string; rarity: Rarity }[];
+
   // 杂项
   audioEnabled: boolean;
   introSeen: boolean; // 开场演出是否看过
@@ -154,6 +157,7 @@ export function initialState(): GameState {
     missions: [],
     doneMissions: [],
     boughtUniques: [],
+    recentLoot: [],
     audioEnabled: true,
     introSeen: false,
     lastSeen: Date.now(),
@@ -161,6 +165,9 @@ export function initialState(): GameState {
     uiBusy: false,
   };
 }
+
+/** 「最近获得」上限：只留最新 12 条 */
+export const RECENT_LOOT_CAP = 12;
 
 /**
  * 积压区分组键：稳定地把同种货归到一组。

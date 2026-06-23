@@ -33,15 +33,15 @@ describe('App renders', () => {
 });
 
 describe('isShowcase threshold', () => {
-  it('只有「离谱」(absurd) 才全屏；普通/稀有/史诗/传说都是小浮窗', () => {
+  it('P7：全屏特写已退役——任何稀有度（含离谱）都不再全屏阻塞', () => {
     expect(isShowcase(reveal('common', true))).toBe(false);
     expect(isShowcase(reveal('rare', true))).toBe(false);
     expect(isShowcase(reveal('epic', true))).toBe(false);
     expect(isShowcase(reveal('legendary', true))).toBe(false);
-    expect(isShowcase(reveal('absurd', true))).toBe(true);
+    expect(isShowcase(reveal('absurd', true))).toBe(false);
   });
-  it('自动揭晓同样只在离谱档全屏', () => {
+  it('自动揭晓同样不再全屏（含离谱）', () => {
     expect(isShowcase(reveal('legendary', false))).toBe(false);
-    expect(isShowcase(reveal('absurd', false))).toBe(true);
+    expect(isShowcase(reveal('absurd', false))).toBe(false);
   });
 });

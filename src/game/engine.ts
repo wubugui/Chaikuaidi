@@ -33,7 +33,19 @@ import { PIPELINE_INTERVAL, PIPELINE_SPACE } from '../data/giants';
 import { REFINES, REFINE_INTERVAL, REFINE_MAP, REFINERY_DEVICE, type RefineRecipe } from '../data/refine';
 import { MISSION_MAP } from '../data/missions';
 import { PARTS, ELEMENTS } from '../data/items';
-import { AUTO_LINE_INTERVAL, COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
+import { AUTO_LINE_INTERVAL, COMBO_WINDOW_MS, RECENT_LOOT_CAP, type GameState, type Parcel } from './state';
+
+/**
+ * 记录一件「值得一看」的掉落到背包顶部「最近获得」区（最新在前，封顶 RECENT_LOOT_CAP）。
+ * 只收 稀有+（rarityRank >= rare）；普通垃圾与扑空 💨(hollow) 跳过。
+ */
+function recordRecent(d: GameState, itemId: string, rarity: Rarity) {
+  if (itemId === 'hollow') return;
+  if (rarityRank(rarity) < rarityRank('rare')) return;
+  if (!d.recentLoot) d.recentLoot = [];
+  d.recentLoot.unshift({ itemId, rarity });
+  if (d.recentLoot.length > RECENT_LOOT_CAP) d.recentLoot.length = RECENT_LOOT_CAP;
+}
 
 /** 反馈/震动分级（none<ineffective<hit<crack<open<danger） */
 export type FeedbackLevel = 'none' | 'ineffective' | 'hit' | 'crack' | 'open' | 'danger';
@@ -141,6 +153,7 @@ function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut)
   const item = ITEM_MAP[itemId];
   if (rarity === 'legendary') d.legendaryFound = true;
   if (rarity === 'absurd') d.absurdFound = true;
+  recordRecent(d, itemId, rarity); // 稀有+ 汇入「最近获得」（hollow/普通自动跳过）
 
   let isNew = false;
   let value = 0;
@@ -252,7 +265,7 @@ function explode(d: GameState, p: Parcel, rand: () => number, out: EngineOut) {
   }
 }
 
-function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false, forceUnsafe = false) {
+export function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false, forceUnsafe = false) {
   d.totalUnpacked += 1;
   out.opened += 1;
 
@@ -300,6 +313,7 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
     const partItem = rollPart(p.material, rand, partBonusTotal);
     if (!partItem) continue;
     d.inventory[partItem.id] = (d.inventory[partItem.id] ?? 0) + 1;
+    recordRecent(d, partItem.id, partItem.rarity); // 稀有+ 零件也汇入「最近获得」
     out.bursts.push({ id: nextId(), emoji: partItem.emoji, rarity: partItem.rarity, isNewCollectible: false });
     items.push({
       emoji: partItem.emoji,
