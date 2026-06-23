@@ -151,6 +151,22 @@ export const ITEMS: ItemDef[] = [
   { id:'stocking',name:'单只黑丝',   emoji:'🥿', kind:'collectible', rarity:'rare',  baseValue:0, passive:{ label:'幸运 +6%', type:'luck', amount:0.06 } }, // 「另一只的故事你不会想知道」
   { id:'condom',  name:'用过的……套', emoji:'🎈', kind:'sellable',   rarity:'common', baseValue:0 }, // 纯恶心整活，0元，扑空级失落
 
+  // ---- 离场远征专属收藏品（独一无二，远征拆完才返还，附超大被动）----
+  { id:'u_singularity', name:'一小撮奇点', emoji:'🌀', kind:'collectible', rarity:'absurd', baseValue:0,
+    passive:{ label:'幸运 +40%', type:'luck', amount:0.4 } }, // 粒子对撞机
+  { id:'u_fuelrod', name:'还温热的燃料棒', emoji:'🟩', kind:'collectible', rarity:'absurd', baseValue:0,
+    passive:{ label:'自动拆解 +35%', type:'autoPower', amount:0.35 } }, // 核电站
+  { id:'u_zerogcoffee', name:'失重的咖啡', emoji:'☕', kind:'collectible', rarity:'legendary', baseValue:0,
+    passive:{ label:'到货速度 +25%', type:'autoSpeed', amount:0.25 } }, // 空间站
+  { id:'u_deedstack', name:'27 张房产证', emoji:'📑', kind:'collectible', rarity:'legendary', baseValue:0,
+    passive:{ label:'售价 +30%', type:'sellPrice', amount:0.3 } }, // 烂尾楼
+  { id:'u_justicecore', name:'正义流水线核心', emoji:'⚖️', kind:'collectible', rarity:'absurd', baseValue:0,
+    passive:{ label:'点击拆解 +40%', type:'clickPower', amount:0.4 } }, // 高达工厂
+  { id:'u_midpoint', name:'桥的「中间」', emoji:'🌫️', kind:'collectible', rarity:'legendary', baseValue:0,
+    passive:{ label:'连击上限 +1', type:'comboCap', amount:1 } }, // 跨海大桥
+  { id:'u_countdown', name:'没数完的倒计时', emoji:'⏱️', kind:'collectible', rarity:'epic', baseValue:0,
+    passive:{ label:'幸运 +18%', type:'luck', amount:0.18 } }, // 火箭发射台
+
   // ---- 暴躁老哥语录（可装备，详见 quotes.ts）----
   ...QUOTES,
 ];

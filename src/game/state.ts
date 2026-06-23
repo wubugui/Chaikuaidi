@@ -88,6 +88,13 @@ export interface GameState {
   merchant: { until: number; offers: MerchantOffer[] } | null; // 当前在场的黑市商人，null=不在
   merchantNextAt: number; // 下次到访时间戳(ms)
 
+  // 离场远征（off-site expeditions）
+  missions: { id: string; endsAt: number }[]; // 进行中的远征
+  doneMissions: string[];                     // 已完成的远征（一次性）
+
+  // 独一无二：买过一次后从黑市消失的离谱货 id
+  boughtUniques: string[];
+
   // 杂项
   audioEnabled: boolean;
   introSeen: boolean; // 开场演出是否看过
@@ -138,6 +145,9 @@ export function initialState(): GameState {
     factorySpace: FACTORY_BASE_SPACE,
     merchant: null,
     merchantNextAt: Date.now() + FIRST_VISIT_DELAY,
+    missions: [],
+    doneMissions: [],
+    boughtUniques: [],
     audioEnabled: true,
     introSeen: false,
     lastSeen: Date.now(),

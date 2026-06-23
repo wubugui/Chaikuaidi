@@ -84,6 +84,7 @@ describe('old-save rehydrate', () => {
       import('../ui/Refinery').then((m) => m.Refinery),
       import('../ui/Backlog').then((m) => m.Backlog),
       import('../ui/Factory').then((m) => m.Factory),
+      import('../ui/Missions').then((m) => m.Missions),
       import('../ui/Quotes').then((m) => m.Quotes),
       import('../ui/Mutations').then((m) => m.Mutations),
       import('../ui/Collection').then((m) => m.Collection),

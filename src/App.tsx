@@ -8,7 +8,9 @@ import { Workshop } from './ui/Workshop';
 import { Refinery } from './ui/Refinery';
 import { Backlog } from './ui/Backlog';
 import { Factory } from './ui/Factory';
+import { Missions } from './ui/Missions';
 import { Merchant } from './ui/Merchant';
+import { SellerDialog } from './ui/SellerDialog';
 import { MerchantBanner } from './ui/MerchantBanner';
 import { BoomFlash } from './ui/effects/BoomFlash';
 import { CraftFlash } from './ui/effects/CraftFlash';
@@ -35,6 +37,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   refinery: '🧪 元素提炼',
   backlog: '📥 积压区',
   factory: '🏭 厂房 & 拆卸管线',
+  missions: '🗺️ 离场远征',
   merchant: '🕶️ 黑市商人',
   quotes: '🗯️ 暴躁语录',
   mutations: '🧬 变异肉身',
@@ -84,6 +87,7 @@ export default function App() {
               {active === 'refinery' && <Refinery />}
               {active === 'backlog' && <Backlog />}
               {active === 'factory' && <Factory />}
+              {active === 'missions' && <Missions />}
               {active === 'merchant' && <Merchant />}
               {active === 'quotes' && <Quotes />}
               {active === 'mutations' && <Mutations />}
@@ -101,6 +105,7 @@ export default function App() {
       <RevealLayer />
       <PopReveal />
       <OfflineModal />
+      <SellerDialog />
       <Intro />
     </div>
   );

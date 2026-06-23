@@ -896,3 +896,87 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .boomBtn { background: linear-gradient(90deg, #ec4899, #f59e0b) !important; font-weight: 900; }
 .boomBtn:disabled { opacity: 0.45; }
+
+/* ===== P5: 唯一货物标签 ===== */
+.uniqueTag {
+  font-size: 10px; background: #f59e0b33; border: 1px solid #f59e0b;
+  border-radius: 999px; padding: 1px 7px; color: #fcd34d; font-weight: 800;
+}
+
+/* ===== P5: 离场远征面板 ===== */
+.missionsPanel { display: flex; flex-direction: column; gap: 10px; }
+.missionList { display: flex; flex-direction: column; gap: 10px; }
+.missionRow {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: linear-gradient(180deg, #241d38, #1c1630);
+  border: 1px solid var(--line); border-radius: 14px; padding: 12px;
+}
+.missionRow.locked { opacity: 0.55; }
+.missionRow.done { opacity: 0.6; filter: grayscale(0.5); }
+.missionRow.inprogress { border-color: #60a5fa; box-shadow: 0 0 0 1px #60a5fa44 inset; }
+.missionEmoji { font-size: 34px; line-height: 1; flex: 0 0 auto; }
+.missionInfo { flex: 1 1 auto; min-width: 0; }
+.missionName { font-weight: 800; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.missionUnique {
+  font-size: 10px; background: #f59e0b33; border: 1px solid #f59e0b;
+  border-radius: 999px; padding: 1px 7px; color: #fcd34d; font-weight: 800;
+}
+.missionGoing { font-size: 11px; color: #93c5fd; font-weight: 700; }
+.doneTag { font-size: 11px; color: #34d399; font-weight: 800; }
+.missionFlavor { font-size: 12px; color: #b8b0c8; margin-top: 3px; line-height: 1.5; }
+.missionMeta { font-size: 11px; color: #c4bcd6; margin-top: 5px; }
+.missionLockHint { font-size: 11px; color: #f59e0b; margin-top: 5px; }
+.missionGoCol { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.missionBarTrack {
+  height: 8px; background: #0f0b1c; border-radius: 999px; overflow: hidden; margin-top: 6px;
+  border: 1px solid var(--line);
+}
+.missionBarFill {
+  height: 100%; background: linear-gradient(90deg, #60a5fa, #a855f7);
+  transition: width 0.4s linear;
+}
+.missionCountdown { font-size: 11px; color: #93c5fd; margin-top: 5px; }
+
+/* ===== P5: 荒诞卖家对白 ===== */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.sellerBg {
+  position: fixed; inset: 0; background: #000c; z-index: 60;
+  display: flex; align-items: flex-end; justify-content: center; padding: 0 16px 60px;
+  animation: fadeIn 0.18s ease;
+}
+.sellerCard {
+  position: relative; width: 100%; max-width: 360px;
+  background: linear-gradient(180deg, #2c2348, #1c1630);
+  border: 2px solid var(--line); border-radius: 20px; padding: 44px 22px 22px;
+  box-shadow: 0 24px 60px #000b; text-align: center; animation: sellerBarge 0.3s cubic-bezier(.2,1.3,.5,1);
+}
+@keyframes sellerBarge {
+  0% { transform: translateY(40px) scale(0.9); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.sellerCharacter {
+  position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
+  font-size: 64px; line-height: 1;
+  filter: drop-shadow(0 6px 10px #000a); animation: sellerBob 2s ease-in-out infinite;
+}
+@keyframes sellerBob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-5px); } }
+.sellerNameTag {
+  display: inline-block; font-weight: 900; font-size: 15px; color: #fcd34d;
+  background: #00000055; border: 1px solid #f59e0b66; border-radius: 999px; padding: 3px 12px;
+}
+.sellerItemTag { font-size: 11px; color: #9b93ad; margin-top: 4px; }
+.sellerBubble {
+  position: relative; margin: 14px 0 10px;
+  background: #f4f1ff; color: #1a1530; border-radius: 14px; padding: 14px 16px;
+  font-size: 15px; line-height: 1.6; font-weight: 600; min-height: 48px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sellerBubble::before {
+  content: ''; position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  border-left: 8px solid transparent; border-right: 8px solid transparent;
+  border-bottom: 8px solid #f4f1ff;
+}
+.sellerDots { display: flex; justify-content: center; gap: 6px; margin-bottom: 12px; }
+.sellerDot { width: 7px; height: 7px; border-radius: 999px; background: #4a4060; }
+.sellerDot.on { background: #fcd34d; }
+.sellerNext { width: 100%; justify-content: center; }

@@ -1,4 +1,5 @@
 import type { MaterialId } from './materials';
+import type { SellerLine } from './missions';
 
 /**
  * 巨型货物：暴力基本拆不开（硬门槛）。
@@ -22,6 +23,7 @@ export interface GiantDef {
   partBonus: number; // 额外零件掉率加成（巨型货爆很多零件）
   unlockStage: 1 | 2 | 3 | 4;
   merchantOnly?: boolean;
+  seller?: SellerLine; // 荒诞卖家对白（买入时弹出）
 }
 
 export const GIANTS: GiantDef[] = [
@@ -44,6 +46,14 @@ export const GIANTS: GiantDef[] = [
     requirePipeline: 'pipeline_auto',
     partBonus: 0.4,
     unlockStage: 3,
+    seller: {
+      name: '二手贩子老炮',
+      emoji: '🚗',
+      lines: [
+        '事故车？这叫有故事的车。',
+        '钥匙丢了，但缘分还在。',
+      ],
+    },
   },
   {
     id: 'g_plane',
@@ -65,6 +75,15 @@ export const GIANTS: GiantDef[] = [
     partBonus: 0.5,
     unlockStage: 4,
     merchantOnly: true,
+    seller: {
+      name: '黑匣子还在响的空姐',
+      emoji: '✈️',
+      lines: [
+        '请系好安全带，我们即将……拆解。',
+        '行李架里的箱子没人认领，按惯例归捡到的人。',
+        '感谢选择本次航班，虽然它已经不飞了。',
+      ],
+    },
   },
   {
     id: 'g_ship',
@@ -86,6 +105,15 @@ export const GIANTS: GiantDef[] = [
     partBonus: 0.5,
     unlockStage: 4,
     merchantOnly: true,
+    seller: {
+      name: '弃船的老船长',
+      emoji: '🚢',
+      lines: [
+        '船是好船，就是不爱动了，跟我一样。',
+        '锚我拖不动，留给你当传家宝。',
+        '海上漂久了你会懂——靠岸才是最危险的事。',
+      ],
+    },
   },
   {
     id: 'g_tank',
@@ -107,6 +135,15 @@ export const GIANTS: GiantDef[] = [
     partBonus: 0.55,
     unlockStage: 4,
     merchantOnly: true,
+    seller: {
+      name: '不愿透露姓名的「渠道」',
+      emoji: '🚜',
+      lines: [
+        '出处别问，问就是合法来源。',
+        '炮管焊死了，绝对开不了火——大概。',
+        '装甲是好料，至于里面有没有人……我没看。',
+      ],
+    },
   },
 ];
 

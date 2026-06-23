@@ -15,6 +15,7 @@ import {
   factoryExpandCost, type GiantDef,
 } from '../data/giants';
 import { ABSURD_MAP, MONOLITH_REPUTATION, type AbsurdDef } from '../data/absurd';
+import { MISSION_MAP } from '../data/missions';
 import { REFINERY_DEVICE, REFINERY_SPACE } from '../data/refine';
 import type { Rarity, ToolId } from '../data/types';
 import { emit, seedId } from './events';
@@ -99,6 +100,7 @@ interface Actions {
   buyGiant: (id: string) => void;
   expandFactory: () => void;
   buyFromMerchant: (offerId: string) => void;
+  dispatchMission: (id: string) => void;
   loadFromBacklog: (parcelId: number) => void;
   dumpGroupToBelt: (key: string) => void;
   shelveToBacklog: (parcelId: number) => void;
@@ -140,7 +142,16 @@ function draft(s: GameState): GameState {
     devices: { ...s.devices },
     deviceAccum: { ...s.deviceAccum },
     ordnance: { ...s.ordnance },
+    missions: (s.missions ?? []).map((m) => ({ ...m })),
+    doneMissions: (s.doneMissions ?? []).slice(),
+    boughtUniques: (s.boughtUniques ?? []).slice(),
   };
+}
+
+/** 弹出一个荒诞卖家对白（买入/派出特殊货时） */
+function emitSeller(seller: { name: string; emoji: string; lines: string[] } | undefined, itemName: string) {
+  if (!seller || seller.lines.length === 0) return;
+  emit('seller', { name: seller.name, emoji: seller.emoji, lines: seller.lines, item: itemName });
 }
 
 /** 检查并发放成就奖励 */
@@ -320,6 +331,7 @@ export const useGame = create<Store>()(
         d.money -= lug.price;
         d.backlog.push(makeLuggageParcel(lug));
         set(d);
+        emitSeller(lug.seller, lug.name);
       },
 
       buyContainer: (id) => {
@@ -330,6 +342,7 @@ export const useGame = create<Store>()(
         d.money -= c.price;
         d.backlog.push(makeContainerParcel(c));
         set(d);
+        emitSeller(c.seller, c.name);
       },
 
       // 巨型货：阶段 + 钱 + 厂房空间三重门，买入推入积压区（占厂房，仅拆卸管线能开）
@@ -343,6 +356,7 @@ export const useGame = create<Store>()(
         d.money -= g.price;
         d.backlog.push(makeGiantParcel(g));
         set(d);
+        emitSeller(g.seller, g.name);
       },
 
       // 扩建厂房：钱门，+2 空间，成本随已扩建次数指数增长
@@ -393,7 +407,36 @@ export const useGame = create<Store>()(
                 ? makeAbsurdParcel(good as AbsurdDef)
                 : makeLuggageParcel(good as LuggageDef),
         );
+        // 独一无二：买过的离谱货登记，后续黑市不再出
+        if (offer.kind === 'absurd' && (absurd as AbsurdDef).unique) {
+          if (!d.boughtUniques.includes(offer.id)) d.boughtUniques.push(offer.id);
+        }
         set(d);
+        // 荒诞卖家对白（货柜/行李/巨型货/离谱货都可能带 seller）
+        emitSeller((good as { seller?: { name: string; emoji: string; lines: string[] } }).seller, good.name);
+      },
+
+      // 离场远征：阶段 + 钱 + requires + 未在进行/未完成 五重门，扣出勤费，推入 active，弹卖家对白
+      dispatchMission: (id) => {
+        const s = get();
+        const def = MISSION_MAP[id];
+        if (!def) return;
+        if (s.stage < def.unlockStage) return;
+        if (s.money < def.cost) return;
+        if ((s.missions ?? []).some((m) => m.id === id)) return; // 已在路上
+        if ((s.doneMissions ?? []).includes(id)) return; // 已完成（一次性）
+        // 轻量前置
+        const req = def.requires;
+        if (req) {
+          if (req.mission && !(s.doneMissions ?? []).includes(req.mission)) return;
+          if (req.ordnance && (s.ordnance[req.ordnance] ?? 0) < 1) return;
+          if (req.mutation && !(s.mutations ?? []).includes(req.mutation as any)) return;
+        }
+        const d = draft(s);
+        d.money -= def.cost;
+        d.missions.push({ id, endsAt: Date.now() + def.durationSec * 1000 });
+        set(d);
+        emitSeller(def.seller, def.name);
       },
 
       loadFromBacklog: (parcelId) => {
@@ -473,7 +516,10 @@ export const useGame = create<Store>()(
           mutations: d.mutations, // 变异是永久肉身改造，跨转生保留
           blueprints: d.blueprints, // 图纸是永久知识，跨转生保留
           targetBlueprint: d.targetBlueprint,
+          doneMissions: d.doneMissions, // 远征是一次性的，跨转生永久记账
+          boughtUniques: d.boughtUniques, // 独一无二的离谱货也永久记账
           // 设备（devices/deviceAccum）随本轮重置——重开后重新建造
+          // 进行中的 missions 随本轮重置（出勤队伍跟着跑路了）
         };
         const fresh = initialState();
         const next: GameState = { ...fresh, ...keep, lastSeen: Date.now() };
@@ -616,7 +662,7 @@ export const useGame = create<Store>()(
       partialize: (s) => {
         const {
           offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
-          sellAllItems, buyBatch, buyLuggage, buyContainer, buyGiant, expandFactory, buyFromMerchant, loadFromBacklog, dumpGroupToBelt,
+          sellAllItems, buyBatch, buyLuggage, buyContainer, buyGiant, expandFactory, buyFromMerchant, dispatchMission, loadFromBacklog, dumpGroupToBelt,
           shelveToBacklog, buyPrestige, prestige, buyBlueprint, setTargetBlueprint, craftBlueprint,
           refine, useOrdnance,
           equipQuote, unequipQuote, markIntroSeen,
@@ -626,7 +672,7 @@ export const useGame = create<Store>()(
         void buyAutoSell;
         void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyLuggage; void buyContainer; void buyPrestige;
         void buyGiant; void expandFactory;
-        void buyFromMerchant; void loadFromBacklog; void dumpGroupToBelt; void shelveToBacklog;
+        void buyFromMerchant; void dispatchMission; void loadFromBacklog; void dumpGroupToBelt; void shelveToBacklog;
         void prestige; void buyBlueprint; void setTargetBlueprint; void craftBlueprint;
         void refine; void useOrdnance;
         void equipQuote; void unequipQuote; void markIntroSeen;
@@ -650,6 +696,9 @@ export const useGame = create<Store>()(
         if (state.deviceAccum === undefined) state.deviceAccum = {};
         if (state.ordnance === undefined) state.ordnance = {};
         if (state.factorySpace === undefined) state.factorySpace = FACTORY_BASE_SPACE;
+        if (state.missions === undefined) state.missions = [];
+        if (state.doneMissions === undefined) state.doneMissions = [];
+        if (state.boughtUniques === undefined) state.boughtUniques = [];
 
         // id 计数器抬升，避免 key 冲突
         let maxId = 0;

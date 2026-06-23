@@ -31,6 +31,8 @@ import { rollItem, rollPart, sellValue } from './systems/loot';
 import { BLUEPRINT_MAP, sorterBonus } from '../data/blueprints';
 import { PIPELINE_INTERVAL, PIPELINE_SPACE } from '../data/giants';
 import { REFINES, REFINE_INTERVAL, REFINE_MAP, REFINERY_DEVICE, type RefineRecipe } from '../data/refine';
+import { MISSION_MAP } from '../data/missions';
+import { PARTS, ELEMENTS } from '../data/items';
 import { AUTO_LINE_INTERVAL, COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
 
 /** 反馈/震动分级（none<ineffective<hit<crack<open<danger） */
@@ -493,7 +495,9 @@ export function tickMerchant(d: GameState, rand: () => number) {
   if (d.merchant === null) {
     if (now >= d.merchantNextAt) {
       // 备货：从池子里按权重不重复抽 N 件
-      const pool = MERCHANT_POOL.slice();
+      // 独一无二：已买过的离谱货从备货池剔除（每件这辈子只卖一次）
+      const bought = new Set(d.boughtUniques ?? []);
+      const pool = MERCHANT_POOL.filter((e) => !(e.kind === 'absurd' && bought.has(e.id)));
       const offers: MerchantOffer[] = [];
       for (let i = 0; i < MERCHANT_OFFER_COUNT && pool.length > 0; i++) {
         const idx = weightedPick(pool.map((p) => p.weight), rand);
@@ -647,9 +651,87 @@ function tickPipelines(d: GameState, dtSec: number, rand: () => number, out: Eng
   }
 }
 
+/**
+ * 离场远征步进：到期的远征返还奖励。
+ * - 现金走 gainMoney 路径；唯一收藏品入 collection；零件/元素随机塞库存。
+ * - pool 抽样若干进库存，并产一条 epic+ 的开箱特写（reveal），让返还有仪式感。
+ * - 加信誉，id 移入 doneMissions，从 active 移除，发 missionDone 事件。
+ */
+function tickMissions(d: GameState, rand: () => number, out: EngineOut) {
+  if (!d.missions || d.missions.length === 0) return;
+  const now = Date.now();
+  const still: { id: string; endsAt: number }[] = [];
+  for (const m of d.missions) {
+    if (now < m.endsAt) {
+      still.push(m);
+      continue;
+    }
+    const def = MISSION_MAP[m.id];
+    if (!def) continue; // 未知远征：直接丢弃
+    const rew = def.rewards;
+    // 现金
+    if (rew.cash) gainMoney(d, rew.cash, out);
+    // 信誉
+    if (rew.reputation) d.reputation += rew.reputation;
+    // 独一无二的收藏品
+    const uniqueIsNew = !d.collection.includes(rew.unique);
+    if (uniqueIsNew) d.collection.push(rew.unique);
+    // 零件
+    for (let i = 0; i < (rew.parts ?? 0); i++) {
+      const p = PARTS[Math.floor(rand() * PARTS.length)];
+      if (p) d.inventory[p.id] = (d.inventory[p.id] ?? 0) + 1;
+    }
+    // 元素
+    for (let i = 0; i < (rew.elements ?? 0); i++) {
+      const e = ELEMENTS[Math.floor(rand() * ELEMENTS.length)];
+      if (e) d.inventory[e.id] = (d.inventory[e.id] ?? 0) + 1;
+    }
+    // pool 抽样进库存 + 攒一条开箱特写
+    const items: RevealItem[] = [];
+    const uniqueItem = ITEM_MAP[rew.unique];
+    if (uniqueItem) {
+      items.push({
+        emoji: uniqueItem.emoji,
+        name: uniqueItem.name,
+        rarity: uniqueItem.rarity,
+        kind: uniqueItem.kind,
+        value: 0,
+        isNew: uniqueIsNew,
+        itemId: rew.unique,
+      });
+    }
+    const sampleN = Math.min(5, rew.pool.length);
+    let topRarity: Rarity = uniqueItem?.rarity ?? 'common';
+    for (let i = 0; i < sampleN; i++) {
+      const id = rew.pool[Math.floor(rand() * rew.pool.length)];
+      const it = ITEM_MAP[id];
+      if (!it) continue;
+      d.inventory[id] = (d.inventory[id] ?? 0) + 1;
+      if (rarityRank(it.rarity) > rarityRank(topRarity)) topRarity = it.rarity;
+      items.push({
+        emoji: it.emoji, name: it.name, rarity: it.rarity, kind: it.kind,
+        value: 0, isNew: false, itemId: id,
+      });
+    }
+    if (rarityRank('epic') > rarityRank(topRarity)) topRarity = 'epic'; // 远征返还至少给 epic 仪式感
+    out.reveals.push({
+      id: nextId(),
+      parcelEmoji: def.emoji,
+      parcelName: def.name + '（已拆除）',
+      items,
+      topRarity,
+      manual: false,
+    });
+    if (!d.doneMissions.includes(m.id)) d.doneMissions.push(m.id);
+    emit('missionDone', m.id);
+  }
+  d.missions = still;
+}
+
 /** 游戏循环步进 */
 export function doTick(d: GameState, dtSec: number, rand: () => number, out: EngineOut) {
   tickMerchant(d, rand);
+  tickMissions(d, rand, out);
 
   // 连击衰减
   if (d.combo > 0 && Date.now() - d.lastClickAt > COMBO_WINDOW_MS) d.combo = 0;

@@ -54,6 +54,10 @@ type Handlers = {
   mutate: (id: MutationId) => void;
   merchant: (present: boolean) => void;
   craft: (bpId: string) => void;
+  /** 荒诞卖家对白：买入/派出某离谱货/巨型货/货柜/行李/远征时弹出一个角色对白 */
+  seller: (s: { name: string; emoji: string; lines: string[]; item: string }) => void;
+  /** 远征完成：返还奖励时的提示音/特效 */
+  missionDone: (id: string) => void;
 };
 
 const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
@@ -69,6 +73,8 @@ const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
   mutate: new Set(),
   merchant: new Set(),
   craft: new Set(),
+  seller: new Set(),
+  missionDone: new Set(),
 };
 
 let uid = 1;

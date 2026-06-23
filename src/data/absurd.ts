@@ -1,4 +1,5 @@
 import type { MaterialId } from './materials';
+import type { SellerLine } from './missions';
 
 /**
  * 离谱货：暴力/管线统统拆不开（硬门 requireOrdnance）。
@@ -21,6 +22,8 @@ export interface AbsurdDef {
   requireOrdnance: string; // 必须的军火 id
   partBonus: number;
   unlockStage: 1 | 2 | 3 | 4;
+  unique?: boolean; // 独一无二：买过一次后从黑市消失
+  seller?: SellerLine; // 荒诞卖家对白（买入时弹出）
 }
 
 export const ABSURDS: AbsurdDef[] = [
@@ -43,6 +46,16 @@ export const ABSURDS: AbsurdDef[] = [
     requireOrdnance: 'railgun',
     partBonus: 0.6,
     unlockStage: 4,
+    unique: true,
+    seller: {
+      name: '机师的遗孀',
+      emoji: '🤖',
+      lines: [
+        '他走了，留下这台两层楼高的念想。',
+        '油耗有点高，理想这东西从来不省。',
+        '开它别按红色按钮，那是他单身时装的。',
+      ],
+    },
   },
   {
     id: 'a_transformer',
@@ -63,6 +76,16 @@ export const ABSURDS: AbsurdDef[] = [
     requireOrdnance: 'emp',
     partBonus: 0.6,
     unlockStage: 4,
+    unique: true,
+    seller: {
+      name: '它自己',
+      emoji: '🚙',
+      lines: [
+        '我不是货，我是难民。但既然你给钱……',
+        '签合同前声明：我有人格，也有车贷。',
+        '别叫我变形金刚，叫我——打工人。',
+      ],
+    },
   },
   {
     id: 'a_ufo',
@@ -83,6 +106,16 @@ export const ABSURDS: AbsurdDef[] = [
     requireOrdnance: 'nuke',
     partBonus: 0.6,
     unlockStage: 4,
+    unique: true,
+    seller: {
+      name: '自称地球向导的外星人',
+      emoji: '🛸',
+      lines: [
+        '你们管这叫 UFO，我们管它叫二手代步。',
+        '尾气是反物质，绝对环保。',
+        '包牌包过户，户口在仙女座，落户自理。',
+      ],
+    },
   },
   {
     id: 'a_monolith',
@@ -103,6 +136,16 @@ export const ABSURDS: AbsurdDef[] = [
     requireOrdnance: 'nuke',
     partBonus: 0.3,
     unlockStage: 4,
+    unique: true,
+    // 黑方碑没有卖家——它选择了你
+    seller: {
+      name: '（无卖家）',
+      emoji: '⬛',
+      lines: [
+        '……',
+        '（它没有卖家。它选择了你。）',
+      ],
+    },
     // 轰开黑方碑额外奖励大额信誉
   },
 ];

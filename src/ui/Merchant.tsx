@@ -87,6 +87,7 @@ export function Merchant() {
                       💥 需 {ord?.emoji}{ord?.name} 轰开 · 占 {absurd.space} 格
                     </span>
                   )}
+                  {absurd?.unique && <span className="uniqueTag">🏅 独一无二</span>}
                 </div>
                 {mat && (
                   <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
