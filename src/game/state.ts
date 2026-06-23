@@ -1,4 +1,5 @@
 import type { MaterialId } from '../data/materials';
+import type { MutationId } from '../data/mutations';
 import type { ParcelSizeId, Rarity, ToolId } from '../data/types';
 
 export interface Parcel {
@@ -14,6 +15,7 @@ export interface Parcel {
   label?: string;      // 特殊名（行李名，覆盖尺寸名显示）
   hollowChance?: number; // 扑空概率（原石）：开箱瞬间小概率啥也没有
   danger?: boolean;      // 危险品：用错工具开箱会爆炸
+  requireMutation?: MutationId; // 变异门：没有该变异时任何工具都撬不动
 }
 
 export interface GameState {
@@ -59,6 +61,10 @@ export interface GameState {
   revengeLeft: number; // 剩余报复次数（×2 伤害）
   dazedUntil: number;  // 被炸懵到此时间戳前点击无效（Date.now() ms）
 
+  // 变异
+  mutations: MutationId[]; // 已获得的变异（永久可叠加）
+  dangerStreak: number;    // 危险品意外未变异的累计（垫刀）
+
   // 杂项
   audioEnabled: boolean;
   introSeen: boolean; // 开场演出是否看过
@@ -98,6 +104,8 @@ export function initialState(): GameState {
     rage: 0,
     revengeLeft: 0,
     dazedUntil: 0,
+    mutations: [],
+    dangerStreak: 0,
     audioEnabled: true,
     introSeen: false,
     lastSeen: Date.now(),

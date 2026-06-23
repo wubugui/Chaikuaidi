@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { initialState } from '../state';
-import { doClick, doTick, makeParcel, newOut, refillBench, sellAll } from '../engine';
+import { doClick, doTick, effectiveAffinity, makeParcel, newOut, refillBench, sellAll } from '../engine';
+import { benchCapacity, bodyAffinity } from '../compute';
 import { settleOffline } from '../systems/offline';
 import { reputationFor } from '../../data/prestige';
 import { mulberry32 } from '../../lib/rng';
@@ -152,5 +153,54 @@ describe('prestige reputation formula', () => {
     expect(reputationFor(1_000_000)).toBe(1);
     expect(reputationFor(4_000_000)).toBe(2);
     expect(reputationFor(100_000_000)).toBe(10);
+  });
+});
+
+describe('mutations', () => {
+  it('a danger explosion grants a mutation when pity (dangerStreak) is high', () => {
+    const rand = () => 0; // 0 < chance -> 必变异；weightedPick(0) 取第一个权重项
+    const d = initialState();
+    d.ownedTools = ['hand', 'grinder'];
+    d.currentTool = 'grinder'; // 不安全
+    d.dangerStreak = 20; // 垫满，chance 封顶 0.75
+    d.workbench.push(
+      makeParcel('crate', () => 0.5, { material: 'volatile', danger: true, sealMax: 10, lootMin: 1, lootMax: 1, pool: ['milchip'] }),
+    );
+    for (let i = 0; i < 200 && d.mutations.length === 0; i++) doClick(d, Date.now() + i * 10, rand, newOut());
+    expect(d.mutations.length).toBe(1); // 炸出一个变异
+    expect(d.dangerStreak).toBe(0); // 变异后垫刀清零
+  });
+
+  it('a requireMutation parcel is gated without the mutation, crackable with it', () => {
+    const p = makeParcel('crate', () => 0.5, { material: 'metal', sealMax: 50, requireMutation: 'brasshead', pool: ['titanium'] });
+    // 无变异：任何工具都撬不动（hasRequiredMutation=false）
+    expect(effectiveAffinity('press', p, 0, false)).toBe(0);
+    // 有变异：肉身保证 >=2
+    expect(effectiveAffinity('hand', p, 0, true)).toBeGreaterThanOrEqual(2);
+  });
+
+  it('机械臂 raises bench capacity; 铜头铁臂 grants body metal affinity', () => {
+    const d = initialState();
+    const base = benchCapacity(d);
+    d.mutations = ['mecharm'];
+    expect(benchCapacity(d)).toBe(base + 1);
+    d.mutations = ['brasshead'];
+    expect(bodyAffinity(d, 'metal')).toBe(1);
+    // 铜头铁臂让徒手也能砸开金属（门槛消失）
+    const metalBox = makeParcel('crate', () => 0.5, { material: 'metal', sealMax: 50, pool: ['titanium'] });
+    expect(effectiveAffinity('hand', metalBox, bodyAffinity(d, 'metal'), true)).toBe(1);
+  });
+
+  it('does not mutate but raises dangerStreak when the roll fails', () => {
+    const rand = () => 0.99; // 0.99 >= chance -> 不变异
+    const d = initialState();
+    d.ownedTools = ['hand', 'grinder'];
+    d.currentTool = 'grinder';
+    d.workbench.push(
+      makeParcel('crate', () => 0.5, { material: 'volatile', danger: true, sealMax: 10, lootMin: 1, lootMax: 1, pool: ['milchip'] }),
+    );
+    for (let i = 0; i < 200 && d.dazedUntil === 0; i++) doClick(d, Date.now() + i * 10, rand, newOut());
+    expect(d.mutations.length).toBe(0);
+    expect(d.dangerStreak).toBe(1); // 未变异 -> 垫刀 +1
   });
 });

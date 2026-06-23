@@ -1,3 +1,4 @@
+import type { MutationId } from '../data/mutations';
 import type { ItemKind, Rarity } from '../data/types';
 import type { FeedbackLevel } from './engine';
 
@@ -49,6 +50,7 @@ type Handlers = {
   revealEnd: () => void;
   rageBurst: () => void;
   boom: () => void;
+  mutate: (id: MutationId) => void;
 };
 
 const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
@@ -61,6 +63,7 @@ const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
   revealEnd: new Set(),
   rageBurst: new Set(),
   boom: new Set(),
+  mutate: new Set(),
 };
 
 let uid = 1;

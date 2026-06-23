@@ -3,11 +3,13 @@ import { barkFor, BARKS_LUCKY } from '../data/barks';
 import { ITEM_MAP } from '../data/items';
 import { MATERIALS } from '../data/materials';
 import { PARCEL_MAP } from '../data/parcels';
+import { MUTATION_MAP, type MutationId } from '../data/mutations';
 import { recommendedToolFor, TOOL_MAP } from '../data/tools';
-import { autoPower, benchCapacity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
+import { autoPower, benchCapacity, bodyAffinity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
 import { effectiveAffinity, type FeedbackLevel } from '../game/engine';
 import { on } from '../game/events';
 import { useGame } from '../game/store';
+import type { GameState, Parcel } from '../game/state';
 import { sellValue } from '../game/systems/loot';
 import { sfxBonk, sfxCrack, sfxRip } from '../lib/audio';
 import { fmt, money } from '../lib/format';
@@ -28,6 +30,22 @@ function rageFace(combo: number): string {
   return '😐';
 }
 
+/** 把当前玩家状态（肉身/变异门）代入有效亲和度（UI 用） */
+function effAff(s: GameState, p: Parcel): number {
+  const hasReq = !p.requireMutation || s.mutations.includes(p.requireMutation);
+  return effectiveAffinity(s.currentTool, p, bodyAffinity(s, p.material), hasReq);
+}
+
+/** 变异触发时的吼叫 */
+const MUTATE_BARKS: Record<MutationId, string> = {
+  mecharm: '我的手……长出第三条胳膊了？！',
+  sixarms: '六条胳膊？！正好多拆几个！',
+  brasshead: '我的脑袋……硬得像块铁！',
+  sawlegs: '我的腿……长出锯子了？！',
+  lasereye: '我的眼睛……能射激光了？！',
+  magnethand: '东西自己飞过来了？！手有磁性了！',
+};
+
 export function GameScene() {
   const workbench = useGame((s) => s.workbench);
   const queueLen = useGame((s) => s.queue.length);
@@ -40,6 +58,10 @@ export function GameScene() {
   const sellAllItems = useGame((s) => s.sellAllItems);
   const rage = useGame((s) => s.rage);
   const revengeLeft = useGame((s) => s.revengeLeft);
+  const mutations = useGame((s) => s.mutations);
+
+  // 变异触发：全屏一闪 + 新长出的器官 emoji 炸入
+  const [mutateFx, setMutateFx] = useState<{ id: number; mut: MutationId } | null>(null);
 
   const [shakeCls, setShakeCls] = useState('');
   const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,6 +99,19 @@ export function GameScene() {
       }
     });
   }, []);
+
+  // 变异：戏剧性的一刻——全屏一闪 + 新器官炸入 + 老哥吼叫
+  useEffect(() => {
+    return on('mutate', (mut) => {
+      setMutateFx({ id: pid++, mut });
+      setBark({ id: pid++, text: MUTATE_BARKS[mut] });
+    });
+  }, []);
+  useEffect(() => {
+    if (!mutateFx) return;
+    const t = setTimeout(() => setMutateFx((m) => (m?.id === mutateFx.id ? null : m)), 1400);
+    return () => clearTimeout(t);
+  }, [mutateFx]);
 
   // 反馈分级：有意义的震动 / 撬不动的小抖动 + 闷响
   useEffect(() => {
@@ -179,7 +214,7 @@ export function GameScene() {
     if (pausedRef.current) return;
     // 本次点击是否对工作台任意一个箱子有效（决定是否放特效/音效）
     const st = useGame.getState();
-    const effective = st.workbench.some((p) => effectiveAffinity(st.currentTool, p) > 0);
+    const effective = st.workbench.some((p) => effAff(st, p) > 0);
     click();
     setSwing((v) => v + 1);
     if (effective) {
@@ -281,10 +316,12 @@ export function GameScene() {
               const pct = Math.max(0, (p.sealHP / p.sealMax) * 100);
               const dmgStage = pct < 34 ? ' d2' : pct < 67 ? ' d1' : '';
               const mat = MATERIALS[p.material];
-              const eff = effectiveAffinity(currentTool, p);
+              const eff = effAff(s, p);
               const gated = eff <= 0;
               const danger = !!p.danger && !gated;
-              const rec = gated ? recommendedToolFor(p.material) : null;
+              const needMut = p.requireMutation && !s.mutations.includes(p.requireMutation)
+                ? MUTATION_MAP[p.requireMutation] : null;
+              const rec = gated && !needMut ? recommendedToolFor(p.material) : null;
               return (
                 <div
                   className={'bigBox' + (!gated && pct < 100 ? ' hurt' : '') + dmgStage + (gated ? ' gated' : '')}
@@ -300,8 +337,10 @@ export function GameScene() {
                     {!gated && pct < 67 && <span className="crack c1">💢</span>}
                     {!gated && pct < 34 && <span className="crack c2">💥</span>}
                     {gated && (
-                      <div className="gateOverlay">
-                        🔒 需要 {rec ? rec.emoji + rec.name : '更强工具'}
+                      <div className={'gateOverlay' + (needMut ? ' mutGate' : '')}>
+                        {needMut
+                          ? <>🧬 需要变异：{needMut.emoji}{needMut.name}</>
+                          : <>🔒 需要 {rec ? rec.emoji + rec.name : '更强工具'}</>}
                       </div>
                     )}
                   </div>
@@ -313,10 +352,19 @@ export function GameScene() {
           )}
         </div>
 
-        {/* 暴躁老哥（站旁边念叨） */}
+        {/* 暴躁老哥（站旁边念叨，变异后浑身长怪器官） */}
         <div className="dude side">
           {bark && <div className="bark" key={bark.id}>{bark.text}</div>}
           <div className={'dudeFace' + (combo >= 20 ? ' mad' : '')}>{rageFace(combo)}</div>
+          {mutations.length > 0 && (
+            <div className="dudeMutations">
+              {mutations.map((id, i) => (
+                <span className="mutBadge" key={id + i} title={MUTATION_MAP[id].name}>
+                  {MUTATION_MAP[id].emoji}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="dudeHand" key={swing % 1000}>{tool.emoji}</div>
           <div className="dudeName">{tool.name}</div>
           {revengeLeft > 0 && <div className="revengeTag">报复×{revengeLeft}</div>}
@@ -381,6 +429,14 @@ export function GameScene() {
           💰 全卖 {bagValue > 0 ? '+' + money(bagValue) : ''}
         </button>
       </div>
+
+      {/* 变异时刻：全屏紫闪 + 新器官炸入 */}
+      {mutateFx && (
+        <div className="mutateFlash" key={mutateFx.id}>
+          <span className="mutateEmoji">{MUTATION_MAP[mutateFx.mut].emoji}</span>
+          <span className="mutateLabel">变异！{MUTATION_MAP[mutateFx.mut].name}</span>
+        </div>
+      )}
     </div>
   );
 }

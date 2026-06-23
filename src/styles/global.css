@@ -592,6 +592,72 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 @keyframes sheetPop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 
+/* ===================== 变异系统 ===================== */
+/* 老哥身上长出的怪器官 */
+.dudeMutations {
+  position: absolute; top: -6px; right: -22px; display: flex; flex-direction: column;
+  gap: 1px; align-items: center; pointer-events: none; z-index: 5;
+}
+.mutBadge {
+  font-size: 18px; line-height: 1; filter: drop-shadow(0 1px 2px #000a);
+  animation: mutWiggle 2.2s ease-in-out infinite;
+}
+.mutBadge:nth-child(2n) { animation-delay: -0.7s; }
+.mutBadge:nth-child(3n) { animation-delay: -1.3s; }
+
+/* 变异门覆盖：紫色基调，区别于工具门 */
+.gateOverlay.mutGate { color: #d8b4fe; border-color: #a855f7; box-shadow: 0 0 14px #a855f799, 0 4px 14px #000a; }
+
+/* 变异触发：全屏一闪 + 新器官炸入 */
+.mutateFlash {
+  position: fixed; inset: 0; z-index: 62; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: radial-gradient(circle at center, #a855f7cc 0%, #7c3aedaa 35%, #0000 72%);
+  animation: mutateFade 1.4s ease-out forwards;
+}
+.mutateEmoji { font-size: 150px; animation: mutatePop 1.4s cubic-bezier(.2,1.4,.4,1) forwards; filter: drop-shadow(0 6px 16px #000a); }
+.mutateLabel { font-size: 26px; font-weight: 900; color: #fff; text-shadow: 0 2px 8px #7c3aed, 0 0 18px #a855f7; }
+
+/* 变异面板 */
+.mutationsPanel { padding: 4px 0; }
+.mutSummary { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+.mutStat {
+  font-size: 12px; font-weight: 800; color: var(--ink);
+  background: #2a1f3e; border: 1px solid #6d4ba0; border-radius: 999px; padding: 4px 11px;
+}
+.mutStat small { font-weight: 600; color: var(--muted); }
+.mutStat.dim { color: var(--muted); border-color: var(--line); background: #1c2030; }
+.mutationGrid { display: flex; flex-direction: column; gap: 9px; }
+.mutCard {
+  display: flex; align-items: center; gap: 12px; background: #1c2030;
+  border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px;
+}
+.mutCard.owned { background: linear-gradient(180deg, #2a1f3e, #211735); border-color: #a855f7; box-shadow: 0 0 12px #a855f733; }
+.mutCard.locked { opacity: 0.55; }
+.mutCard.locked .mutCardEmoji { filter: grayscale(1) brightness(0.7); }
+.mutCardEmoji { font-size: 34px; line-height: 1; }
+.mutCardBody { flex: 1; }
+.mutCardName { font-weight: 900; font-size: 15px; }
+.mutCount { margin-left: 6px; font-size: 12px; color: #d8b4fe; font-weight: 800; }
+.mutCardDesc { font-size: 12px; color: var(--ink); margin-top: 3px; line-height: 1.4; }
+.mutCardDesc.dim { color: var(--muted); }
+
+/* 商店 / 积压 变异标签 */
+.mutTag {
+  display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 800;
+  color: #e9d5ff; background: #a855f733; border: 1px solid #a855f7; border-radius: 8px; padding: 1px 6px;
+}
+.backlogHint.mutHint { color: #d8b4fe; }
+
+@keyframes mutWiggle { 0%,100% { transform: rotate(-8deg) scale(1); } 50% { transform: rotate(8deg) scale(1.1); } }
+@keyframes mutateFade { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes mutatePop {
+  0% { transform: scale(0.1) rotate(-20deg); }
+  45% { transform: scale(1.35) rotate(10deg); }
+  70% { transform: scale(1.1) rotate(-3deg); }
+  100% { transform: scale(1.15) rotate(0deg); }
+}
+
 /* ===================== DESKTOP ===================== */
 @media (min-width: 760px) {
   .game { max-width: 480px; margin: 0 auto; box-shadow: 0 0 60px #000a; }

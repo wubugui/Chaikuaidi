@@ -1,4 +1,5 @@
 import type { MaterialId } from './materials';
+import type { MutationId } from './mutations';
 import type { ParcelSizeId } from './types';
 
 export interface BatchDef {
@@ -91,6 +92,7 @@ export interface ContainerDef {
   pool: string[]; unlockStage: 1 | 2 | 3 | 4;
   hollowChance?: number;  // 扑空概率（原石）
   danger?: boolean;       // volatile：错误工具开箱会爆炸
+  requireMutation?: MutationId; // 变异门：没有该变异时任何工具都撬不动
 }
 
 export const CONTAINERS: ContainerDef[] = [
@@ -115,5 +117,15 @@ export const CONTAINERS: ContainerDef[] = [
   { id:'alienegg',name:'会动的外星蛋', emoji:'🥚', material:'anomaly', price:150000, sealMax:760, lootMin:1, lootMax:1, luckBonus:1.3,
     flavor:'壳是半透明的，里面有东西在缓慢地……心跳。激光切开的瞬间，它好像睁开了眼。',
     pool:['hatchling','alienalloy','ufo','alien'], unlockStage:4, danger:true },
+  // —— 变异门连锁货柜：买回来先积压，等炸出对应变异才撬得动，撬开本身又是危险品 ——
+  { id:'vacuum',  name:'真空压缩块',   emoji:'🧱', material:'metal',   price:60000, sealMax:900,  lootMin:1, lootMax:2, luckBonus:1.1,
+    flavor:'压得像块铁板，普通工具打滑——得用比金属还硬的东西去砸。', pool:['milchip','titanium','alienalloy','gpu'],
+    unlockStage:3, danger:true, requireMutation:'brasshead' },
+  { id:'vines',   name:'缠满藤蔓的木箱', emoji:'🌿', material:'wood',  price:55000, sealMax:700,  lootMin:1, lootMax:2, luckBonus:1.0,
+    flavor:'藤蔓还在生长，越缠越紧，刀砍上去就重新长好。也许得用……会动的锯子。', pool:['mammoth','fossil','amberbug','laptop'],
+    unlockStage:3, danger:true, requireMutation:'sawlegs' },
+  { id:'alienshell',name:'外星合金壳',  emoji:'🛡️', material:'anomaly', price:180000, sealMax:1100, lootMin:1, lootMax:2, luckBonus:1.4,
+    flavor:'连激光阵都只能划出火花。这层壳似乎只对……另一种异常起反应。', pool:['hatchling','alienalloy','ufo','alien'],
+    unlockStage:4, danger:true, requireMutation:'lasereye' },
 ];
 export const CONTAINER_MAP = Object.fromEntries(CONTAINERS.map(c=>[c.id,c]));

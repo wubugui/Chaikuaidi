@@ -7,6 +7,7 @@ import { Shop } from './ui/Shop';
 import { Backlog } from './ui/Backlog';
 import { BoomFlash } from './ui/effects/BoomFlash';
 import { Quotes } from './ui/Quotes';
+import { Mutations } from './ui/Mutations';
 import { Collection } from './ui/Collection';
 import { Achievements } from './ui/Achievements';
 import { Prestige } from './ui/Prestige';
@@ -26,6 +27,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   shop: '🛒 进货批次',
   backlog: '📥 积压区',
   quotes: '🗯️ 暴躁语录',
+  mutations: '🧬 变异肉身',
   collection: '🖼️ 收藏图鉴',
   achievements: '🏅 成就',
   prestige: '♻️ 跑路重开',
@@ -68,6 +70,7 @@ export default function App() {
               {active === 'shop' && <Shop />}
               {active === 'backlog' && <Backlog />}
               {active === 'quotes' && <Quotes />}
+              {active === 'mutations' && <Mutations />}
               {active === 'collection' && <Collection />}
               {active === 'achievements' && <Achievements />}
               {active === 'prestige' && <Prestige />}

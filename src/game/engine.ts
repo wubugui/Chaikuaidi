@@ -1,5 +1,6 @@
 import { ITEM_MAP } from '../data/items';
 import type { MaterialId } from '../data/materials';
+import { MUTATIONS, type MutationId } from '../data/mutations';
 import { PARCEL_MAP, deliverableSizes } from '../data/parcels';
 import { RARITIES, RARITY_ORDER, rarityRank } from '../data/rarity';
 import { stageForEarned } from '../data/stages';
@@ -9,6 +10,7 @@ import { randInt, weightedPick } from '../lib/rng';
 import {
   autoPower,
   benchCapacity,
+  bodyAffinity,
   toolBaseDamage,
   comboMult,
   deliverInterval,
@@ -66,6 +68,7 @@ export interface ParcelOpts {
   material?: MaterialId;
   hollowChance?: number;
   danger?: boolean;
+  requireMutation?: MutationId;
 }
 
 export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: ParcelOpts): Parcel {
@@ -86,6 +89,7 @@ export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: Parcel
     label: opts?.label,
     hollowChance: opts?.hollowChance,
     danger: opts?.danger,
+    requireMutation: opts?.requireMutation,
   };
 }
 
@@ -165,10 +169,24 @@ function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut)
 }
 
 /**
- * 危险品被错误工具打开 -> 爆炸：无掉落、无现金，连带损伤台上其他快递，老哥被炸懵。
- * MUTATION HOOK: 增量3 在这里有小概率改为触发变异而非纯损失
+ * 危险品意外爆炸时，小概率（垫刀递增）让老哥变异而非纯损失。
+ * 返回触发的变异 id（若有），否则 null。掉落已经在意外中没了——变异是唯一的安慰。
  */
-function explode(d: GameState, p: Parcel, out: EngineOut) {
+function rollMutation(d: GameState, rand: () => number): MutationId | null {
+  // 还没拥有的变异
+  const avail = MUTATIONS.filter((m) => !d.mutations.includes(m.id));
+  if (avail.length === 0) return null; // 已集齐
+  const chance = Math.min(0.75, 0.12 + 0.06 * d.dangerStreak); // 垫刀：越炸越容易变
+  if (rand() >= chance) return null;
+  const pick = avail[weightedPick(avail.map((m) => m.weight), rand)];
+  return pick.id;
+}
+
+/**
+ * 危险品被错误工具打开 -> 爆炸：无掉落、无现金，连带损伤台上其他快递，老哥被炸懵。
+ * MUTATION HOOK: 损失结算后，按垫刀递增的概率改为触发变异（永久叠加的肉身工具）。
+ */
+function explode(d: GameState, p: Parcel, rand: () => number, out: EngineOut) {
   // 连带：敲掉台上其他快递 30% 封口血
   for (const other of d.workbench) {
     if (other.id === p.id) continue;
@@ -185,6 +203,17 @@ function explode(d: GameState, p: Parcel, out: EngineOut) {
     manual: false,
   });
   emit('boom');
+
+  // MUTATION HOOK
+  const mutId = rollMutation(d, rand);
+  if (mutId) {
+    d.mutations.push(mutId);
+    d.dangerStreak = 0;
+    raiseFeedback(out, 'danger');
+    emit('mutate', mutId);
+  } else {
+    d.dangerStreak += 1;
+  }
 }
 
 function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false) {
@@ -194,7 +223,7 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
 
   // 危险品 + 用错工具 -> 爆炸（在任何掉落前结算）
   if (p.danger && !toolIsSafe(d.currentTool)) {
-    explode(d, p, out);
+    explode(d, p, rand, out);
     return;
   }
 
@@ -229,6 +258,9 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
   if (tool.eatsLoot && items.length > 0) {
     eatIdx = Math.floor(rand() * items.length);
   }
+  // 锯子腿：可控的踢——暴怒踢坏概率降低、强制踩坏只有一半几率真损坏
+  const sawKick = d.mutations.includes('sawlegs');
+  const rageDestroyProb = sawKick ? 0.08 : 0.2;
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     // 液压机：史诗以上的可卖/材料件 50% 损坏
@@ -237,8 +269,9 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
       (item.kind === 'sellable' || item.kind === 'material') &&
       rarityRank(item.rarity) >= rarityRank('epic') &&
       rand() < 0.5;
+    const forcedHit = i === forcedDestroyIdx && (!sawKick || rand() < 0.5);
     const shouldDestroy =
-      i === forcedDestroyIdx || i === eatIdx || fragileHit || (d.rage > 60 && rand() < 0.2);
+      forcedHit || i === eatIdx || fragileHit || (d.rage > 60 && rand() < rageDestroyProb);
     if (shouldDestroy && !item.isDestroyed) {
       item.isDestroyed = true;
       // 已产生的价值减半（退回差额）
@@ -322,18 +355,42 @@ export function doClick(d: GameState, now: number, rand: () => number, out: Engi
  * 危险品特例：用「不安全」的工具时，给一个固定的小亲和度 0.5——
  * 这样你照样能把它砸开，然后它在你脸上炸开（用错方法 = 它会回敬你）；
  * 用「安全」工具（拆弹钳）则用真实亲和度（disarm volatile:3），安全拆解。
+ * 变异门 requireMutation：
+ *   - 没有该变异（hasRequiredMutation=false）：任何工具都撬不动（返回 0）。
+ *   - 有该变异：肉身直接撬开，至少给 2 的有效亲和度。
+ * bodyAff：肉身自带材质效率（变异），与工具取 max。
+ *   但危险品 + 不安全工具时仍固定 0.5——肉身不能拆弹，照样会被炸（保留连锁触发）。
+ * 兼容旧签名：UI 可只传 (toolId, p)；引擎传入 bodyAff / hasRequiredMutation。
  */
-export function effectiveAffinity(toolId: string, p: Parcel): number {
+export function effectiveAffinity(
+  toolId: string,
+  p: Parcel,
+  bodyAff = 0,
+  hasRequiredMutation = true,
+): number {
+  // 变异门：缺少指定变异时硬锁
+  if (p.requireMutation && !hasRequiredMutation) return 0;
   const real = TOOL_MAP[toolId as keyof typeof TOOL_MAP]?.affinity[p.material] ?? 0;
+  // 危险品 + 不安全工具：固定 0.5，肉身也不能拆弹（仍会触发爆炸）
   if (p.danger && !toolIsSafe(toolId)) return Math.max(real, 0.5);
-  return real;
+  const eff = Math.max(real, bodyAff);
+  // 满足变异门时，肉身保证能撬开
+  if (p.requireMutation && hasRequiredMutation) return Math.max(eff, 2);
+  return eff;
+}
+
+/** 引擎内部：把当前玩家状态（肉身/变异门）代入 effectiveAffinity */
+export function effAffFor(d: GameState, p: Parcel): number {
+  const bodyAff = bodyAffinity(d, p.material);
+  const hasReq = !p.requireMutation || d.mutations.includes(p.requireMutation);
+  return effectiveAffinity(d.currentTool, p, bodyAff, hasReq);
 }
 
 /** 群体伤害：每个快递按「当前工具对其材质的亲和度」缩放，亲和度<=0 则撬不动 */
 function damageBench(d: GameState, dmg: number, rand: () => number, out: EngineOut) {
   const remaining: Parcel[] = [];
   for (const p of d.workbench) {
-    const eff = effectiveAffinity(d.currentTool, p);
+    const eff = effAffFor(d, p);
     if (eff <= 0) {
       // 硬门槛：撬不动，零伤害
       raiseFeedback(out, 'ineffective');

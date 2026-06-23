@@ -1,5 +1,6 @@
 import { BATCHES, CONTAINERS, LUGGAGE } from '../data/shop';
 import { MATERIALS } from '../data/materials';
+import { MUTATION_MAP } from '../data/mutations';
 import { PARCEL_MAP } from '../data/parcels';
 import { useGame } from '../game/store';
 import { money } from '../lib/format';
@@ -66,6 +67,7 @@ export function Shop() {
         {CONTAINERS.map((c) => {
           const locked = stage < c.unlockStage;
           const mat = MATERIALS[c.material];
+          const mut = c.requireMutation ? MUTATION_MAP[c.requireMutation] : null;
           return (
             <div className={'containerCard' + (locked ? ' locked' : '')} key={c.id}>
               <div className="batchEmoji">{c.emoji}</div>
@@ -73,6 +75,7 @@ export function Shop() {
                 <div className="batchName">
                   {c.name}
                   {c.danger && <span className="dangerTag">⚠️ 危险品</span>}
+                  {mut && <span className="mutTag">🧬 需要变异：{mut.emoji}{mut.name}</span>}
                 </div>
                 <div className="luggageFlavor">{c.flavor}</div>
                 <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>

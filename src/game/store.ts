@@ -78,6 +78,7 @@ function draft(s: GameState): GameState {
     prestigeTree: { ...s.prestigeTree },
     ownedTools: s.ownedTools.slice(),
     toolLevels: { ...s.toolLevels },
+    mutations: s.mutations.slice(),
   };
 }
 
@@ -276,7 +277,7 @@ export const useGame = create<Store>()(
           makeParcel('crate', liveRand, {
             material: c.material, emoji: c.emoji, label: c.name, sealMax: c.sealMax,
             lootMin: c.lootMin, lootMax: c.lootMax, luckBonus: c.luckBonus, pool: c.pool,
-            hollowChance: c.hollowChance, danger: c.danger,
+            hollowChance: c.hollowChance, danger: c.danger, requireMutation: c.requireMutation,
           }),
         );
         refillBench(d);
@@ -318,6 +319,7 @@ export const useGame = create<Store>()(
           absurdFound: d.absurdFound,
           audioEnabled: d.audioEnabled,
           introSeen: d.introSeen,
+          mutations: d.mutations, // 变异是永久肉身改造，跨转生保留
         };
         const fresh = initialState();
         const next: GameState = { ...fresh, ...keep, lastSeen: Date.now() };
@@ -393,6 +395,8 @@ export const useGame = create<Store>()(
         if (state.rage === undefined) state.rage = 0;
         if (state.revengeLeft === undefined) state.revengeLeft = 0;
         if (state.dazedUntil === undefined) state.dazedUntil = 0;
+        if (state.mutations === undefined) state.mutations = [];
+        if (state.dangerStreak === undefined) state.dangerStreak = 0;
 
         // 工具箱迁移：旧存档为单线性工具，映射到新工具体系
         if (state.ownedTools === undefined) {

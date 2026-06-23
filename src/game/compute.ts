@@ -3,6 +3,7 @@ import { PRESTIGE_MAP } from '../data/prestige';
 import { QUOTE_MAP } from '../data/quotes';
 import { TOOL_MAP } from '../data/tools';
 import { UPGRADE_MAP } from '../data/upgrades';
+import { MUTATION_MAP } from '../data/mutations';
 import type { MaterialId } from '../data/materials';
 import type { PassiveType } from '../data/types';
 import { AUTO_PER_WORKER, BASE_DELIVER_INTERVAL, BASE_QUOTE_SLOTS, type GameState } from './state';
@@ -34,9 +35,29 @@ export function quoteBonus(s: GameState, type: PassiveType): number {
   return sum;
 }
 
-/** 某类型的总加成（收藏被动 + 语录） */
+/** 变异被动加成合计（如三头六臂连击上限、磁力手售价） */
+export function mutationBonus(s: GameState, type: PassiveType): number {
+  let sum = 0;
+  for (const id of s.mutations) {
+    const m = MUTATION_MAP[id];
+    if (m?.passive?.type === type) sum += m.passive.amount;
+  }
+  return sum;
+}
+
+/** 肉身自带材质效率（多个变异取 max；无则 0） */
+export function bodyAffinity(s: GameState, material: MaterialId): number {
+  let best = 0;
+  for (const id of s.mutations) {
+    const v = MUTATION_MAP[id]?.bodyAffinity?.[material] ?? 0;
+    if (v > best) best = v;
+  }
+  return best;
+}
+
+/** 某类型的总加成（收藏被动 + 语录 + 变异） */
 function bonus(s: GameState, type: PassiveType): number {
-  return passiveBonus(s, type) + quoteBonus(s, type);
+  return passiveBonus(s, type) + quoteBonus(s, type) + mutationBonus(s, type);
 }
 
 /** 语录装备槽位数 */
@@ -110,7 +131,9 @@ export function sellBonus(s: GameState): number {
 
 /** 工作台容量 */
 export function benchCapacity(s: GameState): number {
-  return 1 + up(s, 'workbench') * UPGRADE_MAP.workbench.effect;
+  let mut = 0;
+  for (const id of s.mutations) mut += MUTATION_MAP[id]?.benchBonus ?? 0;
+  return 1 + up(s, 'workbench') * UPGRADE_MAP.workbench.effect + mut;
 }
 
 /** 点击冷却(ms) */
