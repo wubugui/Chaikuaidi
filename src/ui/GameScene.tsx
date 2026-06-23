@@ -32,6 +32,8 @@ export function GameScene() {
   const inventory = useGame((s) => s.inventory);
   const click = useGame((s) => s.click);
   const sellAllItems = useGame((s) => s.sellAllItems);
+  const rage = useGame((s) => s.rage);
+  const revengeLeft = useGame((s) => s.revengeLeft);
 
   const s = useGame();
   const cPower = clickPowerBase(s);
@@ -186,6 +188,8 @@ export function GameScene() {
   const heat = combo >= 50 ? 'rage' : combo >= 20 ? 'hot' : combo >= 8 ? 'warm' : '';
   const n = workbench.length;
   const boxSize = n <= 1 ? 150 : n <= 2 ? 116 : n <= 4 ? 92 : n <= 6 ? 72 : 56;
+  const ragePct = Math.min(100, Math.max(0, rage));
+  const rageColor = ragePct >= 70 ? '#ff5a6e' : ragePct >= 40 ? '#ffce3a' : '#54e08a';
 
   return (
     <div className={'scene ' + heat}>
@@ -251,6 +255,7 @@ export function GameScene() {
           <div className={'dudeFace' + (combo >= 20 ? ' mad' : '')}>{rageFace(combo)}</div>
           <div className="dudeHand" key={swing % 1000}>{tool.emoji}</div>
           <div className="dudeName">{tool.name}</div>
+          {revengeLeft > 0 && <div className="revengeTag">报复×{revengeLeft}</div>}
         </div>
 
         {/* 粒子 */}
@@ -271,6 +276,18 @@ export function GameScene() {
         ))}
 
         <div className="tapHint">👆 按住猛砸</div>
+      </div>
+
+      {/* 暴怒条 */}
+      <div className="rageBarWrap">
+        <span className="rageBarLabel">暴怒</span>
+        <div className="rageBar">
+          <div
+            className="rageFill"
+            style={{ width: ragePct + '%', background: rageColor }}
+          />
+        </div>
+        <span className="rageBarNum" style={{ color: rageColor }}>{Math.floor(ragePct)}</span>
       </div>
 
       {/* 卖货条 */}

@@ -74,20 +74,25 @@ export function RevealLayer() {
             const r = RARITIES[it.rarity];
             return (
               <div
-                className="revealItem"
+                className={'revealItem' + (it.isDestroyed ? ' riDestroyed' : '')}
                 key={i}
                 style={{ borderColor: r.color, animationDelay: i * 70 + 'ms', boxShadow: `0 0 24px ${r.color}66` }}
               >
-                <div className="riEmoji" style={{ filter: `drop-shadow(0 0 12px ${r.color})` }}>{it.emoji}</div>
+                <div className="riEmoji" style={{ filter: `drop-shadow(0 0 12px ${r.color})` }}>
+                  {it.emoji}
+                  {it.isDestroyed && <span className="riDestroyedOverlay">💥</span>}
+                </div>
                 <div className="riName" style={{ color: r.color }}>{it.name}</div>
                 <div className="riTag">
-                  {it.kind === 'quote'
-                    ? '🗯️ 语录'
-                    : it.kind === 'collectible'
-                      ? '🖼️ 收藏'
-                      : '¥' + fmt(it.value)}
+                  {it.isDestroyed
+                    ? <span className="riDestroyedLabel">踢坏了</span>
+                    : it.kind === 'quote'
+                      ? '🗯️ 语录'
+                      : it.kind === 'collectible'
+                        ? '🖼️ 收藏'
+                        : '¥' + fmt(it.value)}
                 </div>
-                {it.isNew && <div className="riNew">{it.kind === 'quote' ? '✨ 新语录' : '✨ 新收藏'}</div>}
+                {it.isNew && !it.isDestroyed && <div className="riNew">{it.kind === 'quote' ? '✨ 新语录' : '✨ 新收藏'}</div>}
               </div>
             );
           })}

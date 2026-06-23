@@ -25,6 +25,7 @@ export interface RevealItem {
   value: number; // 可卖/材料的售价；收藏/语录为 0
   isNew: boolean; // 新收藏品/新语录
   quoteText?: string;
+  isDestroyed?: boolean; // 被暴怒踢坏
 }
 
 /** 一次开箱事件（一个快递拆开后掉的东西） */
@@ -45,6 +46,7 @@ type Handlers = {
   reveal: (r: RevealData) => void;
   revealStart: () => void;
   revealEnd: () => void;
+  rageBurst: () => void;
 };
 
 const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
@@ -55,6 +57,7 @@ const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
   reveal: new Set(),
   revealStart: new Set(),
   revealEnd: new Set(),
+  rageBurst: new Set(),
 };
 
 let uid = 1;

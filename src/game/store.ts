@@ -319,6 +319,10 @@ export const useGame = create<Store>()(
         for (const p of [...state.workbench, ...state.queue]) maxId = Math.max(maxId, p.id);
         seedId(maxId);
 
+        // 旧存档兼容：新增字段默认值
+        if (state.rage === undefined) state.rage = 0;
+        if (state.revengeLeft === undefined) state.revengeLeft = 0;
+
         // 离线结算
         const now = Date.now();
         const elapsed = (now - (state.lastSeen ?? now)) / 1000;

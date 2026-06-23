@@ -45,6 +45,10 @@ export interface GameState {
   legendaryFound: boolean;
   absurdFound: boolean;
 
+  // 暴怒
+  rage: number;        // 0-100
+  revengeLeft: number; // 剩余报复次数（×2 伤害）
+
   // 杂项
   audioEnabled: boolean;
   introSeen: boolean; // 开场演出是否看过
@@ -79,6 +83,8 @@ export function initialState(): GameState {
     maxBatch: 0,
     legendaryFound: false,
     absurdFound: false,
+    rage: 0,
+    revengeLeft: 0,
     audioEnabled: true,
     introSeen: false,
     lastSeen: Date.now(),

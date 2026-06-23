@@ -14,7 +14,7 @@ import {
   sellBonus,
 } from './compute';
 import type { LootBurst, RevealData, RevealItem } from './events';
-import { nextId } from './events';
+import { emit, nextId } from './events';
 import { rollItem, sellValue } from './systems/loot';
 import { COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
 
@@ -118,17 +118,55 @@ function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut)
   };
 }
 
-function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut) {
+function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false) {
   d.totalUnpacked += 1;
   out.opened += 1;
   const lp = { luck: luck(d) };
   const items: RevealItem[] = [];
+  let damagedCount = 0;
   for (let i = 0; i < p.lootCount; i++) {
     const rolled = rollItem(lp, rand);
-    items.push(applyLoot(d, rolled.rarity, rolled.item.id, out));
+    const item = applyLoot(d, rolled.rarity, rolled.item.id, out);
+    items.push(item);
+  }
+  // 踢坏物品：rage > 60 时 20% 概率损坏，或暴怒失控强制摧毁一件
+  let forcedDestroyIdx = -1;
+  if (forceDestroyOne && items.length > 0) {
+    forcedDestroyIdx = Math.floor(rand() * items.length);
+  }
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const shouldDestroy = i === forcedDestroyIdx || (d.rage > 60 && rand() < 0.2);
+    if (shouldDestroy && !item.isDestroyed) {
+      item.isDestroyed = true;
+      // 已产生的价值减半（退回差额）
+      const refund = Math.floor(item.value / 2);
+      if (item.value > 0) {
+        d.money -= refund;
+        d.runEarned -= refund;
+        d.lifetimeEarned -= refund;
+        out.cash -= refund;
+      }
+      item.value = item.value - refund;
+      damagedCount++;
+    }
+  }
+  // 报复心理：有物品被踢坏则给 5 次 ×2 伤害
+  if (damagedCount > 0) {
+    d.revengeLeft = 5;
   }
   let topRarity = items[0]?.rarity ?? 'common';
   for (const it of items) if (rarityRank(it.rarity) > rarityRank(topRarity)) topRarity = it.rarity;
+  // 暴怒值调整
+  if (topRarity === 'common') {
+    d.rage = Math.min(100, d.rage + 15);
+  } else if (topRarity === 'rare') {
+    d.rage = Math.max(0, d.rage - 10);
+  } else if (topRarity === 'epic') {
+    d.rage = Math.max(0, d.rage - 20);
+  } else if (topRarity === 'legendary' || topRarity === 'absurd') {
+    d.rage = Math.max(0, d.rage - 35);
+  }
   out.reveals.push({
     id: nextId(),
     parcelEmoji: p.emoji,
@@ -152,9 +190,26 @@ export function doClick(d: GameState, now: number, rand: () => number, out: Engi
     if (d.workbench.length === 0) return;
   }
 
-  const dmg = clickPower(d);
+  // 报复心理：revengeLeft > 0 时伤害 ×2
+  let dmg = clickPower(d);
+  if (d.revengeLeft > 0) {
+    dmg *= 2;
+    d.revengeLeft -= 1;
+  }
+
   damageBench(d, dmg, rand, out);
   out.shake = true;
+
+  // 暴怒失控：rage 达到 100 时，强制打开工作台第一个快递，随机摧毁一件掉落，rage 重置到 30
+  if (d.rage >= 100 && d.workbench.length > 0) {
+    const target = d.workbench.splice(0, 1)[0];
+    openParcel(d, target, rand, out, true /* forceDestroyOne */);
+    // 覆盖 openParcel 内的 rage 调整，强制回 30
+    d.rage = 30;
+    emit('rageBurst');
+    refillBench(d);
+  }
+
   refillStageAndUnpack(d);
 }
 
