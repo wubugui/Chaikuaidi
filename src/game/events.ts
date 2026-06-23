@@ -28,6 +28,7 @@ export interface RevealItem {
   isNew: boolean; // 新收藏品/新语录
   quoteText?: string;
   isDestroyed?: boolean; // 被暴怒踢坏
+  itemId?: string; // 物品 id（零件高亮等用；普通掉落可不带）
 }
 
 /** 一次开箱事件（一个快递拆开后掉的东西） */
@@ -52,6 +53,7 @@ type Handlers = {
   boom: () => void;
   mutate: (id: MutationId) => void;
   merchant: (present: boolean) => void;
+  craft: (bpId: string) => void;
 };
 
 const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
@@ -66,6 +68,7 @@ const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
   boom: new Set(),
   mutate: new Set(),
   merchant: new Set(),
+  craft: new Set(),
 };
 
 let uid = 1;

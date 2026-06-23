@@ -9,6 +9,7 @@ import { rarityRank } from '../data/rarity';
 import { PARCEL_MAP } from '../data/parcels';
 import { TOOL_MAP, TOOLS, toolUpgradeCost } from '../data/tools';
 import { AUTO_SELL_COST, UPGRADE_MAP, upgradeBulkCost } from '../data/upgrades';
+import { BLUEPRINT_MAP } from '../data/blueprints';
 import type { Rarity, ToolId } from '../data/types';
 import { emit, seedId } from './events';
 import {
@@ -75,6 +76,9 @@ interface Actions {
   shelveToBacklog: (parcelId: number) => void;
   buyPrestige: (id: string) => void;
   prestige: () => void;
+  buyBlueprint: (id: string) => void;
+  setTargetBlueprint: (id: string | null) => void;
+  craftBlueprint: (id: string) => void;
   equipQuote: (id: string) => void;
   unequipQuote: (id: string) => void;
   markIntroSeen: () => void;
@@ -102,6 +106,9 @@ function draft(s: GameState): GameState {
     ownedTools: s.ownedTools.slice(),
     toolLevels: { ...s.toolLevels },
     mutations: s.mutations.slice(),
+    blueprints: s.blueprints.slice(),
+    devices: { ...s.devices },
+    deviceAccum: { ...s.deviceAccum },
   };
 }
 
@@ -394,6 +401,9 @@ export const useGame = create<Store>()(
           audioEnabled: d.audioEnabled,
           introSeen: d.introSeen,
           mutations: d.mutations, // 变异是永久肉身改造，跨转生保留
+          blueprints: d.blueprints, // 图纸是永久知识，跨转生保留
+          targetBlueprint: d.targetBlueprint,
+          // 设备（devices/deviceAccum）随本轮重置——重开后重新建造
         };
         const fresh = initialState();
         const next: GameState = { ...fresh, ...keep, lastSeen: Date.now() };
@@ -408,6 +418,54 @@ export const useGame = create<Store>()(
         for (let i = 0; i < 3; i++) next.queue.push(makeParcel('small', liveRand));
         refillBench(next);
         set({ ...next });
+      },
+
+      // ---- 图纸 / 合成 / 设备 ----
+      buyBlueprint: (id) => {
+        const s = get();
+        const bp = BLUEPRINT_MAP[id];
+        if (!bp || s.blueprints.includes(id)) return;
+        if (s.stage < bp.unlockStage || s.money < bp.buyCost) return;
+        const d = draft(s);
+        d.money -= bp.buyCost;
+        d.blueprints.push(id);
+        set(d);
+      },
+
+      setTargetBlueprint: (id) => {
+        const s = get();
+        if (id !== null && !s.blueprints.includes(id)) return;
+        const d = draft(s);
+        d.targetBlueprint = id;
+        set(d);
+      },
+
+      craftBlueprint: (id) => {
+        const s = get();
+        const bp = BLUEPRINT_MAP[id];
+        if (!bp || !s.blueprints.includes(id)) return;
+        // 检查零件与钱
+        for (const inp of bp.inputs) {
+          if ((s.inventory[inp.item] ?? 0) < inp.qty) return;
+        }
+        if (s.money < bp.moneyCost) return;
+        const d = draft(s);
+        for (const inp of bp.inputs) {
+          d.inventory[inp.item] = (d.inventory[inp.item] ?? 0) - inp.qty;
+          if (d.inventory[inp.item] <= 0) delete d.inventory[inp.item];
+        }
+        d.money -= bp.moneyCost;
+        if (bp.result.type === 'device') {
+          const did = bp.result.id;
+          if (bp.repeatable || (d.devices[did] ?? 0) === 0) {
+            d.devices[did] = (d.devices[did] ?? 0) + 1;
+          }
+        } else if (bp.result.type === 'tool') {
+          const tid = bp.result.id as ToolId;
+          if (!d.ownedTools.includes(tid)) d.ownedTools.push(tid);
+        }
+        set(d);
+        emit('craft', id);
       },
 
       equipQuote: (id) => {
@@ -449,14 +507,16 @@ export const useGame = create<Store>()(
         const {
           offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
           sellAllItems, buyBatch, buyLuggage, buyContainer, buyFromMerchant, loadFromBacklog, dumpGroupToBelt,
-          shelveToBacklog, buyPrestige, prestige, equipQuote, unequipQuote, markIntroSeen,
+          shelveToBacklog, buyPrestige, prestige, buyBlueprint, setTargetBlueprint, craftBlueprint,
+          equipQuote, unequipQuote, markIntroSeen,
           toggleAudio, hardReset, dismissOffline, ...rest
         } = s as Store;
         void offline; void click; void tick; void buyUpgrade; void buyTool; void selectTool; void upgradeTool;
         void buyAutoSell;
         void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyLuggage; void buyContainer; void buyPrestige;
         void buyFromMerchant; void loadFromBacklog; void dumpGroupToBelt; void shelveToBacklog;
-        void prestige; void equipQuote; void unequipQuote; void markIntroSeen;
+        void prestige; void buyBlueprint; void setTargetBlueprint; void craftBlueprint;
+        void equipQuote; void unequipQuote; void markIntroSeen;
         void toggleAudio; void hardReset; void dismissOffline;
         return rest;
       },
@@ -471,6 +531,10 @@ export const useGame = create<Store>()(
         if (state.dangerStreak === undefined) state.dangerStreak = 0;
         if (state.merchant === undefined) state.merchant = null;
         if (state.merchantNextAt === undefined) state.merchantNextAt = Date.now() + FIRST_VISIT_DELAY;
+        if (state.blueprints === undefined) state.blueprints = [];
+        if (state.targetBlueprint === undefined) state.targetBlueprint = null;
+        if (state.devices === undefined) state.devices = {};
+        if (state.deviceAccum === undefined) state.deviceAccum = {};
 
         // id 计数器抬升，避免 key 冲突
         let maxId = 0;

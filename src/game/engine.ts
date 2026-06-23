@@ -27,8 +27,9 @@ import {
 } from './compute';
 import type { LootBurst, RevealData, RevealItem } from './events';
 import { emit, nextId } from './events';
-import { rollItem, sellValue } from './systems/loot';
-import { COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
+import { rollItem, rollPart, sellValue } from './systems/loot';
+import { BLUEPRINT_MAP, sorterBonus } from '../data/blueprints';
+import { AUTO_LINE_INTERVAL, COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
 
 /** 反馈/震动分级（none<ineffective<hit<crack<open<danger） */
 export type FeedbackLevel = 'none' | 'ineffective' | 'hit' | 'crack' | 'open' | 'danger';
@@ -224,13 +225,14 @@ function explode(d: GameState, p: Parcel, rand: () => number, out: EngineOut) {
   }
 }
 
-function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false) {
+function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false, forceUnsafe = false) {
   d.totalUnpacked += 1;
   out.opened += 1;
   const tool = TOOL_MAP[d.currentTool];
 
-  // 危险品 + 用错工具 -> 爆炸（在任何掉落前结算）
-  if (p.danger && !toolIsSafe(d.currentTool)) {
+  // 危险品 + 用错工具 -> 爆炸（在任何掉落前结算）。
+  // 自动拆转区是「不安全」开箱者（forceUnsafe）：永远无法拆弹 → 危险货照炸。
+  if (p.danger && (forceUnsafe || !toolIsSafe(d.currentTool))) {
     explode(d, p, rand, out);
     return;
   }
@@ -255,6 +257,21 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
     const rolled = rollItem(lp, rand, p.pool);
     const item = applyLoot(d, rolled.rarity, rolled.item.id, out);
     items.push(item);
+  }
+  // 零件副产物：独立于主掉落池的稀缺掉落（金属/危险货更易出；分拣机加成）
+  const partItem = rollPart(p.material, rand, sorterBonus(d));
+  if (partItem) {
+    d.inventory[partItem.id] = (d.inventory[partItem.id] ?? 0) + 1;
+    out.bursts.push({ id: nextId(), emoji: partItem.emoji, rarity: partItem.rarity, isNewCollectible: false });
+    items.push({
+      emoji: partItem.emoji,
+      name: partItem.name,
+      rarity: partItem.rarity,
+      kind: 'part',
+      value: 0,
+      isNew: false,
+      itemId: partItem.id,
+    });
   }
   // 踢坏物品：rage > 60 时 20% 概率损坏，或暴怒失控强制摧毁一件
   let forcedDestroyIdx = -1;
@@ -465,6 +482,40 @@ export function tickMerchant(d: GameState, rand: () => number) {
   }
 }
 
+/**
+ * 自动拆转区步进：每台 autoline_<mat> 设备按计时从积压区拉取对应材质的快递自动开箱。
+ * - 多台同材质 = 处理更快（计时按台数加速）。
+ * - 危险品：自动线是「不安全」开箱者 → 照炸（forceUnsafe）。
+ * - 变异门未拥有：留在积压区不动。
+ * - 不碰手动工作台，只消化 backlog。
+ */
+function tickAutoLines(d: GameState, dtSec: number, rand: () => number, out: EngineOut) {
+  if (!d.devices) return;
+  for (const devId of Object.keys(d.devices)) {
+    const count = d.devices[devId] ?? 0;
+    if (count <= 0) continue;
+    const bp = BLUEPRINT_MAP[Object.keys(BLUEPRINT_MAP).find((k) => BLUEPRINT_MAP[k].result.id === devId) ?? ''];
+    const mat = bp?.autolineMaterial;
+    if (!mat) continue; // 非自动线设备（分拣机等）无 tick 行为
+    d.deviceAccum[devId] = (d.deviceAccum[devId] ?? 0) + dtSec * count;
+    let safety = 50;
+    while (d.deviceAccum[devId] >= AUTO_LINE_INTERVAL && safety-- > 0) {
+      // 找一个匹配材质、且（无变异门 或 已拥有变异）的积压快递
+      const idx = d.backlog.findIndex(
+        (p) => p.material === mat && (!p.requireMutation || d.mutations.includes(p.requireMutation)),
+      );
+      if (idx < 0) break; // 没有可处理的货，停在原地等
+      d.deviceAccum[devId] -= AUTO_LINE_INTERVAL;
+      const [parcel] = d.backlog.splice(idx, 1);
+      openParcel(d, parcel, rand, out, false, true /* forceUnsafe：自动线不能拆弹 */);
+    }
+    // 没货时不让计时无限堆积
+    if (d.backlog.findIndex((p) => p.material === mat) < 0) {
+      d.deviceAccum[devId] = Math.min(d.deviceAccum[devId], AUTO_LINE_INTERVAL);
+    }
+  }
+}
+
 /** 游戏循环步进 */
 export function doTick(d: GameState, dtSec: number, rand: () => number, out: EngineOut) {
   tickMerchant(d, rand);
@@ -489,6 +540,10 @@ export function doTick(d: GameState, dtSec: number, rand: () => number, out: Eng
   if (auto > 0 && d.workbench.length > 0) {
     damageBench(d, auto * dtSec, rand, out);
   }
+
+  // 自动拆转区：消化积压区
+  tickAutoLines(d, dtSec, rand, out);
+
   refillStageAndUnpack(d);
 }
 

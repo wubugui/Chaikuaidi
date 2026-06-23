@@ -68,6 +68,12 @@ export interface GameState {
   mutations: MutationId[]; // 已获得的变异（永久可叠加）
   dangerStreak: number;    // 危险品意外未变异的累计（垫刀）
 
+  // 图纸 / 合成 / 设备
+  blueprints: string[];                 // 已拥有的图纸 id
+  targetBlueprint: string | null;       // 当前目标图纸（其所需零件全局高亮）
+  devices: Record<string, number>;      // 已建造设备 id -> 台数
+  deviceAccum: Record<string, number>;  // 每种设备的累计计时（秒）
+
   // 黑市商人
   merchant: { until: number; offers: MerchantOffer[] } | null; // 当前在场的黑市商人，null=不在
   merchantNextAt: number; // 下次到访时间戳(ms)
@@ -114,6 +120,10 @@ export function initialState(): GameState {
     dazedUntil: 0,
     mutations: [],
     dangerStreak: 0,
+    blueprints: [],
+    targetBlueprint: null,
+    devices: {},
+    deviceAccum: {},
     merchant: null,
     merchantNextAt: Date.now() + FIRST_VISIT_DELAY,
     audioEnabled: true,
@@ -138,3 +148,5 @@ export const BASE_QUOTE_SLOTS = 1;
 export const COMBO_WINDOW_MS = 2000;
 export const BASE_DELIVER_INTERVAL = 3; // 秒
 export const AUTO_PER_WORKER = 2; // 每个工人基础自动伤害/秒
+/** 自动拆转区：每台每隔多少秒处理一个积压快递 */
+export const AUTO_LINE_INTERVAL = 4; // 秒

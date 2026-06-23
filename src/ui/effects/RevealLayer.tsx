@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RARITIES, rarityRank } from '../../data/rarity';
 import { emit, on, type RevealData } from '../../game/events';
+import { neededParts } from '../../data/blueprints';
+import { useGame } from '../../game/store';
 import { sfxLoot, sfxOpen } from '../../lib/audio';
 import { fmt } from '../../lib/format';
 import type { Rarity } from '../../data/types';
@@ -96,6 +98,8 @@ export function RevealLayer() {
     };
   }, [advance]);
 
+  const need = neededParts(useGame());
+
   if (!current) return null;
   const topR = RARITIES[current.topRarity];
   const grand = rarityRank(current.topRarity) >= rarityRank('epic');
@@ -145,9 +149,10 @@ export function RevealLayer() {
           <div className={'revealItems n' + Math.min(current.items.length, 4)}>
             {current.items.map((it, i) => {
               const r = RARITIES[it.rarity];
+              const targetPart = it.kind === 'part' && it.itemId != null && need.has(it.itemId);
               return (
                 <div
-                  className={'revealItem riFlip' + (it.isDestroyed ? ' riDestroyed' : '')}
+                  className={'revealItem riFlip' + (it.isDestroyed ? ' riDestroyed' : '') + (targetPart ? ' riTargetPart' : '')}
                   key={i}
                   style={{ ['--flipDelay' as any]: i * 180 + 'ms' }}
                 >
@@ -168,8 +173,11 @@ export function RevealLayer() {
                           ? '🗯️ 语录'
                           : it.kind === 'collectible'
                             ? '🖼️ 收藏'
-                            : '¥' + fmt(it.value)}
+                            : it.kind === 'part'
+                              ? '🔩 零件'
+                              : '¥' + fmt(it.value)}
                     </div>
+                    {targetPart && <div className="riTargetTag">✨ 目标零件</div>}
                     {it.isNew && !it.isDestroyed && <div className="riNew">{it.kind === 'quote' ? '✨ 新语录' : '✨ 新收藏'}</div>}
                   </div>
                 </div>

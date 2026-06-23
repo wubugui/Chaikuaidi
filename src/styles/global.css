@@ -736,3 +736,73 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   .game { max-width: 480px; margin: 0 auto; box-shadow: 0 0 60px #000a; }
   body { background: #0c0814; }
 }
+
+/* ===================== P3 工坊 / 零件 / 图纸 ===================== */
+
+/* 背包：零件分组 + 目标零件高亮 */
+.invPartSec { margin-bottom: 12px; }
+.invGroupTitle { font-size: 14px; font-weight: 900; color: var(--gold); margin: 4px 0 6px; }
+.invGroupHint { font-size: 11px; font-weight: 600; color: var(--muted); margin-left: 6px; }
+.invItem.partNeeded { border-color: #ffd54a !important; box-shadow: 0 0 0 1px #ffd54a88, 0 0 14px #ffd54a66; animation: partPulse 1.4s ease-in-out infinite; }
+.partNeedBadge { position: absolute; top: -7px; right: -5px; font-size: 13px; filter: drop-shadow(0 0 4px #ffd54a); }
+@keyframes partPulse {
+  0%, 100% { box-shadow: 0 0 0 1px #ffd54a88, 0 0 10px #ffd54a55; }
+  50% { box-shadow: 0 0 0 1px #ffd54a, 0 0 20px #ffd54aaa; }
+}
+
+/* 工坊面板 */
+.workshop { display: flex; flex-direction: column; gap: 8px; }
+.bpCard { border: 2px solid var(--line); border-radius: 14px; background: var(--card); padding: 10px 11px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 2px 0 #0005; }
+.bpCard.locked { opacity: 0.55; }
+.bpCard.bpTarget { border-color: #ffd54a; box-shadow: 0 0 0 1px #ffd54a66, 0 0 16px #ffd54a33; }
+.bpHead { display: flex; gap: 10px; align-items: flex-start; }
+.bpEmoji { font-size: 26px; line-height: 1; }
+.bpInfo { flex: 1; min-width: 0; }
+.bpName { font-weight: 900; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bpBuilt { font-size: 11px; font-weight: 700; color: #34d399; background: #34d39922; border: 1px solid #34d39966; border-radius: 8px; padding: 1px 6px; }
+.bpDesc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.bpInputs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bpReq { font-size: 12px; font-weight: 800; border-radius: 9px; padding: 2px 8px; border: 1px solid var(--line); }
+.bpReq.met { color: #34d399; border-color: #34d39966; background: #34d39915; }
+.bpReq.unmet { color: #ff8a9a; border-color: #ff8a9a55; background: #ff8a9a12; }
+.bpReq.bpReqTarget { border-color: #ffd54a; color: #ffd54a; box-shadow: 0 0 8px #ffd54a55; }
+.bpMoney { font-size: 12px; font-weight: 800; color: var(--gold); margin-left: auto; }
+.bpActions { display: flex; gap: 8px; align-items: center; }
+.bpActions .btn { flex: 1; justify-content: center; }
+
+/* 设备列表 */
+.deviceList { display: flex; flex-direction: column; gap: 6px; }
+.deviceRow { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: var(--card); }
+.deviceEmoji { font-size: 20px; }
+.deviceEffect { font-size: 13px; font-weight: 700; }
+
+/* 揭晓特写：目标零件标签/光晕 */
+.revealItem.riTargetPart .riFront { box-shadow: 0 0 26px #ffd54aaa !important; border-color: #ffd54a !important; }
+.riTargetTag { font-size: 11px; font-weight: 900; color: #2a1800; background: linear-gradient(180deg, #ffe27a, #ffc534); border-radius: 8px; padding: 1px 7px; margin-top: 3px; }
+
+/* PopReveal：目标零件高亮 */
+.popItem.popItemTarget { border-left-color: #ffd54a; }
+.popTargetTag { font-size: 12px; filter: drop-shadow(0 0 4px #ffd54a); margin-left: 2px; }
+
+/* 合成闪光（可挂在 body 上的瞬时反馈类） */
+@keyframes craftFlash {
+  0% { box-shadow: inset 0 0 0 0 #ffd54a00; }
+  30% { box-shadow: inset 0 0 80px 0 #ffd54a55; }
+  100% { box-shadow: inset 0 0 0 0 #ffd54a00; }
+}
+.craftFlash { animation: craftFlash 0.6s ease-out; }
+
+/* 合成成功浮层 */
+.craftFlashLayer { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 60; }
+.craftFlashCard {
+  font-size: 18px; font-weight: 900; color: #2a1800;
+  background: linear-gradient(180deg, #ffe27a, #ffc534);
+  border-radius: 14px; padding: 12px 22px; box-shadow: 0 0 40px #ffd54aaa;
+  animation: craftPop 1.1s ease-out forwards;
+}
+@keyframes craftPop {
+  0% { transform: scale(0.6); opacity: 0; }
+  20% { transform: scale(1.08); opacity: 1; }
+  70% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1) translateY(-30px); opacity: 0; }
+}

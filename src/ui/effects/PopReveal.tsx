@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { RARITIES } from '../../data/rarity';
 import { on, type RevealData } from '../../game/events';
+import { neededParts } from '../../data/blueprints';
+import { useGame } from '../../game/store';
 import { isShowcase } from './RevealLayer';
 
 interface Pop {
@@ -16,6 +18,7 @@ const LIFE_MS = 900;
  */
 export function PopReveal() {
   const [pops, setPops] = useState<Pop[]>([]);
+  const need = neededParts(useGame());
 
   useEffect(() => {
     const off = on('reveal', (r) => {
@@ -40,10 +43,12 @@ export function PopReveal() {
             <div className="popFront">
               {items.map((it, i) => {
                 const r = RARITIES[it.rarity];
+                const targetPart = it.kind === 'part' && it.itemId != null && need.has(it.itemId);
                 return (
-                  <div className="popItem" key={i} style={{ borderColor: r.color }}>
+                  <div className={'popItem' + (targetPart ? ' popItemTarget' : '')} key={i} style={{ borderColor: r.color }}>
                     <span className="popEmoji">{it.emoji}</span>
                     <span className="popName" style={{ color: r.color }}>{it.name}</span>
+                    {targetPart && <span className="popTargetTag">✨</span>}
                   </div>
                 );
               })}

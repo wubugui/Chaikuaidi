@@ -1,6 +1,7 @@
 import { AUTO_SELL_COST } from '../data/upgrades';
 import { ITEM_MAP } from '../data/items';
 import { RARITIES, RARITY_ORDER } from '../data/rarity';
+import { neededParts } from '../data/blueprints';
 import { sellBonus } from '../game/compute';
 import { useGame } from '../game/store';
 import { sellValue } from '../game/systems/loot';
@@ -20,13 +21,40 @@ export function Inventory() {
   const buyAutoSell = useGame((s) => s.buyAutoSell);
   const setAutoSell = useGame((s) => s.setAutoSell);
 
-  const ids = Object.keys(inventory).filter((id) => inventory[id] > 0);
-  ids.sort((a, b) => {
-    const ra = RARITY_ORDER.indexOf(ITEM_MAP[a].rarity);
-    const rb = RARITY_ORDER.indexOf(ITEM_MAP[b].rarity);
-    return rb - ra;
-  });
-  const totalValue = ids.reduce((sum, id) => sum + sellValue(ITEM_MAP[id], ITEM_MAP[id].rarity, sellBonus(s)) * inventory[id], 0);
+  const need = neededParts(s);
+
+  const allIds = Object.keys(inventory).filter((id) => inventory[id] > 0);
+  const byRarity = (a: string, b: string) =>
+    RARITY_ORDER.indexOf(ITEM_MAP[b].rarity) - RARITY_ORDER.indexOf(ITEM_MAP[a].rarity);
+  const partIds = allIds.filter((id) => ITEM_MAP[id].kind === 'part').sort(byRarity);
+  const ids = allIds.filter((id) => ITEM_MAP[id].kind !== 'part').sort(byRarity);
+  const totalValue = ids.reduce(
+    (sum, id) => sum + sellValue(ITEM_MAP[id], ITEM_MAP[id].rarity, sellBonus(s)) * inventory[id],
+    0,
+  );
+
+  const renderItem = (id: string) => {
+    const it = ITEM_MAP[id];
+    const r = RARITIES[it.rarity];
+    const val = sellValue(it, it.rarity, sellBonus(s));
+    const wanted = need.has(id);
+    return (
+      <button
+        key={id}
+        className={'invItem' + (wanted ? ' partNeeded' : '')}
+        style={{ borderColor: r.color }}
+        title={`${it.name}（${r.name}）卖 ¥${fmt(val)}${wanted ? ' · 目标图纸所需' : ''}`}
+        onClick={() => sellItem(id)}
+      >
+        {wanted && <span className="partNeedBadge">✨</span>}
+        <span className="invEmoji">{it.emoji}</span>
+        <span className="invCount">×{fmt(inventory[id])}</span>
+        <span className="invVal" style={{ color: r.color }}>
+          ¥{fmt(val)}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <div className="inventory">
@@ -67,28 +95,16 @@ export function Inventory() {
         </div>
       )}
 
+      {partIds.length > 0 && (
+        <div className="invPartSec">
+          <div className="invGroupTitle">🔩 零件 <span className="invGroupHint">合成设备/工具用，尽量别卖</span></div>
+          <div className="invGrid">{partIds.map(renderItem)}</div>
+        </div>
+      )}
+
       <div className="invGrid">
-        {ids.length === 0 && <div className="invEmpty">还没拆出可卖的东西～</div>}
-        {ids.map((id) => {
-          const it = ITEM_MAP[id];
-          const r = RARITIES[it.rarity];
-          const val = sellValue(it, it.rarity, sellBonus(s));
-          return (
-            <button
-              key={id}
-              className="invItem"
-              style={{ borderColor: r.color }}
-              title={`${it.name}（${r.name}）卖 ¥${fmt(val)}`}
-              onClick={() => sellItem(id)}
-            >
-              <span className="invEmoji">{it.emoji}</span>
-              <span className="invCount">×{fmt(inventory[id])}</span>
-              <span className="invVal" style={{ color: r.color }}>
-                ¥{fmt(val)}
-              </span>
-            </button>
-          );
-        })}
+        {ids.length === 0 && partIds.length === 0 && <div className="invEmpty">还没拆出可卖的东西～</div>}
+        {ids.map(renderItem)}
       </div>
     </div>
   );

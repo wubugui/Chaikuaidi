@@ -113,6 +113,14 @@ export const ITEMS: ItemDef[] = [
   { id:'glove',    name:'冻住的手套（里面好像有东西）', emoji:'🧤', kind:'collectible', rarity:'epic', baseValue:0, passive:{ label:'点击拆解 +14%', type:'clickPower', amount:0.14 } },
   { id:'hatchling',name:'孵出来的小东西', emoji:'🐣', kind:'collectible', rarity:'legendary', baseValue:0, passive:{ label:'幸运 +22%', type:'luck', amount:0.22 } },
 
+  // ---- 零件 🔩（拆解副产物，稀缺；可卖但更想留着合成）----
+  { id:'p_screw',  name:'精密螺丝',   emoji:'🪛', kind:'part', rarity:'common', baseValue:3 },
+  { id:'p_gear',   name:'传动齿轮',   emoji:'⚙️', kind:'part', rarity:'common', baseValue:5 },
+  { id:'p_spring', name:'高张弹簧',   emoji:'🌀', kind:'part', rarity:'rare',   baseValue:8 },
+  { id:'p_circuit',name:'电路板',     emoji:'🔲', kind:'part', rarity:'rare',   baseValue:12 },
+  { id:'p_servo',  name:'伺服电机',   emoji:'🔧', kind:'part', rarity:'epic',   baseValue:20 },
+  { id:'p_belt',   name:'传送带组件', emoji:'🎞️', kind:'part', rarity:'epic',   baseValue:24 },
+
   // ---- 原石扑空（价值 0，非收藏）----
   { id:'hollow', name:'空心的……啥也没有', emoji:'💨', kind:'sellable', rarity:'common', baseValue:0 },
 
@@ -130,3 +138,6 @@ export const ITEM_MAP: Record<string, ItemDef> = Object.fromEntries(ITEMS.map((i
 
 export const COLLECTIBLES = ITEMS.filter((i) => i.kind === 'collectible');
 export const COLLECTION_TOTAL = COLLECTIBLES.length;
+
+/** 零件清单（拆解副产物，合成消耗） */
+export const PARTS = ITEMS.filter((i) => i.kind === 'part');

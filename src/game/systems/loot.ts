@@ -1,4 +1,5 @@
-import { ITEMS, ITEM_MAP } from '../../data/items';
+import { ITEMS, ITEM_MAP, PARTS } from '../../data/items';
+import type { MaterialId } from '../../data/materials';
 import { RARITIES, RARITY_ORDER } from '../../data/rarity';
 import type { ItemDef, Rarity } from '../../data/types';
 import { weightedPick } from '../../lib/rng';
@@ -10,9 +11,10 @@ export interface RolledItem {
 
 // 预建索引：rarity -> kind -> items
 const POOL: Record<Rarity, Record<string, ItemDef[]>> = {} as any;
-for (const r of RARITY_ORDER) POOL[r] = { sellable: [], material: [], collectible: [], quote: [] };
+for (const r of RARITY_ORDER) POOL[r] = { sellable: [], material: [], collectible: [], quote: [], part: [] };
 for (const it of ITEMS) POOL[it.rarity][it.kind].push(it);
 
+// 注意：零件 'part' 故意不入主掉落池——它只通过 rollPart 作为稀缺副产物掉落
 const KIND_WEIGHTS: Array<[ItemDef['kind'], number]> = [
   ['sellable', 72],
   ['material', 15],
@@ -78,5 +80,50 @@ export function rollItem(p: LootParams, rand: () => number, themePool?: string[]
 /** 售价计算 */
 export function sellValue(item: ItemDef, rarity: Rarity, sellMultBonus: number): number {
   if (item.kind === 'collectible' || item.kind === 'quote') return 0;
+  // 零件：按 baseValue 平价回收（不吃稀有度倍率），能卖但卖不出价——更想留着合成
+  if (item.kind === 'part') return Math.ceil(item.baseValue * (1 + sellMultBonus));
   return Math.ceil(item.baseValue * RARITIES[rarity].sellMult * (1 + sellMultBonus));
+}
+
+// ---- 零件掉落（独立于主掉落池的稀缺副产物）----
+
+/** 零件抽取权重：commons 常见，epics 稀有 */
+const PART_RARITY_WEIGHT: Record<Rarity, number> = {
+  common: 60, rare: 28, epic: 10, legendary: 2, absurd: 1,
+};
+
+/** 各材质对零件掉率的倍率（金属/石矿 ×2，危险/异常 ×2.5） */
+const PART_MATERIAL_MULT: Partial<Record<MaterialId, number>> = {
+  metal: 2, stone: 2, volatile: 2.5, anomaly: 2.5,
+};
+
+/** 基础零件掉率 */
+export const BASE_PART_CHANCE = 0.08;
+
+export interface PartScaling {
+  /** 材质倍率覆盖（默认按材质表） */
+  material?: MaterialId;
+  /** 额外掉率加成（分拣机/自动线等，绝对值，如 0.1 = +10%） */
+  bonus?: number;
+}
+
+/** 计算本次开箱的零件掉率（0..0.6 封顶） */
+export function partChance(material: MaterialId | undefined, bonus = 0): number {
+  const mult = (material && PART_MATERIAL_MULT[material]) ?? 1;
+  return Math.min(0.6, BASE_PART_CHANCE * mult + bonus);
+}
+
+/**
+ * 掷一次零件掉落：命中则返回零件 item，否则 null。
+ * @param material 箱体材质（影响倍率）
+ * @param rand 注入随机
+ * @param bonus 额外掉率加成（分拣机等）
+ */
+export function rollPart(material: MaterialId | undefined, rand: () => number, bonus = 0): ItemDef | null {
+  const chance = partChance(material, bonus);
+  if (rand() >= chance) return null;
+  // 按稀有度权重选一档，再在该档零件里均匀抽
+  const weights = PARTS.map((p) => PART_RARITY_WEIGHT[p.rarity]);
+  const idx = weightedPick(weights, rand);
+  return PARTS[idx];
 }
