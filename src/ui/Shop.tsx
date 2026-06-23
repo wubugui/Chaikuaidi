@@ -63,8 +63,8 @@ export function Shop() {
 
       <div className="containerSec">
         <h3 className="shopSecTitle">📦 特殊货柜</h3>
-        <p className="shopHint">原石、陨石、保险箱、导弹……需要对的材质工具才撬得动，危险品 ⚠️ 用错家伙会炸。</p>
-        {CONTAINERS.map((c) => {
+        <p className="shopHint">需要对的材质工具才撬得动，危险品 ⚠️ 用错家伙会炸。最稀缺的几样只在 🕶️ 黑市商人到访时才有货。</p>
+        {CONTAINERS.filter((c) => !c.merchantOnly).map((c) => {
           const locked = stage < c.unlockStage;
           const mat = MATERIALS[c.material];
           const mut = c.requireMutation ? MUTATION_MAP[c.requireMutation] : null;

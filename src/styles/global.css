@@ -125,7 +125,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   width: 88%; max-height: 64%; pointer-events: none;
 }
 .boxesEmpty { color: var(--muted); font-size: 14px; font-weight: 700; background: #0003; padding: 12px 18px; border-radius: 14px; }
-.bigBox { text-align: center; animation: boxIn 0.18s ease; }
+.bigBox { position: relative; text-align: center; animation: boxIn 0.18s ease; }
 .bigBoxWrap { position: relative; display: inline-block; transition: transform 0.15s, filter 0.15s; }
 .bigBox.d1 .bigBoxWrap { filter: brightness(0.94) saturate(0.9); }
 .bigBox.d2 .bigBoxWrap { filter: brightness(0.86) saturate(0.78); transform: rotate(-2deg) skewX(-3deg); }
@@ -542,6 +542,65 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .backlogName { font-weight: 800; }
 .backlogCount { color: var(--muted); font-weight: 600; }
 .backlogHint { font-size: 12px; color: var(--gold); text-align: right; white-space: nowrap; }
+.mutTag {
+  display: inline-block; margin-left: 6px; font-size: 11px; font-weight: 700;
+  color: #e9d5ff; background: #a855f733; border: 1px solid #a855f7; border-radius: 8px; padding: 1px 6px;
+}
+.backlogBtns { display: flex; flex-direction: column; align-items: stretch; gap: 5px; min-width: 96px; }
+.backlogBtns .loadBtn { background: #2f6f4e; color: #eafff1; }
+.backlogBtns .loadBtn:disabled { opacity: 0.45; }
+.backlogBtns .dumpBtn { background: #3a4258; color: #cdd6ea; font-size: 12px; }
+.benchFullHint { font-size: 10px; color: #ffce3a; text-align: center; }
+
+/* ---- 搁置按钮（工作台箱子角上） ---- */
+.shelveBtn {
+  position: absolute; top: 2px; left: 2px; z-index: 5;
+  width: 24px; height: 24px; padding: 0; line-height: 24px;
+  font-size: 13px; border: 1px solid var(--line); border-radius: 8px;
+  background: #1c2030cc; color: #fff; opacity: 0.7; cursor: pointer;
+}
+.shelveBtn:hover { opacity: 1; }
+
+/* ---- 黑市商人 ---- */
+.merchantBanner {
+  position: absolute; left: 50%; top: 8px; transform: translateX(-50%); z-index: 40;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  background: linear-gradient(90deg, #3a1d52, #5a2a7a); color: #ffe9b3;
+  border: 1px solid #c084fc; border-radius: 999px; padding: 7px 16px; font-weight: 800;
+  box-shadow: 0 4px 14px #a855f766; cursor: pointer;
+  animation: merchantBob 1.6s ease-in-out infinite;
+}
+.merchantBannerTime { color: #ffce3a; font-variant-numeric: tabular-nums; }
+@keyframes merchantBob {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-3px); }
+}
+.merchantPanel { padding: 4px 0; }
+.merchantCountdown { font-weight: 800; font-size: 16px; margin-bottom: 6px; }
+.merchantCountdown b { color: #ffce3a; font-variant-numeric: tabular-nums; }
+.merchantList { display: flex; flex-direction: column; gap: 9px; margin-top: 6px; }
+.merchantOffer {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(180deg, #2b2140, #1d1830);
+  border: 1px solid #6b4a8c; border-radius: 14px; padding: 11px 12px;
+}
+.merchantOffer.soldout { opacity: 0.55; }
+.merchantStock { font-size: 12px; color: var(--gold); font-weight: 700; }
+.merchantPrice { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.merchantPrice .origPrice { font-size: 11px; color: var(--muted); text-decoration: line-through; }
+.merchantPrice .discPrice { font-size: 14px; font-weight: 800; color: #34d399; }
+.btn.grab { background: #7a2a8a; color: #ffe9b3; }
+.btn.grab:disabled { opacity: 0.45; }
+
+/* 底栏黑市徽标脉冲 */
+.navBtn.merchantPulse { animation: navPulse 1.2s ease-in-out infinite; }
+.navBtn .navBadge {
+  position: absolute; top: 4px; right: 8px; width: 8px; height: 8px;
+  background: #ff5a6e; border-radius: 50%; box-shadow: 0 0 6px #ff5a6e;
+  animation: navPulse 1s ease-in-out infinite;
+}
+.navBtn { position: relative; }
+@keyframes navPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
 /* ---- 爆炸闪光 ---- */
 .dangerBadge {

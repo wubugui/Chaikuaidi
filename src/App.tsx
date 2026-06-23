@@ -5,6 +5,8 @@ import { Inventory } from './ui/Inventory';
 import { UpgradePanel } from './ui/UpgradePanel';
 import { Shop } from './ui/Shop';
 import { Backlog } from './ui/Backlog';
+import { Merchant } from './ui/Merchant';
+import { MerchantBanner } from './ui/MerchantBanner';
 import { BoomFlash } from './ui/effects/BoomFlash';
 import { Quotes } from './ui/Quotes';
 import { Mutations } from './ui/Mutations';
@@ -26,6 +28,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   upgrade: '🛠️ 升级 & 装备',
   shop: '🛒 进货批次',
   backlog: '📥 积压区',
+  merchant: '🕶️ 黑市商人',
   quotes: '🗯️ 暴躁语录',
   mutations: '🧬 变异肉身',
   collection: '🖼️ 收藏图鉴',
@@ -38,6 +41,7 @@ export default function App() {
   const [panel, setPanel] = useState<PanelId | null>(null);
   const stage = useGame((s) => s.stage);
   const audioEnabled = useGame((s) => s.audioEnabled);
+  const merchantPresent = useGame((s) => s.merchant !== null);
 
   useEffect(() => {
     ensureStarter();
@@ -55,7 +59,8 @@ export default function App() {
     <div className="game">
       <Topbar />
       <GameScene />
-      <BottomNav stage={stage} active={active} onSelect={toggle} />
+      <MerchantBanner onOpen={() => setPanel('merchant')} />
+      <BottomNav stage={stage} active={active} onSelect={toggle} merchantPresent={merchantPresent} />
 
       {active && (
         <div className="drawerWrap" onClick={() => setPanel(null)}>
@@ -69,6 +74,7 @@ export default function App() {
               {active === 'upgrade' && <UpgradePanel />}
               {active === 'shop' && <Shop />}
               {active === 'backlog' && <Backlog />}
+              {active === 'merchant' && <Merchant />}
               {active === 'quotes' && <Quotes />}
               {active === 'mutations' && <Mutations />}
               {active === 'collection' && <Collection />}

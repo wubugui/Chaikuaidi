@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { ACHIEVEMENTS } from '../data/achievements';
-import { BATCHES, CONTAINERS, LUGGAGE } from '../data/shop';
+import { FIRST_VISIT_DELAY } from '../data/merchant';
+import { BATCHES, CONTAINERS, LUGGAGE, type ContainerDef, type LuggageDef } from '../data/shop';
 import { COLLECTION_TOTAL } from '../data/items';
 import { PRESTIGE_MAP, prestigeNodeCost, reputationFor } from '../data/prestige';
 import { rarityRank } from '../data/rarity';
@@ -20,11 +21,28 @@ import {
   sellOne as engineSellOne,
   type EngineOut,
 } from './engine';
-import { quoteSlots } from './compute';
+import { benchCapacity, quoteSlots } from './compute';
 import { settleOffline, type OfflineResult } from './systems/offline';
-import { initialState, type GameState } from './state';
+import { backlogGroupKey, initialState, type GameState, type Parcel } from './state';
 
 const liveRand = () => Math.random();
+
+/** 造一个行李快递（买入/黑市共用） */
+function makeLuggageParcel(lug: LuggageDef): Parcel {
+  return makeParcel(lug.baseSize, liveRand, {
+    emoji: lug.emoji, label: lug.name, sealMax: lug.sealMax,
+    lootMin: lug.lootMin, lootMax: lug.lootMax, luckBonus: lug.luckBonus, pool: lug.pool,
+  });
+}
+
+/** 造一个货柜快递（买入/黑市共用） */
+function makeContainerParcel(c: ContainerDef): Parcel {
+  return makeParcel('crate', liveRand, {
+    material: c.material, emoji: c.emoji, label: c.name, sealMax: c.sealMax,
+    lootMin: c.lootMin, lootMax: c.lootMax, luckBonus: c.luckBonus, pool: c.pool,
+    hollowChance: c.hollowChance, danger: c.danger, requireMutation: c.requireMutation,
+  });
+}
 
 /** localStorage 不可用时（SSR / 测试）退回内存存储 */
 function safeStorage() {
@@ -51,6 +69,10 @@ interface Actions {
   buyBatch: (batchId: string) => void;
   buyLuggage: (id: string) => void;
   buyContainer: (id: string) => void;
+  buyFromMerchant: (offerId: string) => void;
+  loadFromBacklog: (parcelId: number) => void;
+  dumpGroupToBelt: (key: string) => void;
+  shelveToBacklog: (parcelId: number) => void;
   buyPrestige: (id: string) => void;
   prestige: () => void;
   equipQuote: (id: string) => void;
@@ -69,6 +91,7 @@ function draft(s: GameState): GameState {
     ...s,
     workbench: s.workbench.map((p) => ({ ...p })),
     queue: s.queue.slice(),
+    backlog: s.backlog.map((p) => ({ ...p })),
     inventory: { ...s.inventory },
     collection: s.collection.slice(),
     quotes: s.quotes.slice(),
@@ -237,6 +260,7 @@ export const useGame = create<Store>()(
         if (v > 0) emit('float', { id: Date.now(), text: '+¥' + Math.floor(v), color: '#34d399', kind: 'cash' });
       },
 
+      // 进货：买来的货进「积压区」，不自动上台（自然到货才走传送带→工作台）
       buyBatch: (batchId) => {
         const s = get();
         const b = BATCHES.find((x) => x.id === batchId);
@@ -245,9 +269,8 @@ export const useGame = create<Store>()(
         d.money -= b.price;
         for (let i = 0; i < b.count; i++) {
           const size = b.sizes[Math.floor(liveRand() * b.sizes.length)];
-          d.queue.push(makeParcel(size, liveRand));
+          d.backlog.push(makeParcel(size, liveRand));
         }
-        refillBench(d);
         set(d);
       },
 
@@ -257,30 +280,81 @@ export const useGame = create<Store>()(
         if (!lug || s.money < lug.price) return;
         const d = draft(s);
         d.money -= lug.price;
-        d.queue.push(
-          makeParcel(lug.baseSize, liveRand, {
-            emoji: lug.emoji, label: lug.name, sealMax: lug.sealMax,
-            lootMin: lug.lootMin, lootMax: lug.lootMax, luckBonus: lug.luckBonus, pool: lug.pool,
-          }),
-        );
-        refillBench(d);
+        d.backlog.push(makeLuggageParcel(lug));
         set(d);
       },
 
       buyContainer: (id) => {
         const s = get();
         const c = CONTAINERS.find((x) => x.id === id);
-        if (!c || s.stage < c.unlockStage || s.money < c.price) return;
+        if (!c || c.merchantOnly || s.stage < c.unlockStage || s.money < c.price) return;
         const d = draft(s);
         d.money -= c.price;
-        d.queue.push(
-          makeParcel('crate', liveRand, {
-            material: c.material, emoji: c.emoji, label: c.name, sealMax: c.sealMax,
-            lootMin: c.lootMin, lootMax: c.lootMax, luckBonus: c.luckBonus, pool: c.pool,
-            hollowChance: c.hollowChance, danger: c.danger, requireMutation: c.requireMutation,
-          }),
+        d.backlog.push(makeContainerParcel(c));
+        set(d);
+      },
+
+      buyFromMerchant: (offerId) => {
+        const s = get();
+        if (!s.merchant) return;
+        const offer = s.merchant.offers.find((o) => o.id === offerId);
+        if (!offer || offer.stock <= 0 || s.money < offer.price) return;
+        const good =
+          offer.kind === 'container'
+            ? CONTAINERS.find((c) => c.id === offer.id)
+            : LUGGAGE.find((l) => l.id === offer.id);
+        if (!good) return;
+        const d = draft(s);
+        d.money -= offer.price;
+        // 减库存（merchant 在 draft 里是浅拷贝，需新建 offers 引用）
+        d.merchant = {
+          until: s.merchant.until,
+          offers: s.merchant.offers.map((o) =>
+            o.id === offerId ? { ...o, stock: o.stock - 1 } : o,
+          ),
+        };
+        d.backlog.push(
+          offer.kind === 'container'
+            ? makeContainerParcel(good as ContainerDef)
+            : makeLuggageParcel(good as LuggageDef),
         );
+        set(d);
+      },
+
+      loadFromBacklog: (parcelId) => {
+        const s = get();
+        if (s.workbench.length >= benchCapacity(s)) return;
+        const idx = s.backlog.findIndex((p) => p.id === parcelId);
+        if (idx < 0) return;
+        const d = draft(s);
+        const [p] = d.backlog.splice(idx, 1);
+        d.workbench.push(p);
+        if (d.workbench.length > d.maxBatch) d.maxBatch = d.workbench.length;
+        set(d);
+      },
+
+      dumpGroupToBelt: (key) => {
+        const s = get();
+        const d = draft(s);
+        const kept: Parcel[] = [];
+        for (const p of d.backlog) {
+          if (backlogGroupKey(p, PARCEL_MAP[p.size].name) === key) d.queue.push(p);
+          else kept.push(p);
+        }
+        if (kept.length === d.backlog.length) return; // 无匹配，no-op
+        d.backlog = kept;
         refillBench(d);
+        set(d);
+      },
+
+      shelveToBacklog: (parcelId) => {
+        const s = get();
+        const idx = s.workbench.findIndex((p) => p.id === parcelId);
+        if (idx < 0) return;
+        const d = draft(s);
+        const [p] = d.workbench.splice(idx, 1);
+        d.backlog.push(p);
+        refillBench(d); // 拉上下一个自然快递
         set(d);
       },
 
@@ -374,29 +448,34 @@ export const useGame = create<Store>()(
       partialize: (s) => {
         const {
           offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
-          sellAllItems, buyBatch, buyLuggage, buyContainer, buyPrestige, prestige, equipQuote, unequipQuote, markIntroSeen,
+          sellAllItems, buyBatch, buyLuggage, buyContainer, buyFromMerchant, loadFromBacklog, dumpGroupToBelt,
+          shelveToBacklog, buyPrestige, prestige, equipQuote, unequipQuote, markIntroSeen,
           toggleAudio, hardReset, dismissOffline, ...rest
         } = s as Store;
         void offline; void click; void tick; void buyUpgrade; void buyTool; void selectTool; void upgradeTool;
         void buyAutoSell;
         void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyLuggage; void buyContainer; void buyPrestige;
+        void buyFromMerchant; void loadFromBacklog; void dumpGroupToBelt; void shelveToBacklog;
         void prestige; void equipQuote; void unequipQuote; void markIntroSeen;
         void toggleAudio; void hardReset; void dismissOffline;
         return rest;
       },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        // id 计数器抬升，避免 key 冲突
-        let maxId = 0;
-        for (const p of [...state.workbench, ...state.queue]) maxId = Math.max(maxId, p.id);
-        seedId(maxId);
-
-        // 旧存档兼容：新增字段默认值
+        // 旧存档兼容：新增字段默认值（在用到这些字段前先补齐）
+        if (state.backlog === undefined) state.backlog = [];
         if (state.rage === undefined) state.rage = 0;
         if (state.revengeLeft === undefined) state.revengeLeft = 0;
         if (state.dazedUntil === undefined) state.dazedUntil = 0;
         if (state.mutations === undefined) state.mutations = [];
         if (state.dangerStreak === undefined) state.dangerStreak = 0;
+        if (state.merchant === undefined) state.merchant = null;
+        if (state.merchantNextAt === undefined) state.merchantNextAt = Date.now() + FIRST_VISIT_DELAY;
+
+        // id 计数器抬升，避免 key 冲突
+        let maxId = 0;
+        for (const p of [...state.workbench, ...state.queue, ...state.backlog]) maxId = Math.max(maxId, p.id);
+        seedId(maxId);
 
         // 工具箱迁移：把任何旧的/非法的 currentTool 规范化，并保证 ownedTools 自洽。
         // 注意：不能用 `ownedTools === undefined` 做判据——zustand 会把存档浅合并到
@@ -429,7 +508,7 @@ export const useGame = create<Store>()(
         }
 
         // 旧存档的快递缺 material 字段则按尺寸回填
-        for (const p of [...state.workbench, ...state.queue]) {
+        for (const p of [...state.workbench, ...state.queue, ...state.backlog]) {
           if (p.material === undefined) p.material = PARCEL_MAP[p.size].material;
         }
 

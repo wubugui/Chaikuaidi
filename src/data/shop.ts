@@ -93,6 +93,7 @@ export interface ContainerDef {
   hollowChance?: number;  // 扑空概率（原石）
   danger?: boolean;       // volatile：错误工具开箱会爆炸
   requireMutation?: MutationId; // 变异门：没有该变异时任何工具都撬不动
+  merchantOnly?: boolean; // 黑市专属且限量：从普通商店消失，仅黑市商人到访时供货
 }
 
 export const CONTAINERS: ContainerDef[] = [
@@ -110,13 +111,13 @@ export const CONTAINERS: ContainerDef[] = [
     pool:['cashwad','ring','iou','carkey','gpu'], unlockStage:3 },
   { id:'meteor',name:'坠在后院的陨石', emoji:'☄️', material:'stone', price:25000, sealMax:1700, lootMin:1, lootMax:2, luckBonus:1.0,
     flavor:'砸穿了棚顶，还带着余温。表面是石头，芯子里的东西不像地球货。',
-    pool:['meteoriron','alienalloy','fossil','diamond'], unlockStage:3 },
+    pool:['meteoriron','alienalloy','fossil','diamond'], unlockStage:3, merchantOnly:true },
   { id:'missile',name:'不该捡的导弹', emoji:'🚀', material:'volatile', price:40000, sealMax:2000, lootMin:1, lootMax:1, luckBonus:1.2,
     flavor:'弹体上印着别国文字。理智的人会报警——但你只想知道里面那块芯片值多少钱。用错家伙它可会回敬你。',
-    pool:['milchip','titanium','note','goldbar','carkey'], unlockStage:3, danger:true },
+    pool:['milchip','titanium','note','goldbar','carkey'], unlockStage:3, danger:true, merchantOnly:true },
   { id:'alienegg',name:'会动的外星蛋', emoji:'🥚', material:'anomaly', price:150000, sealMax:1900, lootMin:1, lootMax:1, luckBonus:1.3,
     flavor:'壳是半透明的，里面有东西在缓慢地……心跳。激光切开的瞬间，它好像睁开了眼。',
-    pool:['hatchling','alienalloy','ufo','alien'], unlockStage:4, danger:true },
+    pool:['hatchling','alienalloy','ufo','alien'], unlockStage:4, danger:true, merchantOnly:true },
   // —— 变异门连锁货柜：买回来先积压，等炸出对应变异才撬得动，撬开本身又是危险品 ——
   { id:'vacuum',  name:'真空压缩块',   emoji:'🧱', material:'metal',   price:60000, sealMax:2300,  lootMin:1, lootMax:2, luckBonus:1.1,
     flavor:'压得像块铁板，普通工具打滑——得用比金属还硬的东西去砸。', pool:['milchip','titanium','alienalloy','gpu'],

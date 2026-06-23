@@ -55,6 +55,7 @@ export function GameScene() {
   const inventory = useGame((s) => s.inventory);
   const click = useGame((s) => s.click);
   const selectTool = useGame((s) => s.selectTool);
+  const shelveToBacklog = useGame((s) => s.shelveToBacklog);
   const sellAllItems = useGame((s) => s.sellAllItems);
   const rage = useGame((s) => s.rage);
   const revengeLeft = useGame((s) => s.revengeLeft);
@@ -327,6 +328,17 @@ export function GameScene() {
                   key={p.id}
                   style={{ width: boxSize * 1.15 }}
                 >
+                  <button
+                    className="shelveBtn"
+                    title="搁置到积压区"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      shelveToBacklog(p.id);
+                    }}
+                  >
+                    📥
+                  </button>
                   <div className={'bigBoxWrap' + (gated ? ' jitter' : '')} key={gated ? jitterId : undefined}>
                     <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
                       {mat.emoji} {mat.name}

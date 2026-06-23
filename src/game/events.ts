@@ -51,6 +51,7 @@ type Handlers = {
   rageBurst: () => void;
   boom: () => void;
   mutate: (id: MutationId) => void;
+  merchant: (present: boolean) => void;
 };
 
 const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
@@ -64,6 +65,7 @@ const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
   rageBurst: new Set(),
   boom: new Set(),
   mutate: new Set(),
+  merchant: new Set(),
 };
 
 let uid = 1;

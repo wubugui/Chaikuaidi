@@ -1,4 +1,4 @@
-export type PanelId = 'bag' | 'upgrade' | 'shop' | 'backlog' | 'quotes' | 'mutations' | 'collection' | 'achievements' | 'prestige';
+export type PanelId = 'bag' | 'upgrade' | 'shop' | 'backlog' | 'merchant' | 'quotes' | 'mutations' | 'collection' | 'achievements' | 'prestige';
 
 export interface NavItem {
   id: PanelId;
@@ -12,6 +12,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'upgrade', label: '升级', emoji: '🛠️' },
   { id: 'shop', label: '进货', emoji: '🛒', minStage: 2 },
   { id: 'backlog', label: '积压', emoji: '📥', minStage: 2 },
+  { id: 'merchant', label: '黑市', emoji: '🕶️', minStage: 2 },
   { id: 'quotes', label: '语录', emoji: '🗯️', minStage: 2 },
   { id: 'mutations', label: '变异', emoji: '🧬', minStage: 3 },
   { id: 'collection', label: '图鉴', emoji: '🖼️', minStage: 3 },
@@ -23,22 +24,27 @@ interface Props {
   stage: number;
   active: PanelId | null;
   onSelect: (id: PanelId) => void;
+  merchantPresent?: boolean;
 }
 
-export function BottomNav({ stage, active, onSelect }: Props) {
+export function BottomNav({ stage, active, onSelect, merchantPresent }: Props) {
   const items = NAV_ITEMS.filter((i) => !i.minStage || stage >= i.minStage);
   return (
     <nav className="bottomNav">
-      {items.map((it) => (
-        <button
-          key={it.id}
-          className={'navBtn' + (active === it.id ? ' on' : '')}
-          onClick={() => onSelect(it.id)}
-        >
-          <span className="navEmoji">{it.emoji}</span>
-          <span className="navLabel">{it.label}</span>
-        </button>
-      ))}
+      {items.map((it) => {
+        const pulse = it.id === 'merchant' && merchantPresent;
+        return (
+          <button
+            key={it.id}
+            className={'navBtn' + (active === it.id ? ' on' : '') + (pulse ? ' merchantPulse' : '')}
+            onClick={() => onSelect(it.id)}
+          >
+            <span className="navEmoji">{it.emoji}</span>
+            <span className="navLabel">{it.label}</span>
+            {pulse && <span className="navBadge" />}
+          </button>
+        );
+      })}
     </nav>
   );
 }

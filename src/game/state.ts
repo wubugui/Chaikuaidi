@@ -1,4 +1,6 @@
 import type { MaterialId } from '../data/materials';
+import type { MerchantOffer } from '../data/merchant';
+import { FIRST_VISIT_DELAY } from '../data/merchant';
 import type { MutationId } from '../data/mutations';
 import type { ParcelSizeId, Rarity, ToolId } from '../data/types';
 
@@ -31,6 +33,7 @@ export interface GameState {
   toolLevels: Record<ToolId, number>;   // 每把工具的升级等级
   workbench: Parcel[];
   queue: Parcel[];
+  backlog: Parcel[]; // 积压区仓库：买来的货 + 手动搁置的硬箱，需手动上台
   combo: number;
   lastClickAt: number;
 
@@ -65,6 +68,10 @@ export interface GameState {
   mutations: MutationId[]; // 已获得的变异（永久可叠加）
   dangerStreak: number;    // 危险品意外未变异的累计（垫刀）
 
+  // 黑市商人
+  merchant: { until: number; offers: MerchantOffer[] } | null; // 当前在场的黑市商人，null=不在
+  merchantNextAt: number; // 下次到访时间戳(ms)
+
   // 杂项
   audioEnabled: boolean;
   introSeen: boolean; // 开场演出是否看过
@@ -83,6 +90,7 @@ export function initialState(): GameState {
     toolLevels: {} as Record<ToolId, number>,
     workbench: [],
     queue: [],
+    backlog: [],
     combo: 0,
     lastClickAt: 0,
     upgrades: {},
@@ -106,11 +114,22 @@ export function initialState(): GameState {
     dazedUntil: 0,
     mutations: [],
     dangerStreak: 0,
+    merchant: null,
+    merchantNextAt: Date.now() + FIRST_VISIT_DELAY,
     audioEnabled: true,
     introSeen: false,
     lastSeen: Date.now(),
     deliverAccum: 0,
   };
+}
+
+/**
+ * 积压区分组键：稳定地把同种货归到一组。
+ * 用 显示名(label ?? 尺寸名) + 材质 + 危险/变异门 区分，避免不同货混淆。
+ */
+export function backlogGroupKey(p: Parcel, sizeName: string): string {
+  const name = p.label ?? sizeName;
+  return [name, p.material, p.danger ? 'd' : '', p.requireMutation ?? ''].join('|');
 }
 
 /** 语录装备槽位：基础 1 + 转生节点 */

@@ -1,5 +1,13 @@
 import { ITEM_MAP } from '../data/items';
 import type { MaterialId } from '../data/materials';
+import {
+  MERCHANT_DISCOUNT,
+  MERCHANT_DURATION,
+  MERCHANT_INTERVAL,
+  MERCHANT_OFFER_COUNT,
+  MERCHANT_POOL,
+  type MerchantOffer,
+} from '../data/merchant';
 import { MUTATIONS, type MutationId } from '../data/mutations';
 import { PARCEL_MAP, deliverableSizes } from '../data/parcels';
 import { RARITIES, RARITY_ORDER, rarityRank } from '../data/rarity';
@@ -429,8 +437,38 @@ function refillStageAndUnpack(d: GameState) {
   d.stage = stageForEarned(d.runEarned);
 }
 
+/** 黑市商人到访/离场（用注入的 rand，保证可复现；每 tick 至多一次状态切换） */
+export function tickMerchant(d: GameState, rand: () => number) {
+  const now = Date.now();
+  if (d.merchant === null) {
+    if (now >= d.merchantNextAt) {
+      // 备货：从池子里按权重不重复抽 N 件
+      const pool = MERCHANT_POOL.slice();
+      const offers: MerchantOffer[] = [];
+      for (let i = 0; i < MERCHANT_OFFER_COUNT && pool.length > 0; i++) {
+        const idx = weightedPick(pool.map((p) => p.weight), rand);
+        const e = pool.splice(idx, 1)[0];
+        offers.push({
+          id: e.id,
+          kind: e.kind,
+          price: Math.round(e.basePrice * MERCHANT_DISCOUNT),
+          stock: randInt(1, 3, rand),
+        });
+      }
+      d.merchant = { until: now + MERCHANT_DURATION, offers };
+      emit('merchant', true);
+    }
+  } else if (now > d.merchant.until) {
+    d.merchant = null;
+    d.merchantNextAt = now + MERCHANT_INTERVAL;
+    emit('merchant', false);
+  }
+}
+
 /** 游戏循环步进 */
 export function doTick(d: GameState, dtSec: number, rand: () => number, out: EngineOut) {
+  tickMerchant(d, rand);
+
   // 连击衰减
   if (d.combo > 0 && Date.now() - d.lastClickAt > COMBO_WINDOW_MS) d.combo = 0;
 
