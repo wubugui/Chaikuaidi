@@ -31,15 +31,31 @@ export function newOut(): EngineOut {
   return { bursts: [], reveals: [], opened: 0, shake: false, cash: 0 };
 }
 
-export function makeParcel(size: ParcelSizeId, rand: () => number): Parcel {
+export interface ParcelOpts {
+  luckBonus?: number;
+  pool?: string[];
+  label?: string;
+  emoji?: string;
+  sealMax?: number;
+  lootMin?: number;
+  lootMax?: number;
+}
+
+export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: ParcelOpts): Parcel {
   const def = PARCEL_MAP[size];
+  const sealMax = opts?.sealMax ?? def.sealMax;
+  const lootMin = opts?.lootMin ?? def.lootMin;
+  const lootMax = opts?.lootMax ?? def.lootMax;
   return {
     id: nextId(),
     size,
-    emoji: def.emoji,
-    sealMax: def.sealMax,
-    sealHP: def.sealMax,
-    lootCount: randInt(def.lootMin, def.lootMax, rand),
+    emoji: opts?.emoji ?? def.emoji,
+    sealMax,
+    sealHP: sealMax,
+    lootCount: randInt(lootMin, lootMax, rand),
+    luckBonus: opts?.luckBonus,
+    pool: opts?.pool,
+    label: opts?.label,
   };
 }
 
@@ -121,11 +137,11 @@ function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut)
 function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false) {
   d.totalUnpacked += 1;
   out.opened += 1;
-  const lp = { luck: luck(d) };
+  const lp = { luck: luck(d) + (p.luckBonus ?? 0) };
   const items: RevealItem[] = [];
   let damagedCount = 0;
   for (let i = 0; i < p.lootCount; i++) {
-    const rolled = rollItem(lp, rand);
+    const rolled = rollItem(lp, rand, p.pool);
     const item = applyLoot(d, rolled.rarity, rolled.item.id, out);
     items.push(item);
   }
@@ -170,7 +186,7 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
   out.reveals.push({
     id: nextId(),
     parcelEmoji: p.emoji,
-    parcelName: PARCEL_MAP[p.size].name,
+    parcelName: p.label ?? PARCEL_MAP[p.size].name,
     items,
     topRarity,
     manual: false,

@@ -11,6 +11,7 @@ import { Prestige } from './ui/Prestige';
 import { BottomNav, NAV_ITEMS, type PanelId } from './ui/BottomNav';
 import { EffectsLayer } from './ui/effects/EffectsLayer';
 import { RevealLayer } from './ui/effects/RevealLayer';
+import { PopReveal } from './ui/effects/PopReveal';
 import { OfflineModal } from './ui/OfflineModal';
 import { Intro } from './ui/Intro';
 import { useGameLoop } from './game/loop';
@@ -85,6 +86,7 @@ export default function App() {
 
       <EffectsLayer />
       <RevealLayer />
+      <PopReveal />
       <OfflineModal />
       <Intro />
     </div>

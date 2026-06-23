@@ -241,7 +241,7 @@ export function GameScene() {
                     {pct < 67 && <span className="crack c1">💢</span>}
                     {pct < 34 && <span className="crack c2">💥</span>}
                   </div>
-                  <div className="bigBoxName">{PARCEL_MAP[p.size].name}</div>
+                  <div className="bigBoxName">{p.label ?? PARCEL_MAP[p.size].name}</div>
                   <div className="bigHp"><div className="bigHpFill" style={{ width: pct + '%' }} /></div>
                 </div>
               );

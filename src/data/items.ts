@@ -70,6 +70,31 @@ export const ITEMS: ItemDef[] = [
     id: 'ufo', name: '不明飞行物', emoji: '🛸', kind: 'collectible', rarity: 'absurd', baseValue: 0,
     passive: { label: '全局售价 +25%', type: 'sellPrice', amount: 0.25 },
   },
+
+  // ---- 神秘行李主题收藏品（唯一 + 被动）----
+  { id: 'letter', name: '没寄出的情书', emoji: '💌', kind: 'collectible', rarity: 'rare', baseValue: 0,
+    passive: { label: '幸运 +6%', type: 'luck', amount: 0.06 } },
+  { id: 'polaroid', name: '陌生人的拍立得', emoji: '📷', kind: 'collectible', rarity: 'epic', baseValue: 0,
+    passive: { label: '售价 +10%', type: 'sellPrice', amount: 0.1 } },
+  { id: 'candle', name: '烧剩半截的蜡烛', emoji: '🕯️', kind: 'collectible', rarity: 'rare', baseValue: 0,
+    passive: { label: '到货速度 +6%', type: 'autoSpeed', amount: 0.06 } },
+  { id: 'pocketwatch', name: '停摆的怀表', emoji: '⏳', kind: 'collectible', rarity: 'epic', baseValue: 0,
+    passive: { label: '连击上限 +0.5', type: 'comboCap', amount: 0.5 } },
+  { id: 'beads', name: '褪色的念珠', emoji: '📿', kind: 'collectible', rarity: 'legendary', baseValue: 0,
+    passive: { label: '幸运 +20%', type: 'luck', amount: 0.2 } },
+  { id: 'knob', name: '第七个门把手', emoji: '🚪', kind: 'collectible', rarity: 'rare', baseValue: 0,
+    passive: { label: '点击拆解 +8%', type: 'clickPower', amount: 0.08 } },
+  { id: 'namebook', name: '写满名字的本子', emoji: '📔', kind: 'collectible', rarity: 'epic', baseValue: 0,
+    passive: { label: '售价 +12%', type: 'sellPrice', amount: 0.12 } },
+  { id: 'handmodel', name: '模型的左手', emoji: '🖐️', kind: 'collectible', rarity: 'legendary', baseValue: 0,
+    passive: { label: '点击拆解 +30%', type: 'clickPower', amount: 0.3 } },
+
+  // ---- 神秘行李主题可卖品 ----
+  { id: 'lipstick', name: '半截口红', emoji: '💄', kind: 'sellable', rarity: 'rare', baseValue: 6 },
+  { id: 'perfume', name: '廉价香水', emoji: '🧴', kind: 'sellable', rarity: 'common', baseValue: 2 },
+  { id: 'ring', name: '订婚戒指', emoji: '💍', kind: 'sellable', rarity: 'legendary', baseValue: 16 },
+  { id: 'urn', name: '空的骨灰盒（吧？）', emoji: '⚱️', kind: 'sellable', rarity: 'epic', baseValue: 9 },
+
   // ---- 暴躁老哥语录（可装备，详见 quotes.ts）----
   ...QUOTES,
 ];

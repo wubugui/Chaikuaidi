@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { ACHIEVEMENTS } from '../data/achievements';
-import { BATCHES } from '../data/shop';
+import { BATCHES, LUGGAGE } from '../data/shop';
 import { COLLECTION_TOTAL } from '../data/items';
 import { PRESTIGE_MAP, prestigeNodeCost, reputationFor } from '../data/prestige';
 import { rarityRank } from '../data/rarity';
@@ -46,6 +46,7 @@ interface Actions {
   sellItem: (id: string) => void;
   sellAllItems: (keepAbove?: Rarity | null) => void;
   buyBatch: (batchId: string) => void;
+  buyLuggage: (id: string) => void;
   buyPrestige: (id: string) => void;
   prestige: () => void;
   equipQuote: (id: string) => void;
@@ -214,6 +215,22 @@ export const useGame = create<Store>()(
         set(d);
       },
 
+      buyLuggage: (id) => {
+        const s = get();
+        const lug = LUGGAGE.find((x) => x.id === id);
+        if (!lug || s.money < lug.price) return;
+        const d = draft(s);
+        d.money -= lug.price;
+        d.queue.push(
+          makeParcel(lug.baseSize, liveRand, {
+            emoji: lug.emoji, label: lug.name, sealMax: lug.sealMax,
+            lootMin: lug.lootMin, lootMax: lug.lootMax, luckBonus: lug.luckBonus, pool: lug.pool,
+          }),
+        );
+        refillBench(d);
+        set(d);
+      },
+
       buyPrestige: (id) => {
         const s = get();
         const def = PRESTIGE_MAP[id];
@@ -303,11 +320,11 @@ export const useGame = create<Store>()(
       partialize: (s) => {
         const {
           offline, click, tick, buyUpgrade, buyTool, buyAutoSell, setAutoSell, sellItem,
-          sellAllItems, buyBatch, buyPrestige, prestige, equipQuote, unequipQuote, markIntroSeen,
+          sellAllItems, buyBatch, buyLuggage, buyPrestige, prestige, equipQuote, unequipQuote, markIntroSeen,
           toggleAudio, hardReset, dismissOffline, ...rest
         } = s as Store;
         void offline; void click; void tick; void buyUpgrade; void buyTool; void buyAutoSell;
-        void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyPrestige;
+        void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyLuggage; void buyPrestige;
         void prestige; void equipQuote; void unequipQuote; void markIntroSeen;
         void toggleAudio; void hardReset; void dismissOffline;
         return rest;

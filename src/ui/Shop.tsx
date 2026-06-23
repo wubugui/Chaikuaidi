@@ -1,4 +1,4 @@
-import { BATCHES } from '../data/shop';
+import { BATCHES, LUGGAGE } from '../data/shop';
 import { PARCEL_MAP } from '../data/parcels';
 import { useGame } from '../game/store';
 import { money } from '../lib/format';
@@ -7,6 +7,7 @@ export function Shop() {
   const m = useGame((s) => s.money);
   const stage = useGame((s) => s.stage);
   const buyBatch = useGame((s) => s.buyBatch);
+  const buyLuggage = useGame((s) => s.buyLuggage);
 
   return (
     <div className="shop">
@@ -32,6 +33,30 @@ export function Shop() {
           </div>
         );
       })}
+
+      <div className="luggageSec">
+        <h3 className="shopSecTitle">🧳 神秘行李</h3>
+        <p className="shopHint">来路不明的行李，每件都有自己的故事——和一池子专属掉落。</p>
+        {LUGGAGE.map((l) => {
+          const locked = stage < l.unlockStage;
+          return (
+            <div className={'luggage' + (locked ? ' locked' : '')} key={l.id}>
+              <div className="batchEmoji">{l.emoji}</div>
+              <div className="batchInfo">
+                <div className="batchName">{l.name}</div>
+                <div className="luggageFlavor">{l.flavor}</div>
+              </div>
+              {locked ? (
+                <div className="batchLock">🔒 阶段{l.unlockStage}</div>
+              ) : (
+                <button className="btn buy" disabled={m < l.price} onClick={() => buyLuggage(l.id)}>
+                  撬开<span className="cost">{money(l.price)}</span>
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

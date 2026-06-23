@@ -7,6 +7,9 @@ export interface Parcel {
   sealMax: number;
   sealHP: number;
   lootCount: number;
+  luckBonus?: number;  // 额外幸运（行李/高级批次更易爆）
+  pool?: string[];     // 主题掉落池（item id），命中对应稀有度时优先取
+  label?: string;      // 特殊名（行李名，覆盖尺寸名显示）
 }
 
 export interface GameState {

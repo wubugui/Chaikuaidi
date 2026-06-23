@@ -1,25 +1,43 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RARITIES, rarityRank } from '../../data/rarity';
 import { emit, on, type RevealData } from '../../game/events';
-import { sfxLoot } from '../../lib/audio';
+import { sfxLoot, sfxOpen } from '../../lib/audio';
 import { fmt } from '../../lib/format';
 import type { Rarity } from '../../data/types';
 
-const DURATION: Record<Rarity, number> = {
-  common: 650,
-  rare: 1000,
-  epic: 1400,
-  legendary: 2200,
-  absurd: 3000,
+type Phase = 'peek' | 'burst' | 'show';
+
+const PEEK_MS: Record<Rarity, number> = {
+  common: 350,
+  rare: 500,
+  epic: 700,
+  legendary: 1000,
+  absurd: 1300,
 };
+const BURST_MS = 260;
+const SHOW_MS: Record<Rarity, number> = {
+  common: 1400,
+  rare: 1400,
+  epic: 1600,
+  legendary: 2600,
+  absurd: 3400,
+};
+
+/** 只有「演出级」的开箱才走全屏特写 */
+export function isShowcase(r: RevealData): boolean {
+  const rank = rarityRank(r.topRarity);
+  return r.manual ? rank >= rarityRank('epic') : rank >= rarityRank('legendary');
+}
 
 export function RevealLayer() {
   const [current, setCurrent] = useState<RevealData | null>(null);
+  const [phase, setPhase] = useState<Phase>('peek');
   const [flashKey, setFlashKey] = useState(0);
   const queue = useRef<RevealData[]>([]);
   const showing = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
+  // 进入下一个揭晓（队列空则收尾）
   const advance = useCallback(() => {
     clearTimeout(timer.current);
     const next = queue.current.shift();
@@ -36,13 +54,30 @@ export function RevealLayer() {
       emit('revealStart');
     }
     setCurrent(next);
-    sfxLoot(next.topRarity);
-    if (rarityRank(next.topRarity) >= rarityRank('legendary')) setFlashKey((k) => k + 1);
-    timer.current = setTimeout(advance, DURATION[next.topRarity]);
+    setPhase('peek');
+    timer.current = setTimeout(() => goBurst(next), PEEK_MS[next.topRarity]);
   }, []);
+
+  // 偷窥 → 爆开
+  const goBurst = useCallback((r: RevealData) => {
+    clearTimeout(timer.current);
+    setPhase('burst');
+    sfxOpen();
+    if (rarityRank(r.topRarity) >= rarityRank('legendary')) setFlashKey((k) => k + 1);
+    timer.current = setTimeout(() => goShow(r), BURST_MS);
+  }, []);
+
+  // 爆开 → 揭晓
+  const goShow = useCallback((r: RevealData) => {
+    clearTimeout(timer.current);
+    setPhase('show');
+    sfxLoot(r.topRarity);
+    timer.current = setTimeout(advance, SHOW_MS[r.topRarity]);
+  }, [advance]);
 
   useEffect(() => {
     const off = on('reveal', (r) => {
+      if (!isShowcase(r)) return; // 非演出级交给 PopReveal
       queue.current.push(r);
       // 防止自动产线时特写堆积太多
       if (queue.current.length > 5) queue.current.splice(0, queue.current.length - 5);
@@ -59,47 +94,83 @@ export function RevealLayer() {
   const grand = rarityRank(current.topRarity) >= rarityRank('epic');
   const huge = rarityRank(current.topRarity) >= rarityRank('legendary');
 
+  // 点击：偷窥阶段直接爆开；否则推进到下一个
+  const onTap = () => {
+    if (phase === 'peek') goBurst(current);
+    else if (phase === 'show') advance();
+  };
+
   return (
-    <div className={'revealBg r-' + current.topRarity} onPointerDown={advance}>
-      {huge && <div className="revealFlash" key={flashKey} />}
-      <div className={'revealStage' + (grand ? ' grand' : '')}>
-        {grand && <div className="revealRays" style={{ color: topR.color }} />}
+    <div className={'revealBg r-' + current.topRarity} onPointerDown={onTap}>
+      {(phase === 'burst' || phase === 'show') && huge && (
+        <div className="revealFlash" key={flashKey} />
+      )}
 
-        <div className="revealTitle" style={{ color: topR.color }}>
-          {topR.badge} 拆出 {topR.name}！
+      {phase === 'peek' && (
+        <div className="revealPeek">
+          <div
+            className="revealBox"
+            style={{ ['--rc' as any]: topR.color, textShadow: `0 0 26px ${topR.color}, 0 0 60px ${topR.color}88` }}
+          >
+            {current.parcelEmoji}
+          </div>
+          <div className="revealQ" style={{ color: topR.color }}>？？？</div>
+          <div className="revealPeekHint">里面是啥……</div>
         </div>
+      )}
 
-        <div className={'revealItems n' + Math.min(current.items.length, 4)}>
-          {current.items.map((it, i) => {
-            const r = RARITIES[it.rarity];
-            return (
-              <div
-                className={'revealItem' + (it.isDestroyed ? ' riDestroyed' : '')}
-                key={i}
-                style={{ borderColor: r.color, animationDelay: i * 70 + 'ms', boxShadow: `0 0 24px ${r.color}66` }}
-              >
-                <div className="riEmoji" style={{ filter: `drop-shadow(0 0 12px ${r.color})` }}>
-                  {it.emoji}
-                  {it.isDestroyed && <span className="riDestroyedOverlay">💥</span>}
-                </div>
-                <div className="riName" style={{ color: r.color }}>{it.name}</div>
-                <div className="riTag">
-                  {it.isDestroyed
-                    ? <span className="riDestroyedLabel">踢坏了</span>
-                    : it.kind === 'quote'
-                      ? '🗯️ 语录'
-                      : it.kind === 'collectible'
-                        ? '🖼️ 收藏'
-                        : '¥' + fmt(it.value)}
-                </div>
-                {it.isNew && !it.isDestroyed && <div className="riNew">{it.kind === 'quote' ? '✨ 新语录' : '✨ 新收藏'}</div>}
-              </div>
-            );
-          })}
+      {phase === 'burst' && (
+        <div className="revealBurst">
+          <div className="revealBoom">💥</div>
         </div>
+      )}
 
-        <div className="revealHint">👆 点击收取</div>
-      </div>
+      {phase === 'show' && (
+        <div className={'revealStage' + (grand ? ' grand' : '')}>
+          {grand && <div className="revealRays" style={{ color: topR.color }} />}
+
+          <div className="revealTitle" style={{ color: topR.color }}>
+            {topR.badge} 拆出 {topR.name}！
+          </div>
+
+          <div className={'revealItems n' + Math.min(current.items.length, 4)}>
+            {current.items.map((it, i) => {
+              const r = RARITIES[it.rarity];
+              return (
+                <div
+                  className={'revealItem riFlip' + (it.isDestroyed ? ' riDestroyed' : '')}
+                  key={i}
+                  style={{ ['--flipDelay' as any]: i * 180 + 'ms' }}
+                >
+                  <div className="riBack">❓</div>
+                  <div
+                    className="riFront"
+                    style={{ borderColor: r.color, boxShadow: `0 0 24px ${r.color}66` }}
+                  >
+                    <div className="riEmoji" style={{ filter: `drop-shadow(0 0 12px ${r.color})` }}>
+                      {it.emoji}
+                      {it.isDestroyed && <span className="riDestroyedOverlay">💥</span>}
+                    </div>
+                    <div className="riName" style={{ color: r.color }}>{it.name}</div>
+                    <div className="riTag">
+                      {it.isDestroyed
+                        ? <span className="riDestroyedLabel">踢坏了</span>
+                        : it.kind === 'quote'
+                          ? '🗯️ 语录'
+                          : it.kind === 'collectible'
+                            ? '🖼️ 收藏'
+                            : '¥' + fmt(it.value)}
+                    </div>
+                    {it.isNew && !it.isDestroyed && <div className="riNew">{it.kind === 'quote' ? '✨ 新语录' : '✨ 新收藏'}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="revealHint">👆 点击收取</div>
+        </div>
+      )}
     </div>
   );
 }

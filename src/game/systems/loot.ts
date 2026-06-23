@@ -1,4 +1,4 @@
-import { ITEMS } from '../../data/items';
+import { ITEMS, ITEM_MAP } from '../../data/items';
 import { RARITIES, RARITY_ORDER } from '../../data/rarity';
 import type { ItemDef, Rarity } from '../../data/types';
 import { weightedPick } from '../../lib/rng';
@@ -39,9 +39,17 @@ export function rarityWeights(p: LootParams): number[] {
 }
 
 /** 抽一件掉落物（纯函数，rand 注入便于测试） */
-export function rollItem(p: LootParams, rand: () => number): RolledItem {
+export function rollItem(p: LootParams, rand: () => number, themePool?: string[]): RolledItem {
   const rIdx = weightedPick(rarityWeights(p), rand);
   const rarity = RARITY_ORDER[rIdx];
+
+  // 主题池优先：该稀有度若有主题物品，从中抽；否则走全局池兜底
+  if (themePool && themePool.length) {
+    const themed = themePool
+      .map((id) => ITEM_MAP[id])
+      .filter((it) => it && it.rarity === rarity);
+    if (themed.length) return { item: themed[Math.floor(rand() * themed.length)], rarity };
+  }
 
   // 抽类别
   const kIdx = weightedPick(KIND_WEIGHTS.map((k) => k[1]), rand);

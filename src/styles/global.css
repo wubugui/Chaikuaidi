@@ -373,6 +373,87 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 @keyframes spin { to { transform: translate(-50%, -42%) rotate(360deg); } }
 @keyframes hintPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 
+/* ---- 盲盒翻牌演出：偷窥 / 爆开 / 翻牌 ---- */
+.revealPeek { display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 2; }
+.revealBox {
+  font-size: 132px; line-height: 1; animation: rattle 0.22s linear infinite;
+  filter: drop-shadow(0 0 14px var(--rc, #fff));
+}
+.revealQ { font-size: 40px; font-weight: 900; letter-spacing: 6px; text-shadow: 0 0 18px currentColor; animation: throb 0.5s ease-in-out infinite; }
+.revealPeekHint { font-size: 14px; font-weight: 700; color: var(--muted); animation: hintPulse 0.8s ease-in-out infinite; }
+.revealBurst { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; }
+.revealBoom { font-size: 150px; line-height: 1; animation: revealBoom 0.26s cubic-bezier(.2,1.6,.4,1) forwards; }
+
+@keyframes rattle {
+  0% { transform: translate(0,0) rotate(0deg); }
+  25% { transform: translate(-3px,2px) rotate(-3deg); }
+  50% { transform: translate(3px,-2px) rotate(3deg); }
+  75% { transform: translate(-2px,-1px) rotate(-2deg); }
+  100% { transform: translate(2px,1px) rotate(2deg); }
+}
+@keyframes revealBoom { 0% { transform: scale(0.2); opacity: 0; } 60% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* 翻牌：先 ❓ 背面，到点翻面亮出物品 */
+.riFlip {
+  position: relative; background: transparent; border: none; padding: 0; min-width: 120px;
+  perspective: 700px; animation: none;
+}
+.revealItems.n1 .riFlip { min-width: 160px; }
+.riBack, .riFront {
+  border-radius: 18px; text-align: center; backface-visibility: hidden;
+  -webkit-backface-visibility: hidden; transform-style: preserve-3d;
+}
+.riBack {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #34284f, #241a38); border: 2px solid var(--line);
+  padding: 16px 18px; font-size: 60px; min-width: inherit;
+  animation: flipBack 0.5s ease forwards; animation-delay: var(--flipDelay, 0ms);
+}
+.revealItems.n1 .riBack { padding: 22px 28px; font-size: 92px; }
+.riFront {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: linear-gradient(180deg, #2b2142, #20182f); border: 2px solid var(--line);
+  padding: 16px 18px; transform: rotateY(180deg); opacity: 0;
+  animation: flipFront 0.5s ease forwards; animation-delay: var(--flipDelay, 0ms);
+}
+@keyframes flipBack { 0%,40% { transform: rotateY(0deg); opacity: 1; } 60%,100% { transform: rotateY(180deg); opacity: 0; } }
+@keyframes flipFront { 0%,40% { transform: rotateY(-180deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: rotateY(0deg); opacity: 1; } }
+
+/* ---- PopReveal：非阻塞小弹窗 ---- */
+.popLayer {
+  position: fixed; inset: 0; pointer-events: none; z-index: 22;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 22vh;
+}
+.popCard {
+  position: relative; min-width: 96px; max-width: 70vw; pointer-events: none;
+  background: linear-gradient(180deg, #2b2142ee, #20182fee); border: 2px solid var(--line);
+  border-radius: 14px; padding: 8px 10px; box-shadow: 0 6px 18px #0008;
+  animation: popFloat 0.9s ease-out forwards;
+}
+.popBack { display: none; }
+.popFront { display: flex; flex-direction: column; gap: 4px; animation: popFlip 0.4s ease backwards; }
+.popItem { display: flex; align-items: center; gap: 7px; border-left: 3px solid var(--line); padding-left: 7px; }
+.popEmoji { font-size: 24px; line-height: 1; }
+.popName { font-size: 12px; font-weight: 800; }
+@keyframes popFloat {
+  0% { transform: translateY(14px) scale(0.92); opacity: 0; }
+  18% { transform: translateY(0) scale(1); opacity: 1; }
+  72% { opacity: 1; }
+  100% { transform: translateY(-46px) scale(0.98); opacity: 0; }
+}
+@keyframes popFlip { from { transform: rotateY(90deg); opacity: 0; } to { transform: rotateY(0deg); opacity: 1; } }
+
+/* ---- 神秘行李进货区 ---- */
+.luggageSec { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.shopSecTitle { font-size: 16px; font-weight: 900; margin: 0 0 6px; color: var(--gold); }
+.luggage {
+  display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, #2e2348, #241a38);
+  border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; margin-bottom: 9px;
+  box-shadow: 0 2px 0 #0004;
+}
+.luggage.locked { opacity: 0.5; }
+.luggageFlavor { font-size: 12px; font-style: italic; color: var(--muted); line-height: 1.35; margin-top: 3px; }
+
 /* ===================== MODAL / INTRO ===================== */
 .modalBg { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
 .modal { background: linear-gradient(180deg, #2a2040, #1f1733); border: 2px solid var(--line); border-radius: 20px; padding: 26px; max-width: 360px; text-align: center; box-shadow: 0 20px 60px #000a; animation: sheetPop 0.22s ease; }
