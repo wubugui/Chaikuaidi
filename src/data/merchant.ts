@@ -44,14 +44,15 @@ export const MERCHANT_POOL: PoolEntry[] = (() => {
     if (l.unlockStage < 3) continue;
     pool.push({ id: l.id, kind: 'luggage', basePrice: l.price, weight: 0.6 / Math.sqrt(l.price) });
   }
-  // 商人专属巨型货（货轮/坦克/飞机）：只能在黑市抢到，稀缺感强（权重小）
+  // 商人专属巨型货（货轮/坦克/飞机）：黑市限定，稀有但要保证拿得到（约每几次到访可见）
   for (const g of GIANTS) {
     if (!g.merchantOnly) continue;
-    pool.push({ id: g.id, kind: 'giant', basePrice: g.price, weight: 0.4 / Math.sqrt(g.price) });
+    pool.push({ id: g.id, kind: 'giant', basePrice: g.price, weight: 0.8 / Math.sqrt(g.price) });
   }
-  // 离谱货（高达/变形金刚/外星飞船/黑方碑）：终极稀缺，只在黑市偶现，权重极小
+  // 离谱货（高达/变形金刚/外星飞船/黑方碑）：终极稀缺，但必须保证闭环可达——
+  // 玩家辛苦造出军火后应在合理时间内（约 30 分钟）稳定刷到，而不是被运气卡死。
   for (const a of ABSURDS) {
-    pool.push({ id: a.id, kind: 'absurd', basePrice: a.price, weight: 0.25 / Math.sqrt(a.price) });
+    pool.push({ id: a.id, kind: 'absurd', basePrice: a.price, weight: 0.8 / Math.sqrt(a.price) });
   }
   return pool;
 })();
