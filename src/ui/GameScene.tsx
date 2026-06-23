@@ -131,6 +131,8 @@ export function GameScene() {
 
   const tool = TOOL_MAP[currentTool];
   const heat = combo >= 50 ? 'rage' : combo >= 20 ? 'hot' : combo >= 8 ? 'warm' : '';
+  const n = workbench.length;
+  const boxSize = n <= 1 ? 150 : n <= 2 ? 116 : n <= 4 ? 92 : n <= 6 ? 72 : 56;
 
   return (
     <div className={'scene ' + heat}>
@@ -166,7 +168,7 @@ export function GameScene() {
         onPointerLeave={endHold}
         onPointerCancel={endHold}
       >
-        {/* 箱子们 */}
+        {/* 快递（主角，放大居中） */}
         <div className="boxes">
           {workbench.length === 0 ? (
             <div className="boxesEmpty">📭 没货了……砸两下，新货马上到！</div>
@@ -175,8 +177,8 @@ export function GameScene() {
               const pct = Math.max(0, (p.sealHP / p.sealMax) * 100);
               const hurt = pct < 100;
               return (
-                <div className={'bigBox' + (hurt ? ' hurt' : '')} key={p.id}>
-                  <div className="bigBoxEmoji" key={swing}>{p.emoji}</div>
+                <div className={'bigBox' + (hurt ? ' hurt' : '')} key={p.id} style={{ width: boxSize * 1.15 }}>
+                  <div className="bigBoxEmoji" key={swing} style={{ fontSize: boxSize }}>{p.emoji}</div>
                   <div className="bigBoxName">{PARCEL_MAP[p.size].name}</div>
                   <div className="bigHp"><div className="bigHpFill" style={{ width: pct + '%' }} /></div>
                 </div>
@@ -185,11 +187,11 @@ export function GameScene() {
           )}
         </div>
 
-        {/* 暴躁老哥 */}
-        <div className="dude">
+        {/* 暴躁老哥（站旁边念叨） */}
+        <div className="dude side">
           {bark && <div className="bark" key={bark.id}>{bark.text}</div>}
           <div className={'dudeFace' + (combo >= 20 ? ' mad' : '')}>{rageFace(combo)}</div>
-          <div className={'dudeTool'} key={swing % 1000}>{tool.emoji}</div>
+          <div className="dudeHand" key={swing % 1000}>{tool.emoji}</div>
           <div className="dudeName">{tool.name}</div>
         </div>
 

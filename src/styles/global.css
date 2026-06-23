@@ -113,33 +113,38 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .comboBig.rage .comboBigNum { color: #ff5a6e; text-shadow: 0 0 26px #ff5a6e; animation: throb 0.32s infinite; }
 .comboBigX { font-size: 12px; font-weight: 800; color: var(--muted); }
 
-.stage { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding: 0 14px 96px; cursor: pointer; touch-action: none; }
-.stage:active { }
+.stage { position: absolute; inset: 0; cursor: pointer; touch-action: none; }
 
-.boxes { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; max-width: 70%; pointer-events: none; }
-.boxesEmpty { color: var(--muted); font-size: 14px; font-weight: 700; background: #0003; padding: 10px 16px; border-radius: 14px; }
-.bigBox { width: 110px; text-align: center; animation: boxIn 0.18s ease; }
-.bigBoxEmoji { font-size: 76px; line-height: 1; filter: drop-shadow(0 8px 6px #0007); animation: boxIdle 2.4s ease-in-out infinite; }
+/* 快递主角：放大居中 */
+.boxes {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; align-items: center;
+  width: 88%; max-height: 64%; pointer-events: none;
+}
+.boxesEmpty { color: var(--muted); font-size: 14px; font-weight: 700; background: #0003; padding: 12px 18px; border-radius: 14px; }
+.bigBox { text-align: center; animation: boxIn 0.18s ease; }
+.bigBoxEmoji { line-height: 1; filter: drop-shadow(0 14px 10px #0008); animation: boxIdle 2.4s ease-in-out infinite; }
 .stage:active .bigBoxEmoji { animation: boxHit 0.12s ease; }
-.bigBox.hurt .bigBoxEmoji { animation: boxShake 0.4s ease-in-out infinite; }
-.bigBoxName { font-size: 12px; font-weight: 700; color: var(--muted); margin: 2px 0 4px; }
-.bigHp { height: 9px; background: #150f24; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-.bigHpFill { height: 100%; background: linear-gradient(90deg, var(--green), #8ef0b0); transition: width 0.08s linear; box-shadow: 0 0 8px #54e08a99; }
+.bigBox.hurt .bigBoxEmoji { animation: boxShake 0.36s ease-in-out infinite; }
+.bigBoxName { font-size: 13px; font-weight: 800; color: var(--ink); margin: 6px 0 5px; text-shadow: 0 1px 2px #000a; }
+.bigHp { height: 11px; background: #150f24; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; box-shadow: inset 0 1px 3px #0008; }
+.bigHpFill { height: 100%; background: linear-gradient(90deg, var(--green), #8ef0b0); transition: width 0.08s linear; box-shadow: 0 0 10px #54e08a99; }
 
-.dude { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 3; }
-.dudeFace { font-size: 88px; line-height: 1; filter: drop-shadow(0 6px 5px #0008); }
-.stage:active .dudeFace { transform: scale(1.08) rotate(-5deg); }
+/* 老哥：缩小，挪到左下角念叨 */
+.dude.side { position: absolute; left: 12px; bottom: 84px; display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 4; }
+.dudeFace { font-size: 50px; line-height: 1; filter: drop-shadow(0 5px 4px #0008); animation: dudeBob 2.6s ease-in-out infinite; }
 .dudeFace.mad { animation: madShake 0.18s infinite; }
-.dudeTool { position: absolute; right: -6px; top: 26px; font-size: 40px; transform-origin: bottom left; animation: swing 0.18s ease; filter: drop-shadow(0 3px 3px #0008); }
-.dudeName { font-size: 12px; font-weight: 800; color: var(--ink); background: #00000044; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; margin-top: 4px; }
+.dudeHand { position: absolute; right: -4px; top: 16px; font-size: 26px; transform-origin: bottom left; animation: swing 0.18s ease; filter: drop-shadow(0 2px 2px #0008); }
+.dudeName { font-size: 11px; font-weight: 800; color: var(--ink); background: #00000055; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; margin-top: 3px; white-space: nowrap; }
 
 .bark {
-  position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%);
-  background: #fff; color: #1a1330; font-weight: 900; font-size: 15px;
-  padding: 8px 14px; border-radius: 16px; white-space: nowrap; max-width: 80vw;
+  position: absolute; bottom: 64px; left: 8px;
+  background: #fff; color: #1a1330; font-weight: 900; font-size: 14px;
+  padding: 8px 13px; border-radius: 15px; white-space: nowrap; max-width: 72vw;
   box-shadow: 0 6px 0 #0006, 0 8px 20px #0008; animation: barkPop 0.22s ease; z-index: 5;
+  transform-origin: 22px bottom;
 }
-.bark::after { content: ''; position: absolute; bottom: -9px; left: 50%; margin-left: -8px; border: 9px solid transparent; border-top-color: #fff; border-bottom: 0; }
+.bark::after { content: ''; position: absolute; bottom: -9px; left: 22px; border: 9px solid transparent; border-top-color: #fff; border-bottom: 0; }
 
 .scrap { position: absolute; font-size: 20px; pointer-events: none; animation: scrapFly 0.6s ease-out forwards; will-change: transform, opacity; }
 .dmg { position: absolute; font-weight: 900; font-size: 20px; color: #fff; pointer-events: none; text-shadow: 0 2px 3px #000a; animation: dmgFloat 0.65s ease-out forwards; }
@@ -325,7 +330,8 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 @keyframes madShake { 0%,100% { transform: translate(0,0) rotate(0); } 25% { transform: translate(-2px,1px) rotate(-4deg); } 75% { transform: translate(2px,-1px) rotate(4deg); } }
 @keyframes swing { 0% { transform: rotate(-70deg); } 60% { transform: rotate(20deg); } 100% { transform: rotate(0deg); } }
 @keyframes throb { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
-@keyframes barkPop { from { transform: translateX(-50%) scale(0.5); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+@keyframes barkPop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes dudeBob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-3px) rotate(2deg); } }
 @keyframes scrapFly { 0% { transform: translate(0,0) rotate(0); opacity: 1; } 100% { transform: translate(var(--dx,0), var(--dy,-60px)) rotate(220deg); opacity: 0; } }
 @keyframes dmgFloat { 0% { transform: translateY(0) scale(0.8); opacity: 0; } 20% { opacity: 1; transform: translateY(-8px) scale(1.1); } 100% { transform: translateY(-56px) scale(1); opacity: 0; } }
 @keyframes lootFly { 0% { transform: translateY(0) rotate(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-240px) rotate(40deg); opacity: 0; } }
