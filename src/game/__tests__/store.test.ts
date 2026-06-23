@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ensureStarter, useGame } from '../store';
 import { initialState } from '../state';
+import { ITEM_MAP } from '../../data/items';
 
 beforeEach(() => {
   // 复位到干净状态再补起始快递
@@ -24,7 +25,11 @@ describe('store gameplay loop', () => {
     useGame.getState().sellAllItems(null);
     const s = useGame.getState();
     expect(s.money).toBeGreaterThanOrEqual(before);
-    expect(Object.keys(s.inventory).length).toBe(0);
+    // 全卖后剩下的（若有）只能是留作合成的零件/元素
+    for (const id of Object.keys(s.inventory)) {
+      const kind = ITEM_MAP[id].kind;
+      expect(kind === 'part' || kind === 'element', `${id}(${kind}) 不该残留`).toBe(true);
+    }
   });
 
   it('can buy an upgrade when affordable', () => {

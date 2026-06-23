@@ -85,12 +85,13 @@ export function GameScene() {
   const downRef = useRef(false); // 是否仍按住
   const ptrRef = useRef({ x: 0, y: 0 });
 
-  // 背包总价值
+  // 背包总价值（与「全卖」一致：零件/元素留作合成，不计入一键卖出的金额）
   const invIds = Object.keys(inventory).filter((id) => inventory[id] > 0);
-  const bagValue = invIds.reduce(
-    (sum, id) => sum + sellValue(ITEM_MAP[id], ITEM_MAP[id].rarity, sellBonus(s)) * inventory[id],
-    0,
-  );
+  const bagValue = invIds.reduce((sum, id) => {
+    const it = ITEM_MAP[id];
+    if (it.kind === 'part' || it.kind === 'element') return sum;
+    return sum + sellValue(it, it.rarity, sellBonus(s)) * inventory[id];
+  }, 0);
 
   // 拆出稀有时老哥惊呼
   useEffect(() => {

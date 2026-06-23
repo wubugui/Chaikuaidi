@@ -804,6 +804,9 @@ export function sellAll(d: GameState, keepAbove: Rarity | null): number {
   const keepRank = keepAbove ? rarityRank(keepAbove) : Infinity;
   for (const id of Object.keys(d.inventory)) {
     const item = ITEM_MAP[id];
+    // 「全卖」永远保留零件/元素——它们是合成军火/设备的稀缺原料，
+    // 不该被一键清空而打断拆→零件→元素→军火的闭环（仍可在背包里单件卖）。
+    if (item.kind === 'part' || item.kind === 'element') continue;
     if (rarityRank(item.rarity) >= keepRank) continue;
     const n = d.inventory[id];
     total += sellValue(item, item.rarity, sellBonus(d)) * n;

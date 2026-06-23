@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { initialState } from '../state';
 import { doClick, doTick, effectiveAffinity, makeParcel, newOut, refillBench, sellAll } from '../engine';
+import { ITEM_MAP } from '../../data/items';
 import { benchCapacity, bodyAffinity } from '../compute';
 import { settleOffline } from '../systems/offline';
 import { reputationFor } from '../../data/prestige';
@@ -76,9 +77,11 @@ describe('selling', () => {
     const gained = sellAll(d, null);
     expect(gained).toBeGreaterThanOrEqual(0);
     expect(d.money).toBe(moneyBefore + gained);
-    // 全卖后可卖库存清空
-    const remaining = Object.keys(d.inventory).length;
-    expect(remaining).toBe(0);
+    // 全卖后只清掉可卖战利品；剩下的（若有）只能是留作合成的零件/元素
+    for (const id of Object.keys(d.inventory)) {
+      const kind = ITEM_MAP[id].kind;
+      expect(kind === 'part' || kind === 'element', `${id}(${kind}) 不该残留在库存里`).toBe(true);
+    }
   });
 });
 
