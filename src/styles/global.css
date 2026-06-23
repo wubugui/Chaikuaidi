@@ -503,6 +503,51 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .luggage.locked { opacity: 0.5; }
 .luggageFlavor { font-size: 12px; font-style: italic; color: var(--muted); line-height: 1.35; margin-top: 3px; }
 
+/* ---- 特殊货柜 ---- */
+.containerSec { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.containerCard {
+  display: flex; align-items: center; gap: 12px; background: linear-gradient(180deg, #25324a, #1b2436);
+  border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; margin-bottom: 9px;
+  box-shadow: 0 2px 0 #0004;
+}
+.containerCard.locked { opacity: 0.5; }
+.dangerTag {
+  display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 800;
+  color: #ffd0d0; background: #ef444433; border: 1px solid #ef4444; border-radius: 8px; padding: 1px 6px;
+}
+
+/* ---- 积压区 ---- */
+.backlogPanel { padding: 4px 0; }
+.backlogList { display: flex; flex-direction: column; gap: 9px; margin-top: 8px; }
+.backlogRow {
+  display: flex; align-items: center; gap: 12px; background: #1c2030;
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+}
+.backlogEmoji { font-size: 30px; }
+.backlogInfo { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.backlogName { font-weight: 800; }
+.backlogCount { color: var(--muted); font-weight: 600; }
+.backlogHint { font-size: 12px; color: var(--gold); text-align: right; white-space: nowrap; }
+
+/* ---- 爆炸闪光 ---- */
+.dangerBadge {
+  position: absolute; top: 2px; right: 2px; z-index: 3; font-size: 11px; font-weight: 800;
+  color: #ffd0d0; background: #ef4444cc; border-radius: 8px; padding: 1px 5px;
+}
+.boomFlash {
+  position: fixed; inset: 0; z-index: 60; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at center, #ffae3acc 0%, #ef4444aa 35%, #0000 70%);
+  animation: boomFade 0.6s ease-out forwards;
+}
+.boomEmoji { font-size: 140px; animation: boomPop 0.6s ease-out forwards; }
+@keyframes boomFade { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes boomPop {
+  0% { transform: scale(0.2) rotate(-8deg); }
+  40% { transform: scale(1.25) rotate(6deg); }
+  100% { transform: scale(1.1) rotate(0deg); }
+}
+
 /* ===================== MODAL / INTRO ===================== */
 .modalBg { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
 .modal { background: linear-gradient(180deg, #2a2040, #1f1733); border: 2px solid var(--line); border-radius: 20px; padding: 26px; max-width: 360px; text-align: center; box-shadow: 0 20px 60px #000a; animation: sheetPop 0.22s ease; }

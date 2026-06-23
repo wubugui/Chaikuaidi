@@ -1,3 +1,4 @@
+import type { MaterialId } from './materials';
 import type { ParcelSizeId } from './types';
 
 export interface BatchDef {
@@ -82,3 +83,37 @@ export const LUGGAGE: LuggageDef[] = [
     unlockStage: 4,
   },
 ];
+
+export interface ContainerDef {
+  id: string; name: string; emoji: string; flavor: string;
+  price: number; material: MaterialId;
+  sealMax: number; lootMin: number; lootMax: number; luckBonus: number;
+  pool: string[]; unlockStage: 1 | 2 | 3 | 4;
+  hollowChance?: number;  // 扑空概率（原石）
+  danger?: boolean;       // volatile：错误工具开箱会爆炸
+}
+
+export const CONTAINERS: ContainerDef[] = [
+  { id:'clam',  name:'河里捞的巨蚌', emoji:'🦪', material:'organic', price:800, sealMax:200, lootMin:1, lootMax:1, luckBonus:0.9,
+    flavor:'比脸还大，壳缝里还在吐泡。撬开它得有点耐心——和一点不怕失望的勇气。',
+    pool:['pearl','amberbug','ring','snail'], unlockStage:2 },
+  { id:'ice',   name:'冰柜里的冰封物', emoji:'🧊', material:'organic', price:1500, sealMax:280, lootMin:1, lootMax:2, luckBonus:0.7,
+    flavor:'断电很久了，但里面那团东西……保存得意外地好。你最好用火烤，别用手。',
+    pool:['glove','mammoth','fossil','watch'], unlockStage:2 },
+  { id:'ore',   name:'矿场拖来的原石', emoji:'🪨', material:'stone', price:6000, sealMax:320, lootMin:1, lootMax:2, luckBonus:0.5,
+    flavor:'沉得要死。也许里面是满洞的水晶，也许……就是块破石头。开了才知道。',
+    pool:['crystal','fossil','diamond','goldbar'], unlockStage:3, hollowChance:0.28 },
+  { id:'safe',  name:'撬不动的保险箱', emoji:'🔒', material:'metal', price:12000, sealMax:520, lootMin:1, lootMax:2, luckBonus:0.8,
+    flavor:'密码早忘了，钥匙也没有。里面是养老钱，还是一笔再也讨不回的债？',
+    pool:['cashwad','ring','iou','carkey','gpu'], unlockStage:3 },
+  { id:'meteor',name:'坠在后院的陨石', emoji:'☄️', material:'stone', price:25000, sealMax:680, lootMin:1, lootMax:2, luckBonus:1.0,
+    flavor:'砸穿了棚顶，还带着余温。表面是石头，芯子里的东西不像地球货。',
+    pool:['meteoriron','alienalloy','fossil','diamond'], unlockStage:3 },
+  { id:'missile',name:'不该捡的导弹', emoji:'🚀', material:'volatile', price:40000, sealMax:800, lootMin:1, lootMax:1, luckBonus:1.2,
+    flavor:'弹体上印着别国文字。理智的人会报警——但你只想知道里面那块芯片值多少钱。用错家伙它可会回敬你。',
+    pool:['milchip','titanium','note','goldbar','carkey'], unlockStage:3, danger:true },
+  { id:'alienegg',name:'会动的外星蛋', emoji:'🥚', material:'anomaly', price:150000, sealMax:760, lootMin:1, lootMax:1, luckBonus:1.3,
+    flavor:'壳是半透明的，里面有东西在缓慢地……心跳。激光切开的瞬间，它好像睁开了眼。',
+    pool:['hatchling','alienalloy','ufo','alien'], unlockStage:4, danger:true },
+];
+export const CONTAINER_MAP = Object.fromEntries(CONTAINERS.map(c=>[c.id,c]));

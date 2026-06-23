@@ -95,6 +95,27 @@ export const ITEMS: ItemDef[] = [
   { id: 'ring', name: '订婚戒指', emoji: '💍', kind: 'sellable', rarity: 'legendary', baseValue: 16 },
   { id: 'urn', name: '空的骨灰盒（吧？）', emoji: '⚱️', kind: 'sellable', rarity: 'epic', baseValue: 9 },
 
+  // ---- 特殊货柜主题可卖品 ----
+  { id:'crystal',   name:'紫水晶簇',   emoji:'🔮', kind:'sellable', rarity:'epic',      baseValue:9 },
+  { id:'meteoriron',name:'陨铁块',     emoji:'🌑', kind:'sellable', rarity:'legendary', baseValue:14 },
+  { id:'alienalloy',name:'外星合金',   emoji:'💠', kind:'sellable', rarity:'absurd',    baseValue:40 },
+  { id:'cashwad',   name:'一沓现金',   emoji:'💵', kind:'sellable', rarity:'rare',      baseValue:7 },
+  { id:'titanium',  name:'钛合金件',   emoji:'🔗', kind:'sellable', rarity:'epic',      baseValue:10 },
+  { id:'milchip',   name:'军用芯片',   emoji:'🛰️', kind:'sellable', rarity:'legendary', baseValue:15 },
+  { id:'pearl',     name:'黑珍珠',     emoji:'🫧', kind:'sellable', rarity:'epic',      baseValue:9 },
+
+  // ---- 特殊货柜主题收藏品（唯一 + 被动）----
+  { id:'fossil',   name:'三叶虫化石', emoji:'🦴', kind:'collectible', rarity:'epic',      baseValue:0, passive:{ label:'幸运 +12%',     type:'luck',      amount:0.12 } },
+  { id:'iou',      name:'一张借条',   emoji:'📜', kind:'collectible', rarity:'rare',      baseValue:0, passive:{ label:'售价 +8%',      type:'sellPrice', amount:0.08 } },
+  { id:'amberbug', name:'琥珀里的虫', emoji:'🐛', kind:'collectible', rarity:'rare',      baseValue:0, passive:{ label:'到货速度 +6%',   type:'autoSpeed', amount:0.06 } },
+  { id:'mammoth',  name:'迷你冰封猛犸',emoji:'🦣', kind:'collectible', rarity:'legendary', baseValue:0, passive:{ label:'自动拆解 +20%',  type:'autoPower', amount:0.2 } },
+  { id:'note',     name:'折叠的纸条',  emoji:'📝', kind:'collectible', rarity:'epic',      baseValue:0, passive:{ label:'连击上限 +0.5',  type:'comboCap',  amount:0.5 } },
+  { id:'glove',    name:'冻住的手套（里面好像有东西）', emoji:'🧤', kind:'collectible', rarity:'epic', baseValue:0, passive:{ label:'点击拆解 +14%', type:'clickPower', amount:0.14 } },
+  { id:'hatchling',name:'孵出来的小东西', emoji:'🐣', kind:'collectible', rarity:'legendary', baseValue:0, passive:{ label:'幸运 +22%', type:'luck', amount:0.22 } },
+
+  // ---- 原石扑空（价值 0，非收藏）----
+  { id:'hollow', name:'空心的……啥也没有', emoji:'💨', kind:'sellable', rarity:'common', baseValue:0 },
+
   // ---- 暴躁老哥语录（可装备，详见 quotes.ts）----
   ...QUOTES,
 ];

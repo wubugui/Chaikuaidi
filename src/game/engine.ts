@@ -44,6 +44,17 @@ function raiseFeedback(out: EngineOut, lvl: FeedbackLevel) {
   if (FEEDBACK_RANK[lvl] > FEEDBACK_RANK[out.feedback]) out.feedback = lvl;
 }
 
+/** 当前工具处理危险品是否安全（拆弹钳安全；液压机/黑洞也按安全处理） */
+function toolIsSafe(toolId: string): boolean {
+  const t = TOOL_MAP[toolId as keyof typeof TOOL_MAP];
+  return !!(t?.volatileSafe) || toolId === 'press' || toolId === 'blackhole';
+}
+
+/** 危险品被炸懵的惩罚时长(ms) */
+const DAZED_MS = 2500;
+/** 爆炸对台上其他快递造成的连带伤害比例 */
+const BOOM_COLLATERAL = 0.3;
+
 export interface ParcelOpts {
   luckBonus?: number;
   pool?: string[];
@@ -53,6 +64,8 @@ export interface ParcelOpts {
   lootMin?: number;
   lootMax?: number;
   material?: MaterialId;
+  hollowChance?: number;
+  danger?: boolean;
 }
 
 export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: ParcelOpts): Parcel {
@@ -71,6 +84,8 @@ export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: Parcel
     luckBonus: opts?.luckBonus,
     pool: opts?.pool,
     label: opts?.label,
+    hollowChance: opts?.hollowChance,
+    danger: opts?.danger,
   };
 }
 
@@ -149,10 +164,53 @@ function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut)
   };
 }
 
+/**
+ * 危险品被错误工具打开 -> 爆炸：无掉落、无现金，连带损伤台上其他快递，老哥被炸懵。
+ * MUTATION HOOK: 增量3 在这里有小概率改为触发变异而非纯损失
+ */
+function explode(d: GameState, p: Parcel, out: EngineOut) {
+  // 连带：敲掉台上其他快递 30% 封口血
+  for (const other of d.workbench) {
+    if (other.id === p.id) continue;
+    other.sealHP = Math.max(1, other.sealHP - other.sealMax * BOOM_COLLATERAL);
+  }
+  d.dazedUntil = Date.now() + DAZED_MS;
+  raiseFeedback(out, 'danger');
+  out.reveals.push({
+    id: nextId(),
+    parcelEmoji: '💥',
+    parcelName: (p.label ?? PARCEL_MAP[p.size].name) + '（炸了）',
+    items: [],
+    topRarity: 'common',
+    manual: false,
+  });
+  emit('boom');
+}
+
 function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false) {
   d.totalUnpacked += 1;
   out.opened += 1;
   const tool = TOOL_MAP[d.currentTool];
+
+  // 危险品 + 用错工具 -> 爆炸（在任何掉落前结算）
+  if (p.danger && !toolIsSafe(d.currentTool)) {
+    explode(d, p, out);
+    return;
+  }
+
+  // 扑空（原石）：开箱瞬间小概率啥也没有，只给一个 💨 letdown
+  if (p.hollowChance && rand() < p.hollowChance) {
+    const item = applyLoot(d, 'common', 'hollow', out);
+    out.reveals.push({
+      id: nextId(),
+      parcelEmoji: p.emoji,
+      parcelName: p.label ?? PARCEL_MAP[p.size].name,
+      items: [item],
+      topRarity: 'common',
+      manual: false,
+    });
+    return;
+  }
   const lp = { luck: luck(d) + (p.luckBonus ?? 0) };
   const items: RevealItem[] = [];
   let damagedCount = 0;
@@ -223,6 +281,8 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
 
 /** 一次点击：群体作用于工作台所有快递 */
 export function doClick(d: GameState, now: number, rand: () => number, out: EngineOut) {
+  // 被炸懵：在 dazedUntil 之前点击无效（老哥被炸懵了）
+  if (Date.now() < d.dazedUntil) return;
   // 连击
   if (now - d.lastClickAt <= COMBO_WINDOW_MS) d.combo += 1;
   else d.combo = 1;
@@ -257,12 +317,23 @@ export function doClick(d: GameState, now: number, rand: () => number, out: Engi
   refillStageAndUnpack(d);
 }
 
+/**
+ * 当前工具对某快递的有效亲和度。
+ * 危险品特例：用「不安全」的工具时，给一个固定的小亲和度 0.5——
+ * 这样你照样能把它砸开，然后它在你脸上炸开（用错方法 = 它会回敬你）；
+ * 用「安全」工具（拆弹钳）则用真实亲和度（disarm volatile:3），安全拆解。
+ */
+export function effectiveAffinity(toolId: string, p: Parcel): number {
+  const real = TOOL_MAP[toolId as keyof typeof TOOL_MAP]?.affinity[p.material] ?? 0;
+  if (p.danger && !toolIsSafe(toolId)) return Math.max(real, 0.5);
+  return real;
+}
+
 /** 群体伤害：每个快递按「当前工具对其材质的亲和度」缩放，亲和度<=0 则撬不动 */
 function damageBench(d: GameState, dmg: number, rand: () => number, out: EngineOut) {
-  const affinity = TOOL_MAP[d.currentTool].affinity;
   const remaining: Parcel[] = [];
   for (const p of d.workbench) {
-    const eff = affinity[p.material] ?? 0;
+    const eff = effectiveAffinity(d.currentTool, p);
     if (eff <= 0) {
       // 硬门槛：撬不动，零伤害
       raiseFeedback(out, 'ineffective');

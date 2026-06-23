@@ -48,6 +48,7 @@ type Handlers = {
   revealStart: () => void;
   revealEnd: () => void;
   rageBurst: () => void;
+  boom: () => void;
 };
 
 const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
@@ -59,6 +60,7 @@ const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
   revealStart: new Set(),
   revealEnd: new Set(),
   rageBurst: new Set(),
+  boom: new Set(),
 };
 
 let uid = 1;

@@ -12,6 +12,8 @@ export interface Parcel {
   luckBonus?: number;  // 额外幸运（行李/高级批次更易爆）
   pool?: string[];     // 主题掉落池（item id），命中对应稀有度时优先取
   label?: string;      // 特殊名（行李名，覆盖尺寸名显示）
+  hollowChance?: number; // 扑空概率（原石）：开箱瞬间小概率啥也没有
+  danger?: boolean;      // 危险品：用错工具开箱会爆炸
 }
 
 export interface GameState {
@@ -55,6 +57,7 @@ export interface GameState {
   // 暴怒
   rage: number;        // 0-100
   revengeLeft: number; // 剩余报复次数（×2 伤害）
+  dazedUntil: number;  // 被炸懵到此时间戳前点击无效（Date.now() ms）
 
   // 杂项
   audioEnabled: boolean;
@@ -94,6 +97,7 @@ export function initialState(): GameState {
     absurdFound: false,
     rage: 0,
     revengeLeft: 0,
+    dazedUntil: 0,
     audioEnabled: true,
     introSeen: false,
     lastSeen: Date.now(),

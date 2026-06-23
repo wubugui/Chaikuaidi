@@ -64,6 +64,13 @@ export function sfxBonk() {
   noise(0.04, 0.025);
 }
 
+/** 危险品爆炸：较长的噪声爆裂 + 低频轰鸣 */
+export function sfxBoom() {
+  noise(0.45, 0.12);
+  blip(70, 0.4, 'sawtooth', 0.1);
+  setTimeout(() => blip(45, 0.3, 'sine', 0.08), 60);
+}
+
 /** 破裂里程碑：清脆的裂响 */
 export function sfxCrack() {
   noise(0.05, 0.05);

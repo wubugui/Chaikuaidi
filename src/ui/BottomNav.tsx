@@ -1,4 +1,4 @@
-export type PanelId = 'bag' | 'upgrade' | 'shop' | 'quotes' | 'collection' | 'achievements' | 'prestige';
+export type PanelId = 'bag' | 'upgrade' | 'shop' | 'backlog' | 'quotes' | 'collection' | 'achievements' | 'prestige';
 
 export interface NavItem {
   id: PanelId;
@@ -11,6 +11,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'bag', label: '背包', emoji: '🎒' },
   { id: 'upgrade', label: '升级', emoji: '🛠️' },
   { id: 'shop', label: '进货', emoji: '🛒', minStage: 2 },
+  { id: 'backlog', label: '积压', emoji: '📥', minStage: 2 },
   { id: 'quotes', label: '语录', emoji: '🗯️', minStage: 2 },
   { id: 'collection', label: '图鉴', emoji: '🖼️', minStage: 3 },
   { id: 'achievements', label: '成就', emoji: '🏅' },

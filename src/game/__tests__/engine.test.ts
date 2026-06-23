@@ -101,6 +101,51 @@ describe('offline settlement', () => {
   });
 });
 
+describe('danger containers', () => {
+  it('explodes (no loot) when opened with an unsafe tool', () => {
+    const rand = mulberry32(7);
+    const d = initialState();
+    d.ownedTools = ['hand', 'grinder'];
+    d.currentTool = 'grinder'; // 不安全
+    d.workbench.push(
+      makeParcel('crate', rand, { material: 'volatile', danger: true, sealMax: 20, lootMin: 1, lootMax: 1, pool: ['milchip'] }),
+    );
+    const invBefore = Object.values(d.inventory).reduce((a, b) => a + b, 0);
+    // 危险品被不安全工具砸到固定 0.5 亲和度，最终会炸
+    for (let i = 0; i < 200 && d.dazedUntil === 0; i++) doClick(d, Date.now() + i * 10, rand, newOut());
+    expect(d.dazedUntil).toBeGreaterThan(0); // 被炸懵
+    const invAfter = Object.values(d.inventory).reduce((a, b) => a + b, 0);
+    expect(invAfter).toBe(invBefore); // 爆炸不产出
+  });
+
+  it('yields loot safely when opened with disarm (safe) tool', () => {
+    const rand = mulberry32(7);
+    const d = initialState();
+    d.ownedTools = ['hand', 'disarm'];
+    d.currentTool = 'disarm'; // 安全
+    d.workbench.push(
+      makeParcel('crate', rand, { material: 'volatile', danger: true, sealMax: 20, lootMin: 1, lootMax: 1, pool: ['milchip'] }),
+    );
+    for (let i = 0; i < 50 && d.totalUnpacked === 0; i++) doClick(d, Date.now() + i * 10, rand, newOut());
+    expect(d.totalUnpacked).toBe(1);
+    expect(d.dazedUntil).toBe(0); // 没炸
+  });
+
+  it('hollow ore can produce a 💨 letdown with no value', () => {
+    const rand = () => 0; // rand()=0 < hollowChance -> 必扑空
+    const d = initialState();
+    d.ownedTools = ['hand', 'chisel'];
+    d.currentTool = 'chisel';
+    const out = newOut();
+    d.workbench.push(
+      makeParcel('crate', () => 0.5, { material: 'stone', hollowChance: 1, sealMax: 1, pool: ['crystal'] }),
+    );
+    for (let i = 0; i < 10 && d.totalUnpacked === 0; i++) doClick(d, Date.now() + i * 10, rand, out);
+    expect(d.totalUnpacked).toBe(1);
+    expect(d.inventory['hollow'] ?? 0).toBe(1);
+  });
+});
+
 describe('prestige reputation formula', () => {
   it('rewards reputation by sqrt of earnings (millions)', () => {
     expect(reputationFor(0)).toBe(0);

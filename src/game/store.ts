@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { ACHIEVEMENTS } from '../data/achievements';
-import { BATCHES, LUGGAGE } from '../data/shop';
+import { BATCHES, CONTAINERS, LUGGAGE } from '../data/shop';
 import { COLLECTION_TOTAL } from '../data/items';
 import { PRESTIGE_MAP, prestigeNodeCost, reputationFor } from '../data/prestige';
 import { rarityRank } from '../data/rarity';
@@ -50,6 +50,7 @@ interface Actions {
   sellAllItems: (keepAbove?: Rarity | null) => void;
   buyBatch: (batchId: string) => void;
   buyLuggage: (id: string) => void;
+  buyContainer: (id: string) => void;
   buyPrestige: (id: string) => void;
   prestige: () => void;
   equipQuote: (id: string) => void;
@@ -265,6 +266,23 @@ export const useGame = create<Store>()(
         set(d);
       },
 
+      buyContainer: (id) => {
+        const s = get();
+        const c = CONTAINERS.find((x) => x.id === id);
+        if (!c || s.stage < c.unlockStage || s.money < c.price) return;
+        const d = draft(s);
+        d.money -= c.price;
+        d.queue.push(
+          makeParcel('crate', liveRand, {
+            material: c.material, emoji: c.emoji, label: c.name, sealMax: c.sealMax,
+            lootMin: c.lootMin, lootMax: c.lootMax, luckBonus: c.luckBonus, pool: c.pool,
+            hollowChance: c.hollowChance, danger: c.danger,
+          }),
+        );
+        refillBench(d);
+        set(d);
+      },
+
       buyPrestige: (id) => {
         const s = get();
         const def = PRESTIGE_MAP[id];
@@ -354,12 +372,12 @@ export const useGame = create<Store>()(
       partialize: (s) => {
         const {
           offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
-          sellAllItems, buyBatch, buyLuggage, buyPrestige, prestige, equipQuote, unequipQuote, markIntroSeen,
+          sellAllItems, buyBatch, buyLuggage, buyContainer, buyPrestige, prestige, equipQuote, unequipQuote, markIntroSeen,
           toggleAudio, hardReset, dismissOffline, ...rest
         } = s as Store;
         void offline; void click; void tick; void buyUpgrade; void buyTool; void selectTool; void upgradeTool;
         void buyAutoSell;
-        void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyLuggage; void buyPrestige;
+        void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyLuggage; void buyContainer; void buyPrestige;
         void prestige; void equipQuote; void unequipQuote; void markIntroSeen;
         void toggleAudio; void hardReset; void dismissOffline;
         return rest;
@@ -374,6 +392,7 @@ export const useGame = create<Store>()(
         // 旧存档兼容：新增字段默认值
         if (state.rage === undefined) state.rage = 0;
         if (state.revengeLeft === undefined) state.revengeLeft = 0;
+        if (state.dazedUntil === undefined) state.dazedUntil = 0;
 
         // 工具箱迁移：旧存档为单线性工具，映射到新工具体系
         if (state.ownedTools === undefined) {

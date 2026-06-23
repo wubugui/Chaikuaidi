@@ -4,6 +4,8 @@ import { GameScene } from './ui/GameScene';
 import { Inventory } from './ui/Inventory';
 import { UpgradePanel } from './ui/UpgradePanel';
 import { Shop } from './ui/Shop';
+import { Backlog } from './ui/Backlog';
+import { BoomFlash } from './ui/effects/BoomFlash';
 import { Quotes } from './ui/Quotes';
 import { Collection } from './ui/Collection';
 import { Achievements } from './ui/Achievements';
@@ -22,6 +24,7 @@ const PANEL_TITLE: Record<PanelId, string> = {
   bag: '🎒 背包',
   upgrade: '🛠️ 升级 & 装备',
   shop: '🛒 进货批次',
+  backlog: '📥 积压区',
   quotes: '🗯️ 暴躁语录',
   collection: '🖼️ 收藏图鉴',
   achievements: '🏅 成就',
@@ -63,6 +66,7 @@ export default function App() {
               {active === 'bag' && <Inventory />}
               {active === 'upgrade' && <UpgradePanel />}
               {active === 'shop' && <Shop />}
+              {active === 'backlog' && <Backlog />}
               {active === 'quotes' && <Quotes />}
               {active === 'collection' && <Collection />}
               {active === 'achievements' && <Achievements />}
@@ -73,6 +77,7 @@ export default function App() {
       )}
 
       <EffectsLayer />
+      <BoomFlash />
       <RevealLayer />
       <PopReveal />
       <OfflineModal />

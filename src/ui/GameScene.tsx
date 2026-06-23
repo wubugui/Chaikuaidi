@@ -4,8 +4,8 @@ import { ITEM_MAP } from '../data/items';
 import { MATERIALS } from '../data/materials';
 import { PARCEL_MAP } from '../data/parcels';
 import { recommendedToolFor, TOOL_MAP } from '../data/tools';
-import { affinityOf, autoPower, benchCapacity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
-import type { FeedbackLevel } from '../game/engine';
+import { autoPower, benchCapacity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
+import { effectiveAffinity, type FeedbackLevel } from '../game/engine';
 import { on } from '../game/events';
 import { useGame } from '../game/store';
 import { sellValue } from '../game/systems/loot';
@@ -179,7 +179,7 @@ export function GameScene() {
     if (pausedRef.current) return;
     // 本次点击是否对工作台任意一个箱子有效（决定是否放特效/音效）
     const st = useGame.getState();
-    const effective = st.workbench.some((p) => affinityOf(st, p.material) > 0);
+    const effective = st.workbench.some((p) => effectiveAffinity(st.currentTool, p) > 0);
     click();
     setSwing((v) => v + 1);
     if (effective) {
@@ -281,8 +281,9 @@ export function GameScene() {
               const pct = Math.max(0, (p.sealHP / p.sealMax) * 100);
               const dmgStage = pct < 34 ? ' d2' : pct < 67 ? ' d1' : '';
               const mat = MATERIALS[p.material];
-              const eff = affinityOf(s, p.material);
+              const eff = effectiveAffinity(currentTool, p);
               const gated = eff <= 0;
+              const danger = !!p.danger && !gated;
               const rec = gated ? recommendedToolFor(p.material) : null;
               return (
                 <div
@@ -294,6 +295,7 @@ export function GameScene() {
                     <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
                       {mat.emoji} {mat.name}
                     </span>
+                    {danger && <span className="dangerBadge" title="危险品：用拆弹钳才安全，错了会炸">⚠️ 危险</span>}
                     <div className="bigBoxEmoji" key={swing} style={{ fontSize: boxSize }}>{p.emoji}</div>
                     {!gated && pct < 67 && <span className="crack c1">💢</span>}
                     {!gated && pct < 34 && <span className="crack c2">💥</span>}

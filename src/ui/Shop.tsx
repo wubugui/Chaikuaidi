@@ -1,4 +1,5 @@
-import { BATCHES, LUGGAGE } from '../data/shop';
+import { BATCHES, CONTAINERS, LUGGAGE } from '../data/shop';
+import { MATERIALS } from '../data/materials';
 import { PARCEL_MAP } from '../data/parcels';
 import { useGame } from '../game/store';
 import { money } from '../lib/format';
@@ -8,6 +9,7 @@ export function Shop() {
   const stage = useGame((s) => s.stage);
   const buyBatch = useGame((s) => s.buyBatch);
   const buyLuggage = useGame((s) => s.buyLuggage);
+  const buyContainer = useGame((s) => s.buyContainer);
 
   return (
     <div className="shop">
@@ -51,6 +53,37 @@ export function Shop() {
               ) : (
                 <button className="btn buy" disabled={m < l.price} onClick={() => buyLuggage(l.id)}>
                   撬开<span className="cost">{money(l.price)}</span>
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="containerSec">
+        <h3 className="shopSecTitle">📦 特殊货柜</h3>
+        <p className="shopHint">原石、陨石、保险箱、导弹……需要对的材质工具才撬得动，危险品 ⚠️ 用错家伙会炸。</p>
+        {CONTAINERS.map((c) => {
+          const locked = stage < c.unlockStage;
+          const mat = MATERIALS[c.material];
+          return (
+            <div className={'containerCard' + (locked ? ' locked' : '')} key={c.id}>
+              <div className="batchEmoji">{c.emoji}</div>
+              <div className="batchInfo">
+                <div className="batchName">
+                  {c.name}
+                  {c.danger && <span className="dangerTag">⚠️ 危险品</span>}
+                </div>
+                <div className="luggageFlavor">{c.flavor}</div>
+                <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
+                  {mat.emoji} {mat.name}
+                </span>
+              </div>
+              {locked ? (
+                <div className="batchLock">🔒 阶段{c.unlockStage}</div>
+              ) : (
+                <button className="btn buy" disabled={m < c.price} onClick={() => buyContainer(c.id)}>
+                  撬开<span className="cost">{money(c.price)}</span>
                 </button>
               )}
             </div>
