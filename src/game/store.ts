@@ -5,9 +5,10 @@ import { BATCHES, LUGGAGE } from '../data/shop';
 import { COLLECTION_TOTAL } from '../data/items';
 import { PRESTIGE_MAP, prestigeNodeCost, reputationFor } from '../data/prestige';
 import { rarityRank } from '../data/rarity';
-import { nextTool } from '../data/tools';
+import { PARCEL_MAP } from '../data/parcels';
+import { TOOL_MAP, TOOLS, toolUpgradeCost } from '../data/tools';
 import { AUTO_SELL_COST, UPGRADE_MAP, upgradeBulkCost } from '../data/upgrades';
-import type { Rarity } from '../data/types';
+import type { Rarity, ToolId } from '../data/types';
 import { emit, seedId } from './events';
 import {
   doClick,
@@ -40,7 +41,9 @@ interface Actions {
   click: () => void;
   tick: (dtSec: number) => void;
   buyUpgrade: (id: string, n?: number) => void;
-  buyTool: () => void;
+  buyTool: (id: ToolId) => void;
+  selectTool: (id: ToolId) => void;
+  upgradeTool: (id: ToolId) => void;
   buyAutoSell: () => void;
   setAutoSell: (enabled: boolean, keepAbove: Rarity | null) => void;
   sellItem: (id: string) => void;
@@ -72,6 +75,8 @@ function draft(s: GameState): GameState {
     achievements: s.achievements.slice(),
     upgrades: { ...s.upgrades },
     prestigeTree: { ...s.prestigeTree },
+    ownedTools: s.ownedTools.slice(),
+    toolLevels: { ...s.toolLevels },
   };
 }
 
@@ -101,7 +106,7 @@ function checkAchievements(d: GameState, out: EngineOut) {
 /** 手动拆：砸击音效 + 震屏 + 开箱特写（不放飞小图标，特写代替） */
 function emitManual(out: EngineOut) {
   if (out.opened > 0) emit('open');
-  if (out.shake) emit('shake');
+  emit('feedback', out.feedback);
   for (const r of out.reveals) {
     r.manual = true;
     emit('reveal', r);
@@ -111,6 +116,8 @@ function emitManual(out: EngineOut) {
 /** 自动拆：战利品流（飞图标 + 音效），只有稀有以上才弹特写 */
 function emitAuto(out: EngineOut) {
   for (const b of out.bursts) emit('loot', b);
+  // 自动只在开箱/破裂里程碑时给一点震动，平常的 hit/ineffective 不打扰
+  if (out.feedback === 'open' || out.feedback === 'crack') emit('feedback', out.feedback);
   for (const r of out.reveals) {
     if (rarityRank(r.topRarity) >= rarityRank('epic')) emit('reveal', r);
   }
@@ -158,13 +165,40 @@ export const useGame = create<Store>()(
         set(d);
       },
 
-      buyTool: () => {
+      buyTool: (id) => {
         const s = get();
-        const nt = nextTool(s.currentTool);
-        if (!nt || s.money < nt.cost) return;
+        const tool = TOOL_MAP[id];
+        if (!tool || s.ownedTools.includes(id)) return;
+        if (s.stage < tool.unlockStage || s.money < tool.cost) return;
         const d = draft(s);
-        d.money -= nt.cost;
-        d.currentTool = nt.id;
+        d.money -= tool.cost;
+        d.ownedTools.push(id);
+        set(d);
+      },
+
+      selectTool: (id) => {
+        const s = get();
+        if (!s.ownedTools.includes(id)) return;
+        const d = draft(s);
+        d.currentTool = id;
+        set(d);
+      },
+
+      upgradeTool: (id) => {
+        const s = get();
+        const tool = TOOL_MAP[id];
+        if (!tool || !s.ownedTools.includes(id)) return;
+        const level = s.toolLevels[id] ?? 0;
+        const cost = toolUpgradeCost(tool, level);
+        if (s.money < cost.money) return;
+        if (tool.upgradeMat && (s.inventory[tool.upgradeMat] ?? 0) < cost.mat) return;
+        const d = draft(s);
+        d.money -= cost.money;
+        if (tool.upgradeMat) {
+          d.inventory[tool.upgradeMat] = (d.inventory[tool.upgradeMat] ?? 0) - cost.mat;
+          if (d.inventory[tool.upgradeMat] <= 0) delete d.inventory[tool.upgradeMat];
+        }
+        d.toolLevels[id] = level + 1;
         set(d);
       },
 
@@ -319,11 +353,12 @@ export const useGame = create<Store>()(
       storage: createJSONStorage(safeStorage),
       partialize: (s) => {
         const {
-          offline, click, tick, buyUpgrade, buyTool, buyAutoSell, setAutoSell, sellItem,
+          offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
           sellAllItems, buyBatch, buyLuggage, buyPrestige, prestige, equipQuote, unequipQuote, markIntroSeen,
           toggleAudio, hardReset, dismissOffline, ...rest
         } = s as Store;
-        void offline; void click; void tick; void buyUpgrade; void buyTool; void buyAutoSell;
+        void offline; void click; void tick; void buyUpgrade; void buyTool; void selectTool; void upgradeTool;
+        void buyAutoSell;
         void setAutoSell; void sellItem; void sellAllItems; void buyBatch; void buyLuggage; void buyPrestige;
         void prestige; void equipQuote; void unequipQuote; void markIntroSeen;
         void toggleAudio; void hardReset; void dismissOffline;
@@ -339,6 +374,27 @@ export const useGame = create<Store>()(
         // 旧存档兼容：新增字段默认值
         if (state.rage === undefined) state.rage = 0;
         if (state.revengeLeft === undefined) state.revengeLeft = 0;
+
+        // 工具箱迁移：旧存档为单线性工具，映射到新工具体系
+        if (state.ownedTools === undefined) {
+          const TOOL_MIGRATE: Record<string, ToolId> = {
+            nail: 'hand', hand: 'hand', key: 'cutter', cutter: 'cutter',
+            scissors: 'crowbar', opener: 'chisel', electric: 'grinder',
+            laser: 'laserrig', blackhole: 'blackhole',
+          };
+          const mapped: ToolId = TOOL_MIGRATE[(state as any).currentTool] ?? 'hand';
+          const order = TOOLS.map((t) => t.id);
+          const upTo = order.indexOf(mapped);
+          state.currentTool = mapped;
+          state.toolLevels = {} as Record<ToolId, number>;
+          state.ownedTools = order.slice(0, upTo + 1);
+        }
+        if (state.toolLevels === undefined) state.toolLevels = {} as Record<ToolId, number>;
+
+        // 旧存档的快递缺 material 字段则按尺寸回填
+        for (const p of [...state.workbench, ...state.queue]) {
+          if (p.material === undefined) p.material = PARCEL_MAP[p.size].material;
+        }
 
         // 离线结算
         const now = Date.now();

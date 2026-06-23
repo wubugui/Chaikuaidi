@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { barkFor, BARKS_LUCKY } from '../data/barks';
 import { ITEM_MAP } from '../data/items';
+import { MATERIALS } from '../data/materials';
 import { PARCEL_MAP } from '../data/parcels';
-import { TOOL_MAP } from '../data/tools';
-import { autoPower, benchCapacity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
+import { recommendedToolFor, TOOL_MAP } from '../data/tools';
+import { affinityOf, autoPower, benchCapacity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
+import type { FeedbackLevel } from '../game/engine';
 import { on } from '../game/events';
 import { useGame } from '../game/store';
 import { sellValue } from '../game/systems/loot';
-import { sfxRip } from '../lib/audio';
+import { sfxBonk, sfxCrack, sfxRip } from '../lib/audio';
 import { fmt, money } from '../lib/format';
+
+const BONK_BARKS = ['这玩意儿手抠不动啊！', '换个家伙！', '撬不动……得用对工具！'];
 
 interface Particle { id: number; x: number; y: number; dx: number; dy: number; char: string; }
 interface Dmg { id: number; x: number; y: number; text: string; big: boolean; }
@@ -29,11 +33,17 @@ export function GameScene() {
   const queueLen = useGame((s) => s.queue.length);
   const combo = useGame((s) => s.combo);
   const currentTool = useGame((s) => s.currentTool);
+  const ownedTools = useGame((s) => s.ownedTools);
   const inventory = useGame((s) => s.inventory);
   const click = useGame((s) => s.click);
+  const selectTool = useGame((s) => s.selectTool);
   const sellAllItems = useGame((s) => s.sellAllItems);
   const rage = useGame((s) => s.rage);
   const revengeLeft = useGame((s) => s.revengeLeft);
+
+  const [shakeCls, setShakeCls] = useState('');
+  const shakeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [jitterId, setJitterId] = useState(0); // 撬不动时给箱子一个小抖动
 
   const s = useGame();
   const cPower = clickPowerBase(s);
@@ -66,6 +76,37 @@ export function GameScene() {
         setBark({ id: pid++, text: BARKS_LUCKY[Math.floor(Math.random() * BARKS_LUCKY.length)] });
       }
     });
+  }, []);
+
+  // 反馈分级：有意义的震动 / 撬不动的小抖动 + 闷响
+  useEffect(() => {
+    return on('feedback', (lvl: FeedbackLevel) => {
+      const cls =
+        lvl === 'danger' ? 'shakeL'
+          : lvl === 'open' ? 'shakeL'
+          : lvl === 'crack' ? 'shakeM'
+          : lvl === 'hit' ? 'shakeS'
+          : '';
+      if (lvl === 'ineffective') {
+        // 不震屏：箱子小抖 + 闷响 + 吐槽
+        setJitterId((v) => v + 1);
+        sfxBonk();
+        const now = performance.now();
+        if (now - lastBarkRef.current > 360) {
+          lastBarkRef.current = now;
+          setBark({ id: pid++, text: BONK_BARKS[Math.floor(Math.random() * BONK_BARKS.length)] });
+        }
+        return;
+      }
+      if (lvl === 'crack') sfxCrack();
+      if (cls) {
+        setShakeCls(cls);
+        if (shakeTimer.current) clearTimeout(shakeTimer.current);
+        const dur = cls === 'shakeL' ? 220 : cls === 'shakeM' ? 150 : 90;
+        shakeTimer.current = setTimeout(() => setShakeCls(''), dur);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 开箱特写时暂停砸击；特写结束若还按着则继续
@@ -136,11 +177,16 @@ export function GameScene() {
 
   const doOne = () => {
     if (pausedRef.current) return;
+    // 本次点击是否对工作台任意一个箱子有效（决定是否放特效/音效）
+    const st = useGame.getState();
+    const effective = st.workbench.some((p) => affinityOf(st, p.material) > 0);
     click();
     setSwing((v) => v + 1);
-    spawnFx(ptrRef.current.x, ptrRef.current.y);
-    sfxRip();
-    maybeBark();
+    if (effective) {
+      spawnFx(ptrRef.current.x, ptrRef.current.y);
+      sfxRip();
+      maybeBark();
+    }
   };
 
   const runHold = () => {
@@ -192,7 +238,7 @@ export function GameScene() {
   const rageColor = ragePct >= 70 ? '#ff5a6e' : ragePct >= 40 ? '#ffce3a' : '#54e08a';
 
   return (
-    <div className={'scene ' + heat}>
+    <div className={'scene ' + heat + (shakeCls ? ' ' + shakeCls : '')}>
       {/* 背景：仓库 + 箱山 */}
       <div className="sceneBg">
         <div className="hangLight" />
@@ -234,12 +280,28 @@ export function GameScene() {
             workbench.map((p) => {
               const pct = Math.max(0, (p.sealHP / p.sealMax) * 100);
               const dmgStage = pct < 34 ? ' d2' : pct < 67 ? ' d1' : '';
+              const mat = MATERIALS[p.material];
+              const eff = affinityOf(s, p.material);
+              const gated = eff <= 0;
+              const rec = gated ? recommendedToolFor(p.material) : null;
               return (
-                <div className={'bigBox' + (pct < 100 ? ' hurt' : '') + dmgStage} key={p.id} style={{ width: boxSize * 1.15 }}>
-                  <div className="bigBoxWrap">
+                <div
+                  className={'bigBox' + (!gated && pct < 100 ? ' hurt' : '') + dmgStage + (gated ? ' gated' : '')}
+                  key={p.id}
+                  style={{ width: boxSize * 1.15 }}
+                >
+                  <div className={'bigBoxWrap' + (gated ? ' jitter' : '')} key={gated ? jitterId : undefined}>
+                    <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
+                      {mat.emoji} {mat.name}
+                    </span>
                     <div className="bigBoxEmoji" key={swing} style={{ fontSize: boxSize }}>{p.emoji}</div>
-                    {pct < 67 && <span className="crack c1">💢</span>}
-                    {pct < 34 && <span className="crack c2">💥</span>}
+                    {!gated && pct < 67 && <span className="crack c1">💢</span>}
+                    {!gated && pct < 34 && <span className="crack c2">💥</span>}
+                    {gated && (
+                      <div className="gateOverlay">
+                        🔒 需要 {rec ? rec.emoji + rec.name : '更强工具'}
+                      </div>
+                    )}
                   </div>
                   <div className="bigBoxName">{p.label ?? PARCEL_MAP[p.size].name}</div>
                   <div className="bigHp"><div className="bigHpFill" style={{ width: pct + '%' }} /></div>
@@ -289,6 +351,26 @@ export function GameScene() {
         </div>
         <span className="rageBarNum" style={{ color: rageColor }}>{Math.floor(ragePct)}</span>
       </div>
+
+      {/* 工具箱切换 */}
+      {ownedTools.length > 1 && (
+        <div className="toolSwitch">
+          {ownedTools.map((id) => {
+            const t = TOOL_MAP[id];
+            return (
+              <button
+                key={id}
+                className={'toolChip' + (id === currentTool ? ' on' : '')}
+                onClick={() => selectTool(id)}
+                title={t.name}
+              >
+                <span className="toolChipEmoji">{t.emoji}</span>
+                <span className="toolChipName">{t.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* 卖货条 */}
       <div className="sellBar">

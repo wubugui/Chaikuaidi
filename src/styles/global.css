@@ -39,7 +39,6 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
     linear-gradient(180deg, var(--bg1), var(--bg0));
   overflow: hidden;
 }
-.game.shake { animation: screenShake 0.09s linear; }
 
 /* ===================== HUD ===================== */
 .hud { padding: 8px 12px 6px; flex-shrink: 0; z-index: 6; }
@@ -99,6 +98,10 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .scene.hot .hangLight { background: radial-gradient(circle, #ff9a6655 0%, transparent 62%); }
 .scene.rage { animation: rageFlash 0.5s infinite; }
 .scene.rage .hangLight { background: radial-gradient(circle, #ff5a6e66 0%, transparent 62%); }
+/* 有意义的震动分级（替代旧的「每次点击都震」） */
+.scene.shakeS { animation: shakeS 0.09s linear; }
+.scene.shakeM { animation: shakeM 0.15s linear; }
+.scene.shakeL { animation: shakeL 0.22s linear; }
 
 .sceneMeta {
   position: absolute; top: 8px; left: 10px; display: flex; gap: 8px; flex-wrap: wrap;
@@ -132,6 +135,20 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .crack { position: absolute; font-size: 28px; pointer-events: none; animation: throb 0.6s ease-in-out infinite; }
 .crack.c1 { top: 2%; left: -2%; }
 .crack.c2 { bottom: 8%; right: -4%; font-size: 34px; }
+.bigBoxWrap.jitter { animation: boxJitter 0.18s linear; }
+.matBadge {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; font-weight: 800; color: var(--ink); white-space: nowrap;
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; z-index: 3;
+  box-shadow: 0 1px 3px #0007;
+}
+.bigBox.gated .bigBoxEmoji { filter: grayscale(0.7) brightness(0.7); }
+.gateOverlay {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: #120c1eee; border: 1px solid var(--line); border-radius: 12px;
+  padding: 6px 10px; font-size: 12px; font-weight: 900; color: var(--gold);
+  white-space: nowrap; text-align: center; box-shadow: 0 4px 14px #000a; z-index: 4;
+}
 .bigBoxName { font-size: 13px; font-weight: 800; color: var(--ink); margin: 6px 0 5px; text-shadow: 0 1px 2px #000a; }
 .bigHp { height: 11px; background: #150f24; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; box-shadow: inset 0 1px 3px #0008; }
 .bigHpFill { height: 100%; background: linear-gradient(90deg, var(--green), #8ef0b0); transition: width 0.08s linear; box-shadow: 0 0 10px #54e08a99; }
@@ -179,6 +196,22 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   margin-top: 3px;
   animation: throb 0.4s ease-in-out infinite;
 }
+
+/* 工具箱切换条 */
+.toolSwitch {
+  position: absolute; left: 8px; right: 8px; bottom: 90px; z-index: 5;
+  display: flex; gap: 6px; overflow-x: auto; padding: 2px; -ms-overflow-style: none; scrollbar-width: none;
+}
+.toolSwitch::-webkit-scrollbar { display: none; }
+.toolChip {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: #00000055; border: 1px solid var(--line); border-radius: 12px; padding: 4px 9px;
+  color: var(--muted); box-shadow: 0 2px 0 #0005;
+}
+.toolChip.on { background: linear-gradient(180deg, var(--gold), var(--gold2)); color: #2a1800; border-color: transparent; }
+.toolChip:active { transform: translateY(1px); }
+.toolChipEmoji { font-size: 20px; line-height: 1; }
+.toolChipName { font-size: 9px; font-weight: 800; white-space: nowrap; }
 
 .sellBar { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; align-items: center; gap: 10px; padding: 0 12px; z-index: 4; }
 .bagInfo { font-size: 13px; font-weight: 700; color: var(--muted); }
@@ -252,6 +285,22 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .invVal { font-size: 12px; font-weight: 800; }
 
 /* ===================== UPGRADES ===================== */
+/* 工具箱网格 */
+.toolboxGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 9px; margin-bottom: 14px; }
+.toolCard { background: linear-gradient(180deg, #33264e, #281d3d); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 7px; box-shadow: 0 2px 0 #0004; }
+.toolCard.locked { opacity: 0.55; }
+.toolCard.equipped { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 2px 0 #0004; }
+.toolCardHead { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.toolCardEmoji { font-size: 24px; line-height: 1; }
+.toolCardName { font-size: 13px; font-weight: 800; min-width: 0; }
+.toolLvl { font-size: 11px; color: var(--muted); font-weight: 700; }
+.toolAff { display: flex; gap: 4px; font-size: 17px; min-height: 20px; flex-wrap: wrap; }
+.toolLock { font-size: 12px; font-weight: 800; color: var(--muted); }
+.toolBtns { display: flex; gap: 6px; margin-top: auto; }
+.toolBtns .btn { flex: 1; justify-content: center; }
+.toolCard .btn.buy { width: 100%; justify-content: center; }
+.toolCard .btn .cost { font-size: 11px; }
+
 .toolBox { background: linear-gradient(180deg, #33264e, #281d3d); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
 .toolNow { font-size: 13px; color: var(--muted); font-weight: 700; }
 .toolMax { text-align: center; color: var(--gold); margin-top: 6px; font-weight: 900; }
@@ -474,6 +523,10 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
 /* ===================== ANIMATIONS ===================== */
 @keyframes screenShake { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-4px, 2px); } 50% { transform: translate(3px, -3px); } 75% { transform: translate(-2px, -2px); } }
+@keyframes shakeS { 0%,100% { transform: translate(0,0); } 30% { transform: translate(-2px, 1px); } 70% { transform: translate(2px, -1px); } }
+@keyframes shakeM { 0%,100% { transform: translate(0,0); } 20% { transform: translate(-4px, 2px); } 50% { transform: translate(4px, -3px); } 80% { transform: translate(-3px, 2px); } }
+@keyframes shakeL { 0%,100% { transform: translate(0,0); } 15% { transform: translate(-7px, 4px) rotate(-0.6deg); } 40% { transform: translate(7px, -5px) rotate(0.6deg); } 65% { transform: translate(-5px, 3px); } 85% { transform: translate(4px, -2px); } }
+@keyframes boxJitter { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-3px) rotate(-1.5deg); } 60% { transform: translateX(3px) rotate(1.5deg); } 80% { transform: translateX(-1px); } }
 @keyframes rageFlash { 0%,100% { filter: none; } 50% { filter: brightness(1.08) saturate(1.2); } }
 @keyframes boxIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes boxIdle { 0%,100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }

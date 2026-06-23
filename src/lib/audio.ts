@@ -58,6 +58,18 @@ export function sfxRip() {
   noise(0.06, 0.04);
 }
 
+/** 撬不动：沉闷的低音闷响 */
+export function sfxBonk() {
+  blip(140, 0.07, 'sine', 0.05);
+  noise(0.04, 0.025);
+}
+
+/** 破裂里程碑：清脆的裂响 */
+export function sfxCrack() {
+  noise(0.05, 0.05);
+  blip(300, 0.05, 'square', 0.05);
+}
+
 /** 快递拆开 */
 export function sfxOpen() {
   blip(440, 0.12, 'triangle', 0.06);

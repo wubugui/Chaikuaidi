@@ -3,6 +3,7 @@ import { PRESTIGE_MAP } from '../data/prestige';
 import { QUOTE_MAP } from '../data/quotes';
 import { TOOL_MAP } from '../data/tools';
 import { UPGRADE_MAP } from '../data/upgrades';
+import type { MaterialId } from '../data/materials';
 import type { PassiveType } from '../data/types';
 import { AUTO_PER_WORKER, BASE_DELIVER_INTERVAL, BASE_QUOTE_SLOTS, type GameState } from './state';
 
@@ -54,18 +55,31 @@ function globalClickMult(s: GameState): number {
   return 1 + pres(s, 'globalClick') * PRESTIGE_MAP.globalClick.effect;
 }
 
-/** 单次点击拆解值 */
-export function clickPower(s: GameState): number {
-  const tool = TOOL_MAP[s.currentTool].power;
-  const upg = 1 + up(s, 'clickPower') * UPGRADE_MAP.clickPower.effect;
-  return tool * upg * comboMult(s) * globalClickMult(s) * (1 + bonus(s, 'clickPower'));
+/** 当前工具的实际威力（含每把工具的升级等级 +20%/级） */
+function toolPower(s: GameState): number {
+  const def = TOOL_MAP[s.currentTool];
+  const lvl = s.toolLevels[s.currentTool] ?? 0;
+  return def.power * (1 + lvl * 0.2);
 }
+
+/** 单次点击的基础拆解值（含连击；材质亲和度在 damageBench 中再乘） */
+export function toolBaseDamage(s: GameState): number {
+  const upg = 1 + up(s, 'clickPower') * UPGRADE_MAP.clickPower.effect;
+  return toolPower(s) * upg * comboMult(s) * globalClickMult(s) * (1 + bonus(s, 'clickPower'));
+}
+
+/** clickPower 别名，保持旧引用可用 */
+export const clickPower = toolBaseDamage;
 
 /** 不含连击的点击基础值（UI 展示用） */
 export function clickPowerBase(s: GameState): number {
-  const tool = TOOL_MAP[s.currentTool].power;
   const upg = 1 + up(s, 'clickPower') * UPGRADE_MAP.clickPower.effect;
-  return tool * upg * globalClickMult(s) * (1 + bonus(s, 'clickPower'));
+  return toolPower(s) * upg * globalClickMult(s) * (1 + bonus(s, 'clickPower'));
+}
+
+/** 当前装备工具对某材质的亲和度（<=0 表示撬不动） */
+export function affinityOf(s: GameState, material: MaterialId): number {
+  return TOOL_MAP[s.currentTool].affinity[material] ?? 0;
 }
 
 /** 每秒自动总伤害 */

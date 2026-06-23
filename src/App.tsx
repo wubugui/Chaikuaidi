@@ -15,7 +15,6 @@ import { PopReveal } from './ui/effects/PopReveal';
 import { OfflineModal } from './ui/OfflineModal';
 import { Intro } from './ui/Intro';
 import { useGameLoop } from './game/loop';
-import { on } from './game/events';
 import { ensureStarter, useGame } from './game/store';
 import { setAudioEnabled } from './lib/audio';
 
@@ -32,7 +31,6 @@ const PANEL_TITLE: Record<PanelId, string> = {
 export default function App() {
   useGameLoop();
   const [panel, setPanel] = useState<PanelId | null>(null);
-  const [shake, setShake] = useState(false);
   const stage = useGame((s) => s.stage);
   const audioEnabled = useGame((s) => s.audioEnabled);
 
@@ -43,23 +41,13 @@ export default function App() {
     setAudioEnabled(audioEnabled);
   }, [audioEnabled]);
 
-  // 砸击震屏
-  useEffect(() => {
-    let t: ReturnType<typeof setTimeout>;
-    return on('shake', () => {
-      setShake(true);
-      clearTimeout(t);
-      t = setTimeout(() => setShake(false), 90);
-    });
-  }, []);
-
   // 阶段回退后关掉不可用面板
   const active =
     panel && NAV_ITEMS.find((i) => i.id === panel && (!i.minStage || stage >= i.minStage)) ? panel : null;
   const toggle = (id: PanelId) => setPanel((p) => (p === id ? null : id));
 
   return (
-    <div className={'game' + (shake ? ' shake' : '')}>
+    <div className="game">
       <Topbar />
       <GameScene />
       <BottomNav stage={stage} active={active} onSelect={toggle} />

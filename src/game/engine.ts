@@ -1,13 +1,15 @@
 import { ITEM_MAP } from '../data/items';
+import type { MaterialId } from '../data/materials';
 import { PARCEL_MAP, deliverableSizes } from '../data/parcels';
 import { RARITIES, RARITY_ORDER, rarityRank } from '../data/rarity';
 import { stageForEarned } from '../data/stages';
+import { TOOL_MAP } from '../data/tools';
 import type { ParcelSizeId, Rarity } from '../data/types';
 import { randInt, weightedPick } from '../lib/rng';
 import {
   autoPower,
   benchCapacity,
-  clickPower,
+  toolBaseDamage,
   comboMult,
   deliverInterval,
   luck,
@@ -18,17 +20,28 @@ import { emit, nextId } from './events';
 import { rollItem, sellValue } from './systems/loot';
 import { COMBO_WINDOW_MS, type GameState, type Parcel } from './state';
 
+/** 反馈/震动分级（none<ineffective<hit<crack<open<danger） */
+export type FeedbackLevel = 'none' | 'ineffective' | 'hit' | 'crack' | 'open' | 'danger';
+const FEEDBACK_RANK: Record<FeedbackLevel, number> = {
+  none: 0, ineffective: 1, hit: 2, crack: 3, open: 4, danger: 5,
+};
+
 /** 引擎输出收集器（供 UI 在 set 之后播放音效/特效） */
 export interface EngineOut {
   bursts: LootBurst[];
   reveals: RevealData[];
   opened: number;
-  shake: boolean;
+  feedback: FeedbackLevel;
   cash: number;
 }
 
 export function newOut(): EngineOut {
-  return { bursts: [], reveals: [], opened: 0, shake: false, cash: 0 };
+  return { bursts: [], reveals: [], opened: 0, feedback: 'none', cash: 0 };
+}
+
+/** 把反馈抬升到见过的最高级别 */
+function raiseFeedback(out: EngineOut, lvl: FeedbackLevel) {
+  if (FEEDBACK_RANK[lvl] > FEEDBACK_RANK[out.feedback]) out.feedback = lvl;
 }
 
 export interface ParcelOpts {
@@ -39,6 +52,7 @@ export interface ParcelOpts {
   sealMax?: number;
   lootMin?: number;
   lootMax?: number;
+  material?: MaterialId;
 }
 
 export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: ParcelOpts): Parcel {
@@ -50,6 +64,7 @@ export function makeParcel(size: ParcelSizeId, rand: () => number, opts?: Parcel
     id: nextId(),
     size,
     emoji: opts?.emoji ?? def.emoji,
+    material: opts?.material ?? def.material,
     sealMax,
     sealHP: sealMax,
     lootCount: randInt(lootMin, lootMax, rand),
@@ -137,6 +152,7 @@ function applyLoot(d: GameState, rarity: Rarity, itemId: string, out: EngineOut)
 function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false) {
   d.totalUnpacked += 1;
   out.opened += 1;
+  const tool = TOOL_MAP[d.currentTool];
   const lp = { luck: luck(d) + (p.luckBonus ?? 0) };
   const items: RevealItem[] = [];
   let damagedCount = 0;
@@ -150,9 +166,21 @@ function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut,
   if (forceDestroyOne && items.length > 0) {
     forcedDestroyIdx = Math.floor(rand() * items.length);
   }
+  // 黑洞装置：开箱随机吞掉一件
+  let eatIdx = -1;
+  if (tool.eatsLoot && items.length > 0) {
+    eatIdx = Math.floor(rand() * items.length);
+  }
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    const shouldDestroy = i === forcedDestroyIdx || (d.rage > 60 && rand() < 0.2);
+    // 液压机：史诗以上的可卖/材料件 50% 损坏
+    const fragileHit =
+      tool.fragileDestroy &&
+      (item.kind === 'sellable' || item.kind === 'material') &&
+      rarityRank(item.rarity) >= rarityRank('epic') &&
+      rand() < 0.5;
+    const shouldDestroy =
+      i === forcedDestroyIdx || i === eatIdx || fragileHit || (d.rage > 60 && rand() < 0.2);
     if (shouldDestroy && !item.isDestroyed) {
       item.isDestroyed = true;
       // 已产生的价值减半（退回差额）
@@ -207,14 +235,13 @@ export function doClick(d: GameState, now: number, rand: () => number, out: Engi
   }
 
   // 报复心理：revengeLeft > 0 时伤害 ×2
-  let dmg = clickPower(d);
+  let dmg = toolBaseDamage(d);
   if (d.revengeLeft > 0) {
     dmg *= 2;
     d.revengeLeft -= 1;
   }
 
   damageBench(d, dmg, rand, out);
-  out.shake = true;
 
   // 暴怒失控：rage 达到 100 时，强制打开工作台第一个快递，随机摧毁一件掉落，rage 重置到 30
   if (d.rage >= 100 && d.workbench.length > 0) {
@@ -222,6 +249,7 @@ export function doClick(d: GameState, now: number, rand: () => number, out: Engi
     openParcel(d, target, rand, out, true /* forceDestroyOne */);
     // 覆盖 openParcel 内的 rage 调整，强制回 30
     d.rage = 30;
+    raiseFeedback(out, 'danger');
     emit('rageBurst');
     refillBench(d);
   }
@@ -229,13 +257,32 @@ export function doClick(d: GameState, now: number, rand: () => number, out: Engi
   refillStageAndUnpack(d);
 }
 
-/** 自动 tick 的伤害 */
+/** 群体伤害：每个快递按「当前工具对其材质的亲和度」缩放，亲和度<=0 则撬不动 */
 function damageBench(d: GameState, dmg: number, rand: () => number, out: EngineOut) {
+  const affinity = TOOL_MAP[d.currentTool].affinity;
   const remaining: Parcel[] = [];
   for (const p of d.workbench) {
-    p.sealHP -= dmg;
-    if (p.sealHP <= 0) openParcel(d, p, rand, out);
-    else remaining.push(p);
+    const eff = affinity[p.material] ?? 0;
+    if (eff <= 0) {
+      // 硬门槛：撬不动，零伤害
+      raiseFeedback(out, 'ineffective');
+      remaining.push(p);
+      continue;
+    }
+    const beforeFrac = p.sealHP / p.sealMax;
+    p.sealHP -= dmg * eff;
+    if (p.sealHP <= 0) {
+      raiseFeedback(out, 'open');
+      openParcel(d, p, rand, out);
+    } else {
+      raiseFeedback(out, 'hit');
+      const afterFrac = p.sealHP / p.sealMax;
+      // 跨过 0.67 / 0.34 破裂里程碑则升级到 crack
+      if ((beforeFrac >= 0.67 && afterFrac < 0.67) || (beforeFrac >= 0.34 && afterFrac < 0.34)) {
+        raiseFeedback(out, 'crack');
+      }
+      remaining.push(p);
+    }
   }
   d.workbench = remaining;
   refillBench(d);

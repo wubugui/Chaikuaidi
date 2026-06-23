@@ -1,4 +1,5 @@
 import type { ItemKind, Rarity } from '../data/types';
+import type { FeedbackLevel } from './engine';
 
 export interface LootBurst {
   id: number;
@@ -42,7 +43,7 @@ type Handlers = {
   loot: (b: LootBurst) => void;
   float: (f: FloatText) => void;
   open: () => void;
-  shake: () => void;
+  feedback: (lvl: FeedbackLevel) => void;
   reveal: (r: RevealData) => void;
   revealStart: () => void;
   revealEnd: () => void;
@@ -53,7 +54,7 @@ const listeners: { [K in keyof Handlers]: Set<Handlers[K]> } = {
   loot: new Set(),
   float: new Set(),
   open: new Set(),
-  shake: new Set(),
+  feedback: new Set(),
   reveal: new Set(),
   revealStart: new Set(),
   revealEnd: new Set(),

@@ -1,9 +1,11 @@
+import type { MaterialId } from '../data/materials';
 import type { ParcelSizeId, Rarity, ToolId } from '../data/types';
 
 export interface Parcel {
   id: number;
   size: ParcelSizeId;
   emoji: string;
+  material: MaterialId; // 箱体材质，决定需要哪类工具
   sealMax: number;
   sealHP: number;
   lootCount: number;
@@ -20,7 +22,9 @@ export interface GameState {
   lifetimeEarned: number; // 历史累计收入（成就用）
 
   // 拆包
-  currentTool: ToolId;
+  ownedTools: ToolId[];                 // 已拥有
+  currentTool: ToolId;                  // 当前装备（开箱用这把）
+  toolLevels: Record<ToolId, number>;   // 每把工具的升级等级
   workbench: Parcel[];
   queue: Parcel[];
   combo: number;
@@ -65,7 +69,9 @@ export function initialState(): GameState {
     reputation: 0,
     runEarned: 0,
     lifetimeEarned: 0,
-    currentTool: 'nail',
+    ownedTools: ['hand'],
+    currentTool: 'hand',
+    toolLevels: {} as Record<ToolId, number>,
     workbench: [],
     queue: [],
     combo: 0,

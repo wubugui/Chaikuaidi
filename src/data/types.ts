@@ -1,7 +1,9 @@
+import type { MaterialId } from './materials';
+
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'absurd';
 export type ItemKind = 'sellable' | 'material' | 'collectible' | 'quote';
 export type ParcelSizeId = 'envelope' | 'small' | 'standard' | 'reinforced' | 'crate' | 'container';
-export type ToolId = 'nail' | 'key' | 'cutter' | 'scissors' | 'opener' | 'electric' | 'laser' | 'blackhole';
+export type ToolId = 'hand' | 'cutter' | 'crowbar' | 'grinder' | 'chisel' | 'torch' | 'disarm' | 'press' | 'laserrig' | 'blackhole';
 
 export interface ItemDef {
   id: string;
@@ -28,6 +30,7 @@ export interface ParcelSizeDef {
   id: ParcelSizeId;
   name: string;
   emoji: string;
+  material: MaterialId;
   sealMax: number;
   lootMin: number;
   lootMax: number;
@@ -39,7 +42,13 @@ export interface ToolDef {
   name: string;
   emoji: string;
   power: number;
-  cost: number; // 解锁价（¥）；nail 为 0
+  cost: number;               // 购买价（¥）；hand=0
+  affinity: Partial<Record<MaterialId, number>>; // 对各材质效率，缺省=0=撬不动
+  unlockStage: 1 | 2 | 3 | 4;
+  upgradeMat?: string;        // 升级消耗的材料 item id
+  volatileSafe?: boolean;     // 处理 volatile 是否安全（增量2用，先留字段）
+  fragileDestroy?: boolean;   // 液压机：开箱时高稀有易碎件50%损坏（先留字段，可简单实现）
+  eatsLoot?: boolean;         // 黑洞：开箱随机吞1件（先留字段，可简单实现）
 }
 
 export interface UpgradeDef {

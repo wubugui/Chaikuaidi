@@ -34,10 +34,25 @@ describe('store gameplay loop', () => {
     expect(useGame.getState().money).toBeLessThan(1000);
   });
 
-  it('can upgrade the tool', () => {
-    useGame.setState({ money: 100 } as any);
-    useGame.getState().buyTool();
-    expect(useGame.getState().currentTool).toBe('key');
+  it('can buy and equip a tool from the toolbox', () => {
+    useGame.setState({ money: 100, stage: 1, ownedTools: ['hand'], currentTool: 'hand' } as any);
+    useGame.getState().buyTool('cutter');
+    expect(useGame.getState().ownedTools).toContain('cutter');
+    useGame.getState().selectTool('cutter');
+    expect(useGame.getState().currentTool).toBe('cutter');
+  });
+
+  it('upgrades a tool spending money and materials', () => {
+    useGame.setState({
+      money: 100000,
+      ownedTools: ['hand', 'cutter'],
+      currentTool: 'cutter',
+      toolLevels: {},
+      inventory: { blade: 10 },
+    } as any);
+    useGame.getState().upgradeTool('cutter');
+    expect(useGame.getState().toolLevels.cutter).toBe(1);
+    expect(useGame.getState().inventory.blade ?? 0).toBeLessThan(10);
   });
 
   it('equips and unequips a quote within slot limits', () => {

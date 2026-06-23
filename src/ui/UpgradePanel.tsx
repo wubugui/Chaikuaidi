@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { nextTool, TOOL_MAP } from '../data/tools';
+import { ITEM_MAP } from '../data/items';
+import { MATERIALS, type MaterialId } from '../data/materials';
+import { TOOLS, toolUpgradeCost } from '../data/tools';
 import { UPGRADES, upgradeBulkCost, upgradeCost } from '../data/upgrades';
 import { useGame } from '../game/store';
-import { fmt, money } from '../lib/format';
+import { money } from '../lib/format';
 
 // 升级解锁阶段
 const UPGRADE_STAGE: Record<string, number> = {
@@ -22,27 +24,99 @@ export function UpgradePanel() {
   const upgrades = useGame((s) => s.upgrades);
   const stage = useGame((s) => s.stage);
   const currentTool = useGame((s) => s.currentTool);
+  const ownedTools = useGame((s) => s.ownedTools);
+  const toolLevels = useGame((s) => s.toolLevels);
+  const inventory = useGame((s) => s.inventory);
   const buyUpgrade = useGame((s) => s.buyUpgrade);
   const buyTool = useGame((s) => s.buyTool);
+  const selectTool = useGame((s) => s.selectTool);
+  const upgradeTool = useGame((s) => s.upgradeTool);
   const [bulk, setBulk] = useState<1 | 10 | 25>(1);
-
-  const tool = TOOL_MAP[currentTool];
-  const nt = nextTool(currentTool);
 
   return (
     <div className="upgrades">
-      {/* 工具主线 */}
-      <div className="toolBox">
-        <div className="toolNow">
-          当前工具 <b>{tool.emoji} {tool.name}</b>（拆解 {fmt(tool.power)}）
-        </div>
-        {nt ? (
-          <button className="btn tool" disabled={m < nt.cost} onClick={buyTool}>
-            升级到 {nt.emoji} {nt.name}（拆解 {fmt(nt.power)}）<span className="cost">{money(nt.cost)}</span>
-          </button>
-        ) : (
-          <div className="toolMax">🔫 已是顶级工具</div>
-        )}
+      {/* 工具箱 */}
+      <div className="toolboxGrid">
+        {TOOLS.map((t) => {
+          const owned = ownedTools.includes(t.id);
+          const equipped = t.id === currentTool;
+          // 亲和度摘要：该工具擅长（>=1）的材质 emoji
+          const affList = (Object.keys(t.affinity) as MaterialId[])
+            .filter((mat) => (t.affinity[mat] ?? 0) >= 1)
+            .sort((a, b) => (t.affinity[b] ?? 0) - (t.affinity[a] ?? 0));
+
+          if (!owned) {
+            if (stage < t.unlockStage) {
+              return (
+                <div className="toolCard locked" key={t.id}>
+                  <div className="toolCardHead">
+                    <span className="toolCardEmoji">{t.emoji}</span>
+                    <span className="toolCardName">{t.name}</span>
+                  </div>
+                  <div className="toolLock">🔒 阶段{t.unlockStage}</div>
+                </div>
+              );
+            }
+            return (
+              <div className="toolCard" key={t.id}>
+                <div className="toolCardHead">
+                  <span className="toolCardEmoji">{t.emoji}</span>
+                  <span className="toolCardName">{t.name}</span>
+                </div>
+                <div className="toolAff">
+                  {affList.map((mat) => (
+                    <span key={mat} title={MATERIALS[mat].name}>{MATERIALS[mat].emoji}</span>
+                  ))}
+                </div>
+                <button className="btn buy" disabled={m < t.cost} onClick={() => buyTool(t.id)}>
+                  购买 <span className="cost">{money(t.cost)}</span>
+                </button>
+              </div>
+            );
+          }
+
+          const lvl = toolLevels[t.id] ?? 0;
+          const cost = toolUpgradeCost(t, lvl);
+          const matId = t.upgradeMat;
+          const matHave = matId ? inventory[matId] ?? 0 : Infinity;
+          const matDef = matId ? ITEM_MAP[matId] : null;
+          const canUpgrade = m >= cost.money && matHave >= cost.mat;
+
+          return (
+            <div className={'toolCard owned' + (equipped ? ' equipped' : '')} key={t.id}>
+              <div className="toolCardHead">
+                <span className="toolCardEmoji">{t.emoji}</span>
+                <span className="toolCardName">{t.name} <span className="toolLvl">Lv.{lvl}</span></span>
+              </div>
+              <div className="toolAff">
+                {affList.map((mat) => (
+                  <span key={mat} title={MATERIALS[mat].name}>{MATERIALS[mat].emoji}</span>
+                ))}
+              </div>
+              <div className="toolBtns">
+                <button
+                  className={'btn small' + (equipped ? ' primary' : '')}
+                  disabled={equipped}
+                  onClick={() => selectTool(t.id)}
+                >
+                  {equipped ? '已装备' : '装备'}
+                </button>
+                <button
+                  className="btn small buy"
+                  disabled={!canUpgrade}
+                  onClick={() => upgradeTool(t.id)}
+                  title={`+20% 拆解`}
+                >
+                  升级
+                  <span className="cost">
+                    {money(cost.money)}
+                    {matDef ? ` ${cost.mat}×${matDef.emoji}` : ''}
+                  </span>
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="bulkRow">
