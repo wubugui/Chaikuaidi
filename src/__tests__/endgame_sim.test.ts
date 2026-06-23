@@ -40,10 +40,9 @@ describe('endgame self-sustaining loop — 终局产线能持续产出军火', (
       // 偶尔买个金属货柜，给金属自动线/手开补点零件
       if (step % 20 === 0) g().buyContainer('safe');
 
-      // 手动提炼所有 tier1 配方（原料 → 基础元素）
+      // 手动提炼所有 tier1 配方（原料 → 基础元素）；refine 无料时为 no-op，多调几次无害
       for (const id of tier1) {
-        let guard = 20;
-        while (g().refine(id) !== false && guard-- > 0) { /* 反复炼到没料 */ }
+        for (let k = 0; k < 20; k++) g().refine(id);
       }
 
       g().tick(1);
