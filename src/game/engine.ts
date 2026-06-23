@@ -546,8 +546,12 @@ function tickAutoLines(d: GameState, dtSec: number, rand: () => number, out: Eng
       const [parcel] = d.backlog.splice(idx, 1);
       openParcel(d, parcel, rand, out, false, true /* forceUnsafe：自动线不能拆弹 */);
     }
-    // 没货时不让计时无限堆积
-    if (d.backlog.findIndex((p) => p.material === mat) < 0) {
+    // 没货时不让计时无限堆积（判定与上面「可开」一致：含变异门，避免空转累积后一次性爆拆）
+    if (
+      d.backlog.findIndex(
+        (p) => p.material === mat && (!p.requireMutation || d.mutations.includes(p.requireMutation)),
+      ) < 0
+    ) {
       d.deviceAccum[devId] = Math.min(d.deviceAccum[devId], AUTO_LINE_INTERVAL);
     }
   }
