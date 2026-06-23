@@ -52,6 +52,7 @@ describe('元素提炼', () => {
     const rand = mulberry32(1);
     const d = initialState();
     d.devices = { refinery: 1 };
+    d.deviceEnabled = { refinery: true };
     d.deviceAccum = {};
     d.inventory = { r_scrapiron: 30, r_alloyblock: 20, r_plastic: 10, p_circuit: 5 };
     const out = newOut();

@@ -41,6 +41,7 @@ describe('endgame closed loop — 全链路无崩溃 + 可达', () => {
     useGame.setState({ inventory: inv, blueprints: ['bp_refinery'] });
     useGame.getState().craftBlueprint('bp_refinery');
     expect(useGame.getState().devices['refinery']).toBe(1);
+    useGame.getState().toggleDevice('refinery'); // 设备默认停工，手动开启
 
     // 喂一堆原料，跑 tick，自动提炼出元素
     useGame.setState({
@@ -98,6 +99,7 @@ describe('endgame closed loop — 全链路无崩溃 + 可达', () => {
     useGame.setState({ inventory: inv, blueprints: ['bp_pipeline_auto'] });
     useGame.getState().craftBlueprint('bp_pipeline_auto');
     expect(useGame.getState().devices['pipeline_auto']).toBe(1);
+    useGame.getState().toggleDevice('pipeline_auto'); // 设备默认停工，手动开启
 
     // 买报废汽车（需要 pipeline_auto 才能拆）
     const before = useGame.getState().backlog.length;

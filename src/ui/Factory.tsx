@@ -32,11 +32,13 @@ export function Factory() {
   const stage = useGame((st) => st.stage);
   const backlog = useGame((st) => st.backlog);
   const devices = useGame((st) => st.devices);
+  const deviceEnabled = useGame((st) => st.deviceEnabled);
   const ordnance = useGame((st) => st.ordnance);
   const factorySpace = useGame((st) => st.factorySpace);
   const buyGiant = useGame((st) => st.buyGiant);
   const expandFactory = useGame((st) => st.expandFactory);
   const useOrdnance = useGame((st) => st.useOrdnance);
+  const toggleDevice = useGame((st) => st.toggleDevice);
 
   const used = factoryUsed(s);
   const free = factoryFree(s);
@@ -116,6 +118,7 @@ export function Factory() {
         <div className="giantHeldList">
           {heldGiants.map((g) => {
             const hasPipeline = (devices[g.requirePipeline] ?? 0) > 0;
+            const pipeOn = hasPipeline && !!deviceEnabled[g.requirePipeline];
             return (
               <div className="giantHeldRow" key={g.id}>
                 <span className="giantEmoji">{g.emoji}</span>
@@ -124,8 +127,10 @@ export function Factory() {
                     {g.name} <span className="backlogCount">×{fmt(g.count)}</span>
                     <span className="giantSpace">占 {g.space} 格</span>
                   </div>
-                  {hasPipeline ? (
+                  {pipeOn ? (
                     <span className="giantProgress">🏭 {PIPELINE_NAME[g.requirePipeline]} 正在拆解中…</span>
+                  ) : hasPipeline ? (
+                    <span className="giantNeedPipe">🏭{PIPELINE_NAME[g.requirePipeline]} 已停工——去下方开启它</span>
                   ) : (
                     <span className="giantNeedPipe">需要 🏭{PIPELINE_NAME[g.requirePipeline]}（去工坊合成）</span>
                   )}
@@ -185,6 +190,7 @@ export function Factory() {
           {pipelines.map((p) => {
             const per = (PIPELINE_INTERVAL / p.count).toFixed(1);
             const bp = BLUEPRINT_MAP[Object.keys(BLUEPRINT_MAP).find((k) => BLUEPRINT_MAP[k].result.id === p.id) ?? ''];
+            const on = !!deviceEnabled[p.id];
             return (
               <div className="pipelineRow" key={p.id}>
                 <span className="deviceEmoji">🏭</span>
@@ -192,6 +198,13 @@ export function Factory() {
                   {PIPELINE_NAME[p.id]} ×{p.count}（占 {PIPELINE_SPACE[p.id] * p.count} 格）：每 ~{per}s 拆掉一件
                   {bp?.desc?.includes('货轮') ? '货轮/坦克' : '汽车/客机'}
                 </span>
+                <button
+                  className={'btn small deviceToggle' + (on ? ' primary' : '')}
+                  onClick={() => toggleDevice(p.id)}
+                  title={on ? '点击停工' : '点击开始运行（默认停工）'}
+                >
+                  {on ? '▶️ 运行中' : '⏸️ 已停'}
+                </button>
               </div>
             );
           })}

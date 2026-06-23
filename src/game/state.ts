@@ -24,6 +24,7 @@ export interface Parcel {
   requireOrdnance?: string; // 离谱货门：任何工具/管线都开不了，只能用对应军火「轰开」
   partBonus?: number;    // 额外零件掉率加成（巨型货爆很多零件）
   space?: number;        // 占用厂房格子（巨型货/离谱货）
+  missionId?: string;    // 远征现场：手动拆开这件 = 完成对应远征并发放奖励
 }
 
 export interface GameState {
@@ -78,6 +79,7 @@ export interface GameState {
   blueprints: string[];                 // 已拥有的图纸 id
   targetBlueprint: string | null;       // 当前目标图纸（其所需零件全局高亮）
   devices: Record<string, number>;      // 已建造设备 id -> 台数
+  deviceEnabled: Record<string, boolean>; // 设备开关：true=运行中（默认关停，新造也默认关）
   deviceAccum: Record<string, number>;  // 每种设备的累计计时（秒）
   ordnance: Record<string, number>;     // 已造的一次性军火 id -> 数量
 
@@ -88,8 +90,8 @@ export interface GameState {
   merchant: { until: number; offers: MerchantOffer[] } | null; // 当前在场的黑市商人，null=不在
   merchantNextAt: number; // 下次到访时间戳(ms)
 
-  // 离场远征（off-site expeditions）
-  missions: { id: string; endsAt: number }[]; // 进行中的远征
+  // 离场远征（off-site expeditions）：派出后变成工作台上的一件「现场结构」，亲自拆解
+  missions: string[];     // 进行中的远征 id（其现场快递还在 workbench/backlog 上）
   doneMissions: string[];                     // 已完成的远征（一次性）
 
   // 独一无二：买过一次后从黑市消失的离谱货 id
@@ -100,6 +102,9 @@ export interface GameState {
   introSeen: boolean; // 开场演出是否看过
   lastSeen: number;
   deliverAccum: number; // 到货计时累加（秒）
+
+  // 运行时 UI 状态（不持久化）：有抽屉/面板打开时为 true，用于挂起全屏揭晓
+  uiBusy: boolean;
 }
 
 export function initialState(): GameState {
@@ -140,6 +145,7 @@ export function initialState(): GameState {
     blueprints: [],
     targetBlueprint: null,
     devices: {},
+    deviceEnabled: {},
     deviceAccum: {},
     ordnance: {},
     factorySpace: FACTORY_BASE_SPACE,
@@ -152,6 +158,7 @@ export function initialState(): GameState {
     introSeen: false,
     lastSeen: Date.now(),
     deliverAccum: 0,
+    uiBusy: false,
   };
 }
 

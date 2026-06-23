@@ -117,6 +117,7 @@ describe('auto-dismantle line (自动拆转区)', () => {
     const rand = mulberry32(123);
     const d = initialState();
     d.devices = { autoline_paper: 1 };
+    d.deviceEnabled = { autoline_paper: true };
     d.deviceAccum = {};
     // fill backlog with paper parcels
     for (let i = 0; i < 5; i++) {
@@ -136,6 +137,7 @@ describe('auto-dismantle line (自动拆转区)', () => {
     const rand = mulberry32(7);
     const d = initialState();
     d.devices = { autoline_paper: 1 };
+    d.deviceEnabled = { autoline_paper: true };
     d.backlog.push(makeParcel('crate', rand, { material: 'wood', sealMax: 50, lootMin: 1, lootMax: 1, pool: ['socks'] }));
     for (let i = 0; i < 40; i++) doTick(d, 1, rand, newOut());
     // wood parcel untouched by paper line
@@ -148,6 +150,7 @@ describe('auto-dismantle line (自动拆转区)', () => {
     d.currentTool = 'disarm'; // even with a safe tool equipped, an auto-line cannot defuse
     d.ownedTools = ['hand', 'disarm'];
     d.devices = { autoline_metal: 1 };
+    d.deviceEnabled = { autoline_metal: true };
     d.backlog.push(makeParcel('crate', rand, { material: 'metal', danger: true, sealMax: 10, lootMin: 1, lootMax: 1, pool: ['milchip'] }));
     const out = newOut();
     for (let i = 0; i < 40 && d.dazedUntil === 0; i++) doTick(d, 1, rand, out);
@@ -160,9 +163,50 @@ describe('auto-dismantle line (自动拆转区)', () => {
     const d = initialState();
     d.mutations = []; // no brasshead
     d.devices = { autoline_metal: 1 };
+    d.deviceEnabled = { autoline_metal: true };
     d.backlog.push(makeParcel('crate', rand, { material: 'metal', requireMutation: 'brasshead', sealMax: 10, lootMin: 1, lootMax: 1, pool: ['titanium'] }));
     for (let i = 0; i < 40; i++) doTick(d, 1, rand, newOut());
     expect(d.backlog.some((p) => p.requireMutation === 'brasshead')).toBe(true);
+  });
+
+  it('a device is DISABLED by default and does NOT tick until toggleDevice enables it', () => {
+    const rand = mulberry32(321);
+    const d = initialState();
+    d.devices = { autoline_paper: 1 };
+    // 注意：未设 deviceEnabled（默认关停）
+    for (let i = 0; i < 5; i++) {
+      d.backlog.push(makeParcel('small', rand, { material: 'paper', sealMax: 5, lootMin: 1, lootMax: 1, pool: ['socks'] }));
+    }
+    const before = d.backlog.length;
+    for (let i = 0; i < 40; i++) doTick(d, 1, rand, newOut());
+    expect(d.backlog.length).toBe(before); // 停工：一件都没拆
+    expect(d.totalUnpacked).toBe(0);
+
+    // 开启后才开始消化积压
+    d.deviceEnabled = { autoline_paper: true };
+    for (let i = 0; i < 40; i++) doTick(d, 1, rand, newOut());
+    expect(d.backlog.length).toBeLessThan(before);
+    expect(d.totalUnpacked).toBeGreaterThan(0);
+  });
+
+  it('craftBlueprint builds a device but leaves it OFF by default', () => {
+    useGame.setState({ ...initialState(), offline: null } as any);
+    const bp = BLUEPRINT_MAP['bp_autoline_paper'];
+    const inv: Record<string, number> = {};
+    for (const inp of bp.inputs) inv[inp.item] = inp.qty;
+    useGame.setState({
+      stage: 4, money: 1_000_000, blueprints: ['bp_autoline_paper'],
+      devices: {}, deviceEnabled: {}, deviceAccum: {}, inventory: inv,
+    } as any);
+    useGame.getState().craftBlueprint('bp_autoline_paper');
+    const s = useGame.getState();
+    expect(s.devices['autoline_paper']).toBe(1);
+    expect(s.deviceEnabled['autoline_paper']).toBeFalsy(); // 默认停工
+    // 开关切换
+    useGame.getState().toggleDevice('autoline_paper');
+    expect(useGame.getState().deviceEnabled['autoline_paper']).toBe(true);
+    useGame.getState().toggleDevice('autoline_paper');
+    expect(useGame.getState().deviceEnabled['autoline_paper']).toBe(false);
   });
 });
 

@@ -270,6 +270,7 @@ export function GameScene() {
   const tool = TOOL_MAP[currentTool] ?? TOOL_MAP.hand;
   const heat = combo >= 50 ? 'rage' : combo >= 20 ? 'hot' : combo >= 8 ? 'warm' : '';
   const n = workbench.length;
+  const expedition = workbench.find((p) => p.missionId); // 当前台上的远征现场（若有）
   const boxSize = n <= 1 ? 150 : n <= 2 ? 116 : n <= 4 ? 92 : n <= 6 ? 72 : 56;
   const ragePct = Math.min(100, Math.max(0, rage));
   const rageColor = ragePct >= 70 ? '#ff5a6e' : ragePct >= 40 ? '#ffce3a' : '#54e08a';
@@ -309,6 +310,13 @@ export function GameScene() {
         onPointerLeave={endHold}
         onPointerCancel={endHold}
       >
+        {/* 远征现场提示：台上有远征结构时，明确告知玩家正在现场亲手拆解 */}
+        {expedition && (
+          <div className="expeditionBanner">
+            📍 远征现场：{(expedition.label ?? '').replace('📍 远征现场 · ', '')} —— 砸穿它即完成
+          </div>
+        )}
+
         {/* 快递（主角，放大居中） */}
         <div className="boxes">
           {workbench.length === 0 ? (

@@ -1,17 +1,9 @@
-import { useEffect, useState } from 'react';
 import { MISSIONS, MISSION_MAP, type MissionDef } from '../data/missions';
 import { ITEM_MAP } from '../data/items';
 import { ORDNANCE_MAP } from '../data/ordnance';
 import { MUTATION_MAP, type MutationId } from '../data/mutations';
 import { useGame } from '../game/store';
 import { money } from '../lib/format';
-
-function dur(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const r = Math.floor(sec % 60);
-  if (m > 0) return r > 0 ? `${m}分${r}秒` : `${m}分钟`;
-  return `${r}秒`;
-}
 
 /** 未满足的前置，返回人类可读的提示；满足则返回 null */
 function requireHint(def: MissionDef, done: string[], ordnance: Record<string, number>, mutations: string[]): string | null {
@@ -40,45 +32,30 @@ export function Missions() {
   const mutations = useGame((s) => s.mutations);
   const dispatchMission = useGame((s) => s.dispatchMission);
 
-  // 倒计时刷新
-  const [, force] = useState(0);
-  useEffect(() => {
-    if (active.length === 0) return;
-    const t = setInterval(() => force((v) => v + 1), 500);
-    return () => clearInterval(t);
-  }, [active.length]);
-
-  const now = Date.now();
-
   return (
     <div className="missionsPanel">
       <p className="shopHint">
         有些东西大到根本运不回厂房——对撞机、核电站、空间站……你只能亲自带队过去，花一笔出勤费，
-        派远征队拆。每个地点都是<b>独一无二</b>的，拆一次就没了，但会返还一件别处绝无的收藏。
+        然后<b>到现场亲手把它拆了</b>。派出后它会作为一座「远征现场」上你的工作台，用装备的工具砸开它即完成。
+        每个地点都是<b>独一无二</b>的，拆一次就没了，但会返还一件别处绝无的收藏。
       </p>
 
       <div className="missionList">
         {MISSIONS.map((def) => {
           const isDone = done.includes(def.id);
-          const live = active.find((a) => a.id === def.id);
+          const live = active.includes(def.id);
           const lockedStage = stage < def.unlockStage;
           const hint = requireHint(def, done, ordnance, mutations);
           const unique = ITEM_MAP[def.rewards.unique];
 
-          // 进行中：倒计时进度条
+          // 进行中：现场结构已在工作台/积压区，去主场景亲手拆
           if (live) {
-            const total = def.durationSec * 1000;
-            const left = Math.max(0, live.endsAt - now);
-            const pct = Math.min(100, Math.round(((total - left) / total) * 100));
             return (
               <div className="missionRow inprogress" key={def.id}>
                 <span className="missionEmoji">{def.emoji}</span>
                 <div className="missionInfo">
-                  <div className="missionName">{def.name} <span className="missionGoing">远征中…</span></div>
-                  <div className="missionBarTrack">
-                    <div className="missionBarFill" style={{ width: pct + '%' }} />
-                  </div>
-                  <div className="missionCountdown">还剩 {dur(left / 1000)} · 返还 {unique?.emoji}{unique?.name}</div>
+                  <div className="missionName">{def.name} <span className="missionGoing">🛠️ 进行中（在现场亲自拆解）</span></div>
+                  <div className="missionFlavor">回主界面，用装备的工具把这座「📍 远征现场 · {def.name}」砸开——拆穿即收获 {unique?.emoji}{unique?.name}。</div>
                 </div>
               </div>
             );
@@ -110,7 +87,7 @@ export function Missions() {
                 </div>
                 <div className="missionFlavor">{def.flavor}</div>
                 <div className="missionMeta">
-                  卖家：<b>{def.seller.name}</b> · 耗时 {dur(def.durationSec)} · 返还 {unique?.emoji}{unique?.name}
+                  卖家：<b>{def.seller.name}</b> · 到现场亲手拆 · 返还 {unique?.emoji}{unique?.name}
                 </div>
                 {lockedStage && <div className="missionLockHint">🔒 需阶段 {def.unlockStage}</div>}
                 {!lockedStage && hint && <div className="missionLockHint">🔒 {hint}</div>}

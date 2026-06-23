@@ -13,7 +13,7 @@ function freshStore(over: Partial<GameState> = {}) {
   useGame.setState(over as any);
 }
 
-describe('P5 离场远征 — dispatch + tick complete', () => {
+describe('P5 离场远征 — dispatch 现场结构 + 亲手拆解发奖', () => {
   beforeEach(() => freshStore());
 
   it('dispatchMission gates on cost', () => {
@@ -38,35 +38,48 @@ describe('P5 离场远征 — dispatch + tick complete', () => {
     // satisfy prerequisite
     freshStore({ stage: 4, money: def.cost * 10, doneMissions: ['m_launchpad'] });
     useGame.getState().dispatchMission('m_station');
-    expect(useGame.getState().missions.some((m) => m.id === 'm_station')).toBe(true);
+    expect(useGame.getState().missions.includes('m_station')).toBe(true);
   });
 
-  it('dispatch starts an active mission and deducts cost', () => {
+  it('dispatch loads a missionId parcel onto the bench (no auto-complete) and deducts cost', () => {
     const def = MISSION_MAP['m_launchpad'];
     freshStore({ stage: 4, money: def.cost + 5000 });
     useGame.getState().dispatchMission('m_launchpad');
     const s = useGame.getState();
-    expect(s.missions.some((m) => m.id === 'm_launchpad')).toBe(true);
+    expect(s.missions.includes('m_launchpad')).toBe(true);
     expect(s.money).toBe(5000);
+    // 现场结构作为一件带 missionId 的快递落到工作台（或积压区）
+    const onsite = [...s.workbench, ...s.backlog].find((p) => p.missionId === 'm_launchpad');
+    expect(onsite).toBeTruthy();
+    expect(onsite!.requirePipeline).toBeUndefined(); // 徒手可拆，不是管线专属
+    expect(onsite!.sealMax).toBeGreaterThan(0);
+    // 不会自动完成：跑一堆 tick 后仍未入账（没有去拆它）
+    for (let i = 0; i < 50; i++) useGame.getState().tick(1);
+    expect(useGame.getState().doneMissions).not.toContain('m_launchpad');
   });
 
-  it('tick past endsAt completes mission: rewards granted, id in doneMissions, cannot re-dispatch', () => {
+  it('smashing the on-site parcel to sealHP<=0 grants rewards (unique + cash + doneMissions), removed from active, cannot re-dispatch', () => {
     const def = MISSION_MAP['m_launchpad'];
     freshStore({ stage: 4, money: def.cost + 1 });
     useGame.getState().dispatchMission('m_launchpad');
-    // force the mission to be already over
-    const mm = useGame.getState().missions.map((m) => ({ ...m, endsAt: Date.now() - 1 }));
-    useGame.setState({ missions: mm } as any);
-
+    // 把现场结构封口血压到几乎为 0，再砸一下即可拆穿
+    {
+      const wb = useGame.getState().workbench.map((p) =>
+        p.missionId === 'm_launchpad' ? { ...p, sealHP: 1 } : p);
+      useGame.setState({ workbench: wb } as any);
+    }
     const moneyBefore = useGame.getState().money;
-    useGame.getState().tick(0.1);
+    // 亲手砸（金属现场，徒手有软地板亲和度），多砸几下确保拆穿
+    for (let i = 0; i < 30 && useGame.getState().missions.includes('m_launchpad'); i++) {
+      useGame.getState().click();
+    }
     const s = useGame.getState();
-    expect(s.missions.length).toBe(0); // removed from active
-    expect(s.doneMissions).toContain('m_launchpad'); // moved to done
-    expect(s.collection).toContain(def.rewards.unique); // unique collectible granted
-    expect(s.money).toBeGreaterThan(moneyBefore); // cash reward via money path
+    expect(s.missions).not.toContain('m_launchpad'); // 拆穿后移出 active
+    expect(s.doneMissions).toContain('m_launchpad'); // 记账
+    expect(s.collection).toContain(def.rewards.unique); // 独一无二的收藏品入账
+    expect(s.money).toBeGreaterThan(moneyBefore); // 现金奖励
 
-    // cannot re-dispatch (one-time)
+    // 一次性：不能再次派出
     useGame.setState({ money: def.cost * 10 } as any);
     useGame.getState().dispatchMission('m_launchpad');
     expect(useGame.getState().missions.length).toBe(0);

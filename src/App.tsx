@@ -52,6 +52,7 @@ export default function App() {
   const stage = useGame((s) => s.stage);
   const audioEnabled = useGame((s) => s.audioEnabled);
   const merchantPresent = useGame((s) => s.merchant !== null);
+  const setUiBusy = useGame((s) => s.setUiBusy);
 
   useEffect(() => {
     ensureStarter();
@@ -64,6 +65,11 @@ export default function App() {
   const active =
     panel && NAV_ITEMS.find((i) => i.id === panel && (!i.minStage || stage >= i.minStage)) ? panel : null;
   const toggle = (id: PanelId) => setPanel((p) => (p === id ? null : id));
+
+  // 抽屉打开时挂起全屏揭晓；关闭后恢复
+  useEffect(() => {
+    setUiBusy(active !== null);
+  }, [active, setUiBusy]);
 
   return (
     <div className="game">

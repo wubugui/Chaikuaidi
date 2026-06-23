@@ -24,11 +24,12 @@ function seedEndgame() {
     inventory: { p_screw: 40, p_circuit: 20, e_iron: 10, e_titanium: 8, e_uranium: 4, r_scrapiron: 30, socks: 5 },
     backlog: [car, ufo],
     devices: { autoline_paper: 2, pipeline_auto: 1, refinery: 1 },
+    deviceEnabled: { autoline_paper: true, pipeline_auto: true, refinery: true },
     deviceAccum: {},
     ordnance: { nuke: 1, railgun: 2 },
     blueprints: ['bp_autoline_paper', 'bp_pipeline_auto', 'bp_refinery', 'bp_nuke'],
     targetBlueprint: 'bp_nuke',
-    missions: [{ id: 'm_launchpad', endsAt: Date.now() + 60_000 }],
+    missions: ['m_launchpad'],
     doneMissions: ['m_bridge'],
     boughtUniques: ['a_gundam'],
     merchant: {

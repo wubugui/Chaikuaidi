@@ -10,6 +10,7 @@ describe('autoline accumulator cap on mutation-gated backlog', () => {
   it('空转在被变异门锁住的货上时，deviceAccum 被封顶', () => {
     const d = initialState();
     d.devices = { autoline_metal: 1 };
+    d.deviceEnabled = { autoline_metal: true };
     d.deviceAccum = {};
     // 一个金属、但需要 brasshead 变异才能开的积压货（玩家没有该变异）
     d.backlog = [

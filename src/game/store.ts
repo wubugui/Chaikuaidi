@@ -109,6 +109,8 @@ interface Actions {
   buyBlueprint: (id: string) => void;
   setTargetBlueprint: (id: string | null) => void;
   craftBlueprint: (id: string) => void;
+  toggleDevice: (id: string) => void;
+  setUiBusy: (b: boolean) => void;
   refine: (recipeId: string) => void;
   useOrdnance: (parcelId: number) => void;
   equipQuote: (id: string) => void;
@@ -140,9 +142,10 @@ function draft(s: GameState): GameState {
     mutations: s.mutations.slice(),
     blueprints: s.blueprints.slice(),
     devices: { ...s.devices },
+    deviceEnabled: { ...(s.deviceEnabled ?? {}) },
     deviceAccum: { ...s.deviceAccum },
     ordnance: { ...s.ordnance },
-    missions: (s.missions ?? []).map((m) => ({ ...m })),
+    missions: (s.missions ?? []).slice(),
     doneMissions: (s.doneMissions ?? []).slice(),
     boughtUniques: (s.boughtUniques ?? []).slice(),
   };
@@ -416,14 +419,15 @@ export const useGame = create<Store>()(
         emitSeller((good as { seller?: { name: string; emoji: string; lines: string[] } }).seller, good.name);
       },
 
-      // 离场远征：阶段 + 钱 + requires + 未在进行/未完成 五重门，扣出勤费，推入 active，弹卖家对白
+      // 离场远征：阶段 + 钱 + requires + 未在进行/未完成 五重门，扣出勤费，
+      // 把远征「现场结构」当作一件可手动拆的快递装上工作台（亲自去拆），弹卖家对白
       dispatchMission: (id) => {
         const s = get();
         const def = MISSION_MAP[id];
         if (!def) return;
         if (s.stage < def.unlockStage) return;
         if (s.money < def.cost) return;
-        if ((s.missions ?? []).some((m) => m.id === id)) return; // 已在路上
+        if ((s.missions ?? []).includes(id)) return; // 已在路上
         if ((s.doneMissions ?? []).includes(id)) return; // 已完成（一次性）
         // 轻量前置
         const req = def.requires;
@@ -434,7 +438,25 @@ export const useGame = create<Store>()(
         }
         const d = draft(s);
         d.money -= def.cost;
-        d.missions.push({ id, endsAt: Date.now() + def.durationSec * 1000 });
+        // 现场结构：大封口血（按出勤费缩放，80k–600k 递增），金属材质，徒手可拆（工具/亲和度生效）
+        const sealMax = Math.round(Math.min(600_000, Math.max(80_000, def.cost / 25)));
+        const onsite = makeParcel('container', liveRand, {
+          material: 'metal',
+          emoji: def.emoji,
+          label: '📍 远征现场 · ' + def.name,
+          sealMax,
+          lootMin: 1,
+          lootMax: 1, // 真正的奖励由 missionId 路径发放，掉落数无关紧要
+        });
+        onsite.missionId = id;
+        // 优先上工作台；满了就进积压区（玩家可手动上台）
+        if (d.workbench.length < benchCapacity(d)) {
+          d.workbench.push(onsite);
+          if (d.workbench.length > d.maxBatch) d.maxBatch = d.workbench.length;
+        } else {
+          d.backlog.push(onsite);
+        }
+        d.missions.push(id);
         set(d);
         emitSeller(def.seller, def.name);
       },
@@ -581,6 +603,7 @@ export const useGame = create<Store>()(
           if (bp.repeatable || (d.devices[did] ?? 0) === 0) {
             d.devices[did] = (d.devices[did] ?? 0) + 1;
           }
+          // 新造的设备默认「停工」——玩家需在工坊/厂房手动开启（不写 deviceEnabled）
         } else if (bp.result.type === 'tool') {
           const tid = bp.result.id as ToolId;
           if (!d.ownedTools.includes(tid)) d.ownedTools.push(tid);
@@ -590,6 +613,21 @@ export const useGame = create<Store>()(
         }
         set(d);
         emit('craft', id);
+      },
+
+      // 设备开关：▶️ 运行中 / ⏸️ 已停。默认关停，玩家手动切换
+      toggleDevice: (id) => {
+        const s = get();
+        if ((s.devices[id] ?? 0) <= 0) return; // 没造的设备不可切换
+        const d = draft(s);
+        d.deviceEnabled[id] = !d.deviceEnabled[id];
+        set(d);
+      },
+
+      // 运行时 UI 标记（不持久化）：抽屉打开时挂起全屏揭晓
+      setUiBusy: (b) => {
+        if (get().uiBusy === b) return;
+        set({ uiBusy: b });
       },
 
       // 手动提炼：玩家强制跑一条配方（tier2 需提炼炉），输入足才生效
@@ -664,6 +702,7 @@ export const useGame = create<Store>()(
           offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
           sellAllItems, buyBatch, buyLuggage, buyContainer, buyGiant, expandFactory, buyFromMerchant, dispatchMission, loadFromBacklog, dumpGroupToBelt,
           shelveToBacklog, buyPrestige, prestige, buyBlueprint, setTargetBlueprint, craftBlueprint,
+          toggleDevice, setUiBusy, uiBusy,
           refine, useOrdnance,
           equipQuote, unequipQuote, markIntroSeen,
           toggleAudio, hardReset, dismissOffline, ...rest
@@ -674,6 +713,7 @@ export const useGame = create<Store>()(
         void buyGiant; void expandFactory;
         void buyFromMerchant; void dispatchMission; void loadFromBacklog; void dumpGroupToBelt; void shelveToBacklog;
         void prestige; void buyBlueprint; void setTargetBlueprint; void craftBlueprint;
+        void toggleDevice; void setUiBusy; void uiBusy; // uiBusy 是运行时 UI 状态，不持久化
         void refine; void useOrdnance;
         void equipQuote; void unequipQuote; void markIntroSeen;
         void toggleAudio; void hardReset; void dismissOffline;
@@ -693,10 +733,16 @@ export const useGame = create<Store>()(
         if (state.blueprints === undefined) state.blueprints = [];
         if (state.targetBlueprint === undefined) state.targetBlueprint = null;
         if (state.devices === undefined) state.devices = {};
+        if (state.deviceEnabled === undefined || typeof state.deviceEnabled !== 'object') state.deviceEnabled = {};
         if (state.deviceAccum === undefined) state.deviceAccum = {};
         if (state.ordnance === undefined) state.ordnance = {};
         if (state.factorySpace === undefined) state.factorySpace = FACTORY_BASE_SPACE;
-        if (state.missions === undefined) state.missions = [];
+        // 远征格式迁移：旧存档的 missions 是 {id,endsAt}[]（定时器制）；新制是现场拆解的 id[]。
+        // 旧的进行中远征没有对应现场快递 → 直接清空（出勤队伍跟着旧机制跑路了）。
+        if (!Array.isArray(state.missions)) state.missions = [];
+        else if (state.missions.some((m: any) => m && typeof m === 'object')) {
+          state.missions = (state.missions as any[]).filter((m) => typeof m === 'string');
+        }
         if (state.doneMissions === undefined) state.doneMissions = [];
         if (state.boughtUniques === undefined) state.boughtUniques = [];
 

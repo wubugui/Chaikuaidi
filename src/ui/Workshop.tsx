@@ -53,10 +53,12 @@ export function Workshop() {
   const blueprints = useGame((st) => st.blueprints);
   const target = useGame((st) => st.targetBlueprint);
   const devices = useGame((st) => st.devices);
+  const deviceEnabled = useGame((st) => st.deviceEnabled);
   const ordnance = useGame((st) => st.ordnance);
   const buyBlueprint = useGame((st) => st.buyBlueprint);
   const setTarget = useGame((st) => st.setTargetBlueprint);
   const craft = useGame((st) => st.craftBlueprint);
+  const toggleDevice = useGame((st) => st.toggleDevice);
 
   const builtIds = Object.keys(devices).filter((d) => (devices[d] ?? 0) > 0);
   const ownedOrd = ORDNANCE.filter((o) => (ordnance[o.id] ?? 0) > 0);
@@ -145,12 +147,26 @@ export function Workshop() {
         <div className="invEmpty">还没造任何设备～合成一台自动拆转区，让它替你拆积压货。</div>
       ) : (
         <div className="deviceList">
-          {builtIds.map((d) => (
-            <div className="deviceRow" key={d}>
-              <span className="deviceEmoji">{DEVICE_BLUEPRINT[d]?.emoji ?? '⚙️'}</span>
-              <span className="deviceEffect">{deviceEffectLine(d, devices[d])}</span>
-            </div>
-          ))}
+          {builtIds.map((d) => {
+            // 分拣机是被动加成（不 tick）：不需要开关。其余（自动线 / 提炼炉）默认停工，需手动开启
+            const togglable = d !== 'sorter';
+            const on = !!deviceEnabled[d];
+            return (
+              <div className="deviceRow" key={d}>
+                <span className="deviceEmoji">{DEVICE_BLUEPRINT[d]?.emoji ?? '⚙️'}</span>
+                <span className="deviceEffect">{deviceEffectLine(d, devices[d])}</span>
+                {togglable && (
+                  <button
+                    className={'btn small deviceToggle' + (on ? ' primary' : '')}
+                    onClick={() => toggleDevice(d)}
+                    title={on ? '点击停工' : '点击开始运行（默认停工）'}
+                  >
+                    {on ? '▶️ 运行中' : '⏸️ 已停'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

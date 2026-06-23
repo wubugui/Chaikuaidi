@@ -22,6 +22,7 @@ describe('endgame self-sustaining loop — 终局产线能持续产出军火', (
       currentTool: 'torch',
       factorySpace: 16,
       devices: { pipeline_auto: 1, autoline_metal: 1, refinery: 1, sorter: 1 },
+      deviceEnabled: { pipeline_auto: true, autoline_metal: true, refinery: true, sorter: true },
       deviceAccum: {},
       blueprints: [
         'bp_autoline_metal', 'bp_pipeline_auto', 'bp_refinery', 'bp_sorter', 'bp_emp',

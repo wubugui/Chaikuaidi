@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RARITIES } from '../../data/rarity';
+import { RARITIES, rarityRank } from '../../data/rarity';
 import { on, type RevealData } from '../../game/events';
 import { neededParts } from '../../data/blueprints';
 import { useGame } from '../../game/store';
@@ -13,8 +13,8 @@ interface Pop {
 const LIFE_MS = 900;
 
 /**
- * 非阻塞的盲盒小弹窗：处理「非演出级」开箱。
- * 容器 pointer-events:none，z-index 在抽屉(30)之下、场景之上，绝不挡操作。
+ * 非阻塞的盲盒小弹窗：只处理 稀有 / 史诗 开箱（普通无弹窗——飞屑特效已覆盖，杜绝刷屏）。
+ * 容器 pointer-events:none，z-index 在抽屉(30)之下、场景之上，绝不挡操作；最多 4 个。
  */
 export function PopReveal() {
   const [pops, setPops] = useState<Pop[]>([]);
@@ -22,9 +22,10 @@ export function PopReveal() {
 
   useEffect(() => {
     const off = on('reveal', (r) => {
-      if (isShowcase(r)) return; // 演出级交给 RevealLayer
+      if (isShowcase(r)) return; // 传说+ 交给 RevealLayer 全屏特写
+      if (rarityRank(r.topRarity) < rarityRank('rare')) return; // 普通：不弹（特效已覆盖）
       const id = r.id;
-      setPops((p) => [...p.slice(-4), { id, data: r }]);
+      setPops((p) => [...p.slice(-3), { id, data: r }]); // 屏上最多 4 个
       setTimeout(() => setPops((p) => p.filter((x) => x.id !== id)), LIFE_MS);
     });
     return off;

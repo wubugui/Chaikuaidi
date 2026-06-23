@@ -87,6 +87,7 @@ describe('pipeline auto-dismantle', () => {
     const rand = mulberry32(42);
     const d = initialState();
     d.devices = { pipeline_auto: 1 };
+    d.deviceEnabled = { pipeline_auto: true };
     d.deviceAccum = {};
     const car = GIANT_MAP['g_car'];
     d.backlog.push(makeParcel('container', rand, {
@@ -113,6 +114,7 @@ describe('pipeline auto-dismantle', () => {
     const rand = mulberry32(7);
     const d = initialState();
     d.devices = { pipeline_auto: 1 };
+    d.deviceEnabled = { pipeline_auto: true };
     // ship needs pipeline_heavy — auto line must leave it
     d.backlog.push(makeParcel('container', rand, {
       material: 'metal', requirePipeline: 'pipeline_heavy', sealMax: 1000, lootMin: 1, lootMax: 1, space: 4,

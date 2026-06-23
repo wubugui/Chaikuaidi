@@ -33,12 +33,14 @@ describe('App renders', () => {
 });
 
 describe('isShowcase threshold', () => {
-  it('manual rare reveal is a showcase; manual common is not', () => {
-    expect(isShowcase(reveal('rare', true))).toBe(true);
-    expect(isShowcase(reveal('epic', true))).toBe(true);
+  it('only legendary+ full-screens (manual rare/epic are pops, not showcases)', () => {
     expect(isShowcase(reveal('common', true))).toBe(false);
+    expect(isShowcase(reveal('rare', true))).toBe(false);
+    expect(isShowcase(reveal('epic', true))).toBe(false);
+    expect(isShowcase(reveal('legendary', true))).toBe(true);
+    expect(isShowcase(reveal('absurd', true))).toBe(true);
   });
-  it('auto reveals only showcase at legendary+', () => {
+  it('auto reveals also only showcase at legendary+', () => {
     expect(isShowcase(reveal('epic', false))).toBe(false);
     expect(isShowcase(reveal('legendary', false))).toBe(true);
   });

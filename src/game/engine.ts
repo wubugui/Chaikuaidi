@@ -255,6 +255,13 @@ function explode(d: GameState, p: Parcel, rand: () => number, out: EngineOut) {
 function openParcel(d: GameState, p: Parcel, rand: () => number, out: EngineOut, forceDestroyOne = false, forceUnsafe = false) {
   d.totalUnpacked += 1;
   out.opened += 1;
+
+  // 远征现场：手动拆开这件「现场结构」= 完成对应远征，发放整套奖励并记账
+  if (p.missionId) {
+    grantMissionRewards(d, p.missionId, rand, out);
+    return;
+  }
+
   const tool = TOOL_MAP[d.currentTool];
 
   // 危险品 + 用错工具 -> 爆炸（在任何掉落前结算）。
@@ -531,6 +538,7 @@ function tickAutoLines(d: GameState, dtSec: number, rand: () => number, out: Eng
   for (const devId of Object.keys(d.devices)) {
     const count = d.devices[devId] ?? 0;
     if (count <= 0) continue;
+    if (!d.deviceEnabled?.[devId]) continue; // 默认关停：只有玩家手动开启的设备才运行
     const bp = BLUEPRINT_MAP[Object.keys(BLUEPRINT_MAP).find((k) => BLUEPRINT_MAP[k].result.id === devId) ?? ''];
     const mat = bp?.autolineMaterial;
     if (!mat) continue; // 非自动线设备（分拣机等）无 tick 行为
@@ -612,6 +620,7 @@ function pickAutoRefine(d: GameState): RefineRecipe | null {
 function tickRefinery(d: GameState, dtSec: number) {
   const count = d.devices?.[REFINERY_DEVICE] ?? 0;
   if (count <= 0) return;
+  if (!d.deviceEnabled?.[REFINERY_DEVICE]) return; // 默认关停
   d.deviceAccum[REFINERY_DEVICE] = (d.deviceAccum[REFINERY_DEVICE] ?? 0) + dtSec * count;
   let safety = 50;
   while (d.deviceAccum[REFINERY_DEVICE] >= REFINE_INTERVAL && safety-- > 0) {
@@ -638,6 +647,7 @@ function tickPipelines(d: GameState, dtSec: number, rand: () => number, out: Eng
   for (const pipelineId of Object.keys(PIPELINE_SPACE)) {
     const count = d.devices[pipelineId] ?? 0;
     if (count <= 0) continue;
+    if (!d.deviceEnabled?.[pipelineId]) continue; // 默认关停
     d.deviceAccum[pipelineId] = (d.deviceAccum[pipelineId] ?? 0) + dtSec * count;
     let safety = 50;
     while (d.deviceAccum[pipelineId] >= PIPELINE_INTERVAL && safety-- > 0) {
@@ -656,86 +666,77 @@ function tickPipelines(d: GameState, dtSec: number, rand: () => number, out: Eng
 }
 
 /**
- * 离场远征步进：到期的远征返还奖励。
+ * 远征现场拆解完成：发放整套奖励、记账、产一条至少 epic 的开箱特写。
+ * 由 openParcel 在拆开带 missionId 的「现场结构」时调用——你亲自把它拆了。
  * - 现金走 gainMoney 路径；唯一收藏品入 collection；零件/元素随机塞库存。
- * - pool 抽样若干进库存，并产一条 epic+ 的开箱特写（reveal），让返还有仪式感。
- * - 加信誉，id 移入 doneMissions，从 active 移除，发 missionDone 事件。
+ * - pool 抽样若干进库存；加信誉；id 移入 doneMissions、从 active 移除，发 missionDone。
  */
-function tickMissions(d: GameState, rand: () => number, out: EngineOut) {
-  if (!d.missions || d.missions.length === 0) return;
-  const now = Date.now();
-  const still: { id: string; endsAt: number }[] = [];
-  for (const m of d.missions) {
-    if (now < m.endsAt) {
-      still.push(m);
-      continue;
-    }
-    const def = MISSION_MAP[m.id];
-    if (!def) continue; // 未知远征：直接丢弃
-    const rew = def.rewards;
-    // 现金
-    if (rew.cash) gainMoney(d, rew.cash, out);
-    // 信誉
-    if (rew.reputation) d.reputation += rew.reputation;
-    // 独一无二的收藏品
-    const uniqueIsNew = !d.collection.includes(rew.unique);
-    if (uniqueIsNew) d.collection.push(rew.unique);
-    // 零件
-    for (let i = 0; i < (rew.parts ?? 0); i++) {
-      const p = PARTS[Math.floor(rand() * PARTS.length)];
-      if (p) d.inventory[p.id] = (d.inventory[p.id] ?? 0) + 1;
-    }
-    // 元素
-    for (let i = 0; i < (rew.elements ?? 0); i++) {
-      const e = ELEMENTS[Math.floor(rand() * ELEMENTS.length)];
-      if (e) d.inventory[e.id] = (d.inventory[e.id] ?? 0) + 1;
-    }
-    // pool 抽样进库存 + 攒一条开箱特写
-    const items: RevealItem[] = [];
-    const uniqueItem = ITEM_MAP[rew.unique];
-    if (uniqueItem) {
-      items.push({
-        emoji: uniqueItem.emoji,
-        name: uniqueItem.name,
-        rarity: uniqueItem.rarity,
-        kind: uniqueItem.kind,
-        value: 0,
-        isNew: uniqueIsNew,
-        itemId: rew.unique,
-      });
-    }
-    const sampleN = Math.min(5, rew.pool.length);
-    let topRarity: Rarity = uniqueItem?.rarity ?? 'common';
-    for (let i = 0; i < sampleN; i++) {
-      const id = rew.pool[Math.floor(rand() * rew.pool.length)];
-      const it = ITEM_MAP[id];
-      if (!it) continue;
-      d.inventory[id] = (d.inventory[id] ?? 0) + 1;
-      if (rarityRank(it.rarity) > rarityRank(topRarity)) topRarity = it.rarity;
-      items.push({
-        emoji: it.emoji, name: it.name, rarity: it.rarity, kind: it.kind,
-        value: 0, isNew: false, itemId: id,
-      });
-    }
-    if (rarityRank('epic') > rarityRank(topRarity)) topRarity = 'epic'; // 远征返还至少给 epic 仪式感
-    out.reveals.push({
-      id: nextId(),
-      parcelEmoji: def.emoji,
-      parcelName: def.name + '（已拆除）',
-      items,
-      topRarity,
-      manual: false,
-    });
-    if (!d.doneMissions.includes(m.id)) d.doneMissions.push(m.id);
-    emit('missionDone', m.id);
+function grantMissionRewards(d: GameState, missionId: string, rand: () => number, out: EngineOut) {
+  // 无论是否已知都先从 active 移除（其现场快递已被拆掉）
+  d.missions = (d.missions ?? []).filter((id) => id !== missionId);
+  const def = MISSION_MAP[missionId];
+  if (!def) return; // 未知远征：直接丢弃
+  const rew = def.rewards;
+  // 现金
+  if (rew.cash) gainMoney(d, rew.cash, out);
+  // 信誉
+  if (rew.reputation) d.reputation += rew.reputation;
+  // 独一无二的收藏品
+  const uniqueIsNew = !d.collection.includes(rew.unique);
+  if (uniqueIsNew) d.collection.push(rew.unique);
+  // 零件
+  for (let i = 0; i < (rew.parts ?? 0); i++) {
+    const p = PARTS[Math.floor(rand() * PARTS.length)];
+    if (p) d.inventory[p.id] = (d.inventory[p.id] ?? 0) + 1;
   }
-  d.missions = still;
+  // 元素
+  for (let i = 0; i < (rew.elements ?? 0); i++) {
+    const e = ELEMENTS[Math.floor(rand() * ELEMENTS.length)];
+    if (e) d.inventory[e.id] = (d.inventory[e.id] ?? 0) + 1;
+  }
+  // pool 抽样进库存 + 攒一条开箱特写
+  const items: RevealItem[] = [];
+  const uniqueItem = ITEM_MAP[rew.unique];
+  if (uniqueItem) {
+    items.push({
+      emoji: uniqueItem.emoji,
+      name: uniqueItem.name,
+      rarity: uniqueItem.rarity,
+      kind: uniqueItem.kind,
+      value: 0,
+      isNew: uniqueIsNew,
+      itemId: rew.unique,
+    });
+  }
+  const sampleN = Math.min(5, rew.pool.length);
+  let topRarity: Rarity = uniqueItem?.rarity ?? 'common';
+  for (let i = 0; i < sampleN; i++) {
+    const id = rew.pool[Math.floor(rand() * rew.pool.length)];
+    const it = ITEM_MAP[id];
+    if (!it) continue;
+    d.inventory[id] = (d.inventory[id] ?? 0) + 1;
+    if (rarityRank(it.rarity) > rarityRank(topRarity)) topRarity = it.rarity;
+    items.push({
+      emoji: it.emoji, name: it.name, rarity: it.rarity, kind: it.kind,
+      value: 0, isNew: false, itemId: id,
+    });
+  }
+  if (rarityRank('legendary') > rarityRank(topRarity)) topRarity = 'legendary'; // 现场拆完至少给传说仪式感（走全屏特写）
+  out.reveals.push({
+    id: nextId(),
+    parcelEmoji: def.emoji,
+    parcelName: def.name + '（已拆除）',
+    items,
+    topRarity,
+    manual: false,
+  });
+  if (!d.doneMissions.includes(missionId)) d.doneMissions.push(missionId);
+  emit('missionDone', missionId);
 }
 
 /** 游戏循环步进 */
 export function doTick(d: GameState, dtSec: number, rand: () => number, out: EngineOut) {
   tickMerchant(d, rand);
-  tickMissions(d, rand, out);
 
   // 连击衰减
   if (d.combo > 0 && Date.now() - d.lastClickAt > COMBO_WINDOW_MS) d.combo = 0;

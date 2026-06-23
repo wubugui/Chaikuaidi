@@ -25,16 +25,21 @@ const SHOW_MS: Record<Rarity, number> = {
   absurd: 3400,
 };
 
-/** 只有「演出级」的开箱才走全屏特写：手动 稀有+ ／ 自动 传说+ */
+/**
+ * 只有「真·稀世」的开箱才走全屏特写：传说+（手动/自动一致）。
+ * 普通/稀有/史诗都不全屏——稀有/史诗交给 PopReveal 小弹窗，普通无弹窗。
+ */
 export function isShowcase(r: RevealData): boolean {
-  const rank = rarityRank(r.topRarity);
-  return r.manual ? rank >= rarityRank('rare') : rank >= rarityRank('legendary');
+  return rarityRank(r.topRarity) >= rarityRank('legendary');
 }
 
-/** 该揭晓是否需要「✅ 收下」确认（稀有+ 不会被误触吞掉） */
+/** 该揭晓是否需要「✅ 收下」确认：演出级（传说+）才需要刻意收下 */
 function needsConfirm(r: RevealData): boolean {
-  return rarityRank(r.topRarity) >= rarityRank('rare');
+  return isShowcase(r);
 }
+
+/** 渲染的卡片上限：超过的件数已入背包/收藏，只提示总数 */
+const MAX_CARDS = 24;
 
 export function RevealLayer() {
   const [current, setCurrent] = useState<RevealData | null>(null);
@@ -44,9 +49,16 @@ export function RevealLayer() {
   const showing = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
 
+  // 面板/抽屉打开时挂起全屏揭晓：busy 期间不进入演出，关闭后恢复
+  const uiBusy = useGame((s) => s.uiBusy);
+  const uiBusyRef = useRef(uiBusy);
+  uiBusyRef.current = uiBusy;
+
   // 进入下一个揭晓（队列空则收尾）
   const advance = useCallback(() => {
     clearTimeout(timer.current);
+    // 抽屉开着时挂起：保留队列，等关闭后再恢复
+    if (uiBusyRef.current) return;
     const next = queue.current.shift();
     if (!next) {
       if (showing.current) {
@@ -90,13 +102,19 @@ export function RevealLayer() {
       queue.current.push(r);
       // 防止自动产线时特写堆积太多
       if (queue.current.length > 5) queue.current.splice(0, queue.current.length - 5);
-      if (!showing.current) advance();
+      // 抽屉开着时只入队不弹出（advance 会自挂起），关闭后由下面的 effect 恢复
+      if (!showing.current && !uiBusyRef.current) advance();
     });
     return () => {
       off();
       clearTimeout(timer.current);
     };
   }, [advance]);
+
+  // 抽屉关闭（uiBusy: true → false）时，恢复挂起的队列
+  useEffect(() => {
+    if (!uiBusy && !showing.current && queue.current.length > 0) advance();
+  }, [uiBusy, advance]);
 
   const need = neededParts(useGame());
 
@@ -138,23 +156,31 @@ export function RevealLayer() {
         </div>
       )}
 
-      {phase === 'show' && (
+      {phase === 'show' && (() => {
+        const total = current.items.length;
+        // 尺寸分档：件数越多卡片越小（>6 / >12 / >24），避免撑爆视口
+        const sizeTier = total > 24 ? ' sz4' : total > 12 ? ' sz3' : total > 6 ? ' sz2' : '';
+        const shown = current.items.slice(0, MAX_CARDS);
+        const overflow = total - shown.length;
+        return (
         <div className={'revealStage' + (grand ? ' grand' : '')}>
           {grand && <div className="revealRays" style={{ color: topR.color }} />}
 
-          <div className="revealTitle" style={{ color: topR.color }}>
+          {/* sticky 顶部标题，永远在屏内 */}
+          <div className="revealTitle revealTitleSticky" style={{ color: topR.color }}>
             {topR.badge} 拆出 {topR.name}！
           </div>
 
-          <div className={'revealItems n' + Math.min(current.items.length, 4)}>
-            {current.items.map((it, i) => {
+          {/* 中部可滚动战利品区：受视口高度约束，多了能滚 */}
+          <div className={'revealItems revealItemsScroll' + sizeTier + ' n' + Math.min(shown.length, 4)}>
+            {shown.map((it, i) => {
               const r = RARITIES[it.rarity];
               const targetPart = it.kind === 'part' && it.itemId != null && need.has(it.itemId);
               return (
                 <div
                   className={'revealItem riFlip' + (it.isDestroyed ? ' riDestroyed' : '') + (targetPart ? ' riTargetPart' : '')}
                   key={i}
-                  style={{ ['--flipDelay' as any]: i * 180 + 'ms' }}
+                  style={{ ['--flipDelay' as any]: Math.min(i, 12) * 120 + 'ms' }}
                 >
                   <div className="riBack">❓</div>
                   <div
@@ -183,11 +209,15 @@ export function RevealLayer() {
                 </div>
               );
             })}
+            {overflow > 0 && (
+              <div className="revealMore">…还有 {overflow} 件已收入背包</div>
+            )}
           </div>
 
+          {/* sticky 底部收下按钮，永远在屏内可点 */}
           {confirm ? (
             <button
-              className={'revealConfirm r-' + current.topRarity}
+              className={'revealConfirm revealConfirmSticky r-' + current.topRarity}
               style={{ ['--rc' as any]: topR.color, borderColor: topR.color }}
               onPointerDown={(e) => { e.stopPropagation(); advance(); }}
             >
@@ -197,7 +227,8 @@ export function RevealLayer() {
             <div className="revealHint">👆 点击收取</div>
           )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
