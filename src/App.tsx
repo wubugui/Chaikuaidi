@@ -1,34 +1,36 @@
 import { useEffect, useState } from 'react';
 import { Topbar } from './ui/Topbar';
-import { Workbench } from './ui/Workbench';
+import { GameScene } from './ui/GameScene';
 import { Inventory } from './ui/Inventory';
 import { UpgradePanel } from './ui/UpgradePanel';
 import { Shop } from './ui/Shop';
-import { Collection } from './ui/Collection';
 import { Quotes } from './ui/Quotes';
+import { Collection } from './ui/Collection';
 import { Achievements } from './ui/Achievements';
 import { Prestige } from './ui/Prestige';
+import { BottomNav, NAV_ITEMS, type PanelId } from './ui/BottomNav';
 import { EffectsLayer } from './ui/effects/EffectsLayer';
 import { OfflineModal } from './ui/OfflineModal';
 import { Intro } from './ui/Intro';
 import { useGameLoop } from './game/loop';
+import { on } from './game/events';
 import { ensureStarter, useGame } from './game/store';
 import { setAudioEnabled } from './lib/audio';
 
-type Tab = 'upgrade' | 'shop' | 'quotes' | 'collection' | 'achievements' | 'prestige';
-
-const TABS: { id: Tab; label: string; emoji: string; minStage?: number }[] = [
-  { id: 'upgrade', label: '升级', emoji: '⬆️' },
-  { id: 'shop', label: '进货', emoji: '🛒', minStage: 2 },
-  { id: 'quotes', label: '语录', emoji: '🗯️', minStage: 2 },
-  { id: 'collection', label: '图鉴', emoji: '🖼️', minStage: 3 },
-  { id: 'achievements', label: '成就', emoji: '🏅' },
-  { id: 'prestige', label: '转生', emoji: '♻️', minStage: 4 },
-];
+const PANEL_TITLE: Record<PanelId, string> = {
+  bag: '🎒 背包',
+  upgrade: '🛠️ 升级 & 装备',
+  shop: '🛒 进货批次',
+  quotes: '🗯️ 暴躁语录',
+  collection: '🖼️ 收藏图鉴',
+  achievements: '🏅 成就',
+  prestige: '♻️ 跑路重开',
+};
 
 export default function App() {
   useGameLoop();
-  const [tab, setTab] = useState<Tab>('upgrade');
+  const [panel, setPanel] = useState<PanelId | null>(null);
+  const [shake, setShake] = useState(false);
   const stage = useGame((s) => s.stage);
   const audioEnabled = useGame((s) => s.audioEnabled);
 
@@ -39,40 +41,47 @@ export default function App() {
     setAudioEnabled(audioEnabled);
   }, [audioEnabled]);
 
-  const visibleTabs = TABS.filter((t) => !t.minStage || stage >= t.minStage);
-  const activeTab: Tab = visibleTabs.some((t) => t.id === tab) ? tab : 'upgrade';
+  // 砸击震屏
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    return on('shake', () => {
+      setShake(true);
+      clearTimeout(t);
+      t = setTimeout(() => setShake(false), 90);
+    });
+  }, []);
+
+  // 阶段回退后关掉不可用面板
+  const active =
+    panel && NAV_ITEMS.find((i) => i.id === panel && (!i.minStage || stage >= i.minStage)) ? panel : null;
+  const toggle = (id: PanelId) => setPanel((p) => (p === id ? null : id));
 
   return (
-    <div className="app">
+    <div className={'game' + (shake ? ' shake' : '')}>
       <Topbar />
-      <main className="main">
-        <section className="left">
-          <Workbench />
-          <Inventory />
-        </section>
-        <section className="right">
-          <nav className="tabs">
-            {visibleTabs.map((t) => (
-              <button
-                key={t.id}
-                className={'tab' + (activeTab === t.id ? ' active' : '')}
-                onClick={() => setTab(t.id)}
-              >
-                <span className="tabEmoji">{t.emoji}</span>
-                {t.label}
-              </button>
-            ))}
-          </nav>
-          <div className="panel">
-            {activeTab === 'upgrade' && <UpgradePanel />}
-            {activeTab === 'shop' && <Shop />}
-            {activeTab === 'quotes' && <Quotes />}
-            {activeTab === 'collection' && <Collection />}
-            {activeTab === 'achievements' && <Achievements />}
-            {activeTab === 'prestige' && <Prestige />}
+      <GameScene />
+      <BottomNav stage={stage} active={active} onSelect={toggle} />
+
+      {active && (
+        <div className="drawerWrap" onClick={() => setPanel(null)}>
+          <div className="drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="drawerHead">
+              <span className="drawerTitle">{PANEL_TITLE[active]}</span>
+              <button className="drawerClose" onClick={() => setPanel(null)}>✕</button>
+            </div>
+            <div className="drawerBody">
+              {active === 'bag' && <Inventory />}
+              {active === 'upgrade' && <UpgradePanel />}
+              {active === 'shop' && <Shop />}
+              {active === 'quotes' && <Quotes />}
+              {active === 'collection' && <Collection />}
+              {active === 'achievements' && <Achievements />}
+              {active === 'prestige' && <Prestige />}
+            </div>
           </div>
-        </section>
-      </main>
+        </div>
+      )}
+
       <EffectsLayer />
       <OfflineModal />
       <Intro />
