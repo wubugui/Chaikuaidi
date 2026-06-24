@@ -15,8 +15,8 @@
   --epic: #c07bff;
   --legend: #ffce3a;
   --absurd: #ff6ad5;
-  --ui-plate: url('/game-art/ui/panel-metal.png');
-  --scene-bg: url('/game-art/backgrounds/stage-1-depot.png');
+  --ui-plate: url('../game-art/ui/panel-metal.png');
+  --scene-bg: url('../game-art/backgrounds/stage-1-depot.png');
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -102,13 +102,13 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .sceneBg {
   position: absolute; inset: 0; overflow: hidden; pointer-events: none;
   background:
-    linear-gradient(180deg, #09051222 0%, #09051211 52%, #09051299 100%),
+    linear-gradient(180deg, #0905120a 0%, #09051205 50%, #09051255 100%),
     var(--scene-bg) center / cover no-repeat;
 }
 .sceneBg::after {
   content: '';
   position: absolute; inset: 0;
-  background: radial-gradient(420px 340px at 50% 50%, #0000 0%, #08050f77 72%, #05030aaa 100%);
+  background: radial-gradient(560px 460px at 50% 46%, #0000 0%, #08050f33 78%, #05030a66 100%);
 }
 .hangLight {
   position: absolute; top: -60px; left: 50%; width: 380px; height: 380px; transform: translateX(-50%);
@@ -196,24 +196,24 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .gameIcon.dudeFace { width: 58px; height: 58px; }
 .dudeFace.mad { animation: madShake 0.18s infinite; }
 .dudePortrait {
-  width: clamp(76px, 18vw, 106px); height: clamp(94px, 22vw, 130px);
+  width: clamp(118px, 26vw, 158px); height: clamp(150px, 32vw, 200px);
   object-fit: contain; object-position: bottom center;
   filter: drop-shadow(0 8px 8px #000b);
   animation: dudeBob 2.6s ease-in-out infinite;
 }
 .dudePortrait.mad { animation: madShake 0.18s infinite; }
-.dudeHand { position: absolute; right: 1px; top: 54px; font-size: 26px; transform-origin: bottom left; animation: swing 0.18s ease; filter: drop-shadow(0 2px 2px #0008); }
-.gameIcon.dudeHand { width: 34px; height: 34px; }
+.dudeHand { position: absolute; right: -2px; top: 92px; font-size: 26px; transform-origin: bottom left; animation: swing 0.18s ease; filter: drop-shadow(0 2px 2px #0008); }
+.gameIcon.dudeHand { width: 40px; height: 40px; }
 .dudeName { font-size: 11px; font-weight: 800; color: var(--ink); background: #00000066; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; margin-top: -8px; white-space: nowrap; }
 
 .bark {
-  position: absolute; bottom: 64px; left: 8px;
+  position: absolute; bottom: calc(100% + 8px); left: -2px;
   background: #fff; color: #1a1330; font-weight: 900; font-size: 14px;
   padding: 8px 13px; border-radius: 15px; white-space: nowrap; max-width: 72vw;
-  box-shadow: 0 6px 0 #0006, 0 8px 20px #0008; animation: barkPop 0.22s ease; z-index: 5;
-  transform-origin: 22px bottom;
+  box-shadow: 0 6px 0 #0006, 0 8px 20px #0008; animation: barkPop 0.22s ease; z-index: 6;
+  transform-origin: 28px bottom;
 }
-.bark::after { content: ''; position: absolute; bottom: -9px; left: 22px; border: 9px solid transparent; border-top-color: #fff; border-bottom: 0; }
+.bark::after { content: ''; position: absolute; bottom: -9px; left: 28px; border: 9px solid transparent; border-top-color: #fff; border-bottom: 0; }
 
 .scrap { position: absolute; font-size: 20px; pointer-events: none; animation: scrapFly 0.6s ease-out forwards; will-change: transform, opacity; }
 .gameIcon.scrap { width: 22px; height: 22px; }
@@ -792,7 +792,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   position: fixed; inset: 0;
   background:
     linear-gradient(180deg, #08040c99, #06040dee),
-    url('/game-art/backgrounds/stage-1-depot.png') center / cover no-repeat;
+    url('../game-art/backgrounds/stage-1-depot.png') center / cover no-repeat;
   display: flex; align-items: center; justify-content: center; z-index: 60; padding: 24px;
 }
 .introBox {
