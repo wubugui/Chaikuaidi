@@ -7,6 +7,16 @@ export const SCENE_BACKGROUNDS: Record<1 | 2 | 3 | 4, string> = {
   4: assetUrl('/game-art/backgrounds/stage-4-reactor.png'),
 };
 
+export const MISSION_BACKGROUNDS: Record<string, string> = {
+  m_launchpad: assetUrl('/game-art/backgrounds/mission-m-launchpad.png'),
+  m_building: assetUrl('/game-art/backgrounds/mission-m-building.png'),
+  m_bridge: assetUrl('/game-art/backgrounds/mission-m-bridge.png'),
+  m_gundamfac: assetUrl('/game-art/backgrounds/mission-m-gundamfac.png'),
+  m_nuclear: assetUrl('/game-art/backgrounds/mission-m-nuclear.png'),
+  m_station: assetUrl('/game-art/backgrounds/mission-m-station.png'),
+  m_collider: assetUrl('/game-art/backgrounds/mission-m-collider.png'),
+};
+
 export const WORKER_PORTRAITS = {
   neutral: assetUrl('/game-art/characters/worker-neutral.png'),
   angry: assetUrl('/game-art/characters/worker-angry.png'),
@@ -17,7 +27,8 @@ export const WORKER_PORTRAITS = {
 
 export type WorkerPortraitId = keyof typeof WORKER_PORTRAITS;
 
-export function sceneBackground(stage: number): string {
+export function sceneBackground(stage: number, missionId?: string | null): string {
+  if (missionId && MISSION_BACKGROUNDS[missionId]) return MISSION_BACKGROUNDS[missionId];
   const clamped = Math.min(4, Math.max(1, Math.floor(stage))) as 1 | 2 | 3 | 4;
   return SCENE_BACKGROUNDS[clamped];
 }

@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "art": "node scripts/generate-game-art.mjs && node scripts/audit-game-art.mjs",
+    "art:manifest": "node scripts/generate-game-art.mjs",
+    "art:audit": "node scripts/audit-game-art.mjs",
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview",

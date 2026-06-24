@@ -15,8 +15,8 @@
   --epic: #c07bff;
   --legend: #ffce3a;
   --absurd: #ff6ad5;
-  --ui-plate: url('../game-art/ui/panel-metal.png');
-  --scene-bg: url('../game-art/backgrounds/stage-1-depot.png');
+  --ui-plate: url('/game-art/ui/panel-industrial.png');
+  --scene-bg: url('/game-art/backgrounds/stage-1-depot.png');
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -792,7 +792,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   position: fixed; inset: 0;
   background:
     linear-gradient(180deg, #08040c99, #06040dee),
-    url('../game-art/backgrounds/stage-1-depot.png') center / cover no-repeat;
+    url('/game-art/backgrounds/stage-1-depot.png') center / cover no-repeat;
   display: flex; align-items: center; justify-content: center; z-index: 60; padding: 24px;
 }
 .introBox {
@@ -1130,7 +1130,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   background:
     linear-gradient(180deg, #302446f2, #191325f8),
     var(--ui-plate) center / 620px 620px;
-  border: 2px solid var(--line); border-radius: 20px; padding: 44px 22px 22px;
+  border: 2px solid var(--line); border-radius: 20px; padding: 56px 22px 22px;
   box-shadow: 0 24px 60px #000b; text-align: center; animation: sellerBarge 0.3s cubic-bezier(.2,1.3,.5,1);
 }
 @keyframes sellerBarge {
@@ -1138,11 +1138,11 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 .sellerCharacter {
-  position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: -46px; left: 50%; transform: translateX(-50%);
   font-size: 64px; line-height: 1;
   filter: drop-shadow(0 6px 10px #000a); animation: sellerBob 2s ease-in-out infinite;
 }
-.gameIcon.sellerCharacter { width: 74px; height: 74px; }
+.gameIcon.sellerCharacter { width: 96px; height: 96px; }
 @keyframes sellerBob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-5px); } }
 .sellerNameTag {
   display: inline-block; font-weight: 900; font-size: 15px; color: #fcd34d;

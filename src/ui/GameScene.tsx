@@ -252,7 +252,7 @@ export function GameScene() {
       {/* 背景：随阶段升级的手绘场景。用真实 <img>（与老哥头像同一机制，
           避免 CSS 内联 var(url()) 相对路径在子路径部署下解析不到的坑） */}
       <div className="sceneBg">
-        <img className="sceneBgImg" src={sceneBackground(stage)} alt="" aria-hidden="true" draggable={false} />
+        <img className="sceneBgImg" src={sceneBackground(stage, expedition?.missionId)} alt="" aria-hidden="true" draggable={false} />
         <div className="sceneBgTint" />
         <div className="hangLight" />
         <div className="boxMountain" />
