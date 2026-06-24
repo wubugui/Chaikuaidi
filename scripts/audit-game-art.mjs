@@ -84,6 +84,26 @@ for (const file of [
   assertAsset(path.join('public/game-art/characters', file), 5_000, { width: 384, height: 512 });
 }
 
-assertAsset('public/game-art/ui/panel-industrial.png', 5_000, { width: 512, height: 512 });
+for (const [file, width, height] of [
+  ['panel-industrial.png', 512, 512],
+  ['ui-panel-large.png', 900, 620],
+  ['ui-drawer-panel.png', 720, 820],
+  ['ui-card-slot.png', 512, 512],
+  ['ui-hud-bar.png', 1024, 240],
+  ['ui-nav-bar.png', 1024, 220],
+  ['ui-tab-selected.png', 512, 240],
+  ['ui-button-normal.png', 512, 180],
+  ['ui-button-primary.png', 512, 180],
+  ['ui-button-danger.png', 512, 180],
+  ['ui-tooltip-plaque.png', 640, 260],
+  ['ui-progress-track.png', 768, 120],
+  ['ui-progress-fill.png', 768, 120],
+  ['ui-chip-badge.png', 420, 200],
+  ['ui-list-row.png', 900, 220],
+  ['ui-merchant-row.png', 760, 320],
+  ['ui-square-socket.png', 512, 512],
+]) {
+  assertAsset(path.join('public/game-art/ui', file), 5_000, { width, height });
+}
 
 console.log(`Audited ${records.length} PNG icon records plus required scene/UI assets. Dimensions match and no SVG assets found.`);

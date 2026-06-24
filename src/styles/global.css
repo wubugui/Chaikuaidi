@@ -16,6 +16,22 @@
   --legend: #ffce3a;
   --absurd: #ff6ad5;
   --ui-plate: url('/game-art/ui/panel-industrial.png');
+  --ui-panel: url('/game-art/ui/ui-panel-large.png');
+  --ui-drawer: url('/game-art/ui/ui-drawer-panel.png');
+  --ui-card: url('/game-art/ui/ui-card-slot.png');
+  --ui-row: url('/game-art/ui/ui-list-row.png');
+  --ui-square: url('/game-art/ui/ui-square-socket.png');
+  --ui-hud: url('/game-art/ui/ui-hud-bar.png');
+  --ui-nav: url('/game-art/ui/ui-nav-bar.png');
+  --ui-tab: url('/game-art/ui/ui-tab-selected.png');
+  --ui-button: url('/game-art/ui/ui-button-normal.png');
+  --ui-button-primary: url('/game-art/ui/ui-button-primary.png');
+  --ui-button-danger: url('/game-art/ui/ui-button-danger.png');
+  --ui-chip: url('/game-art/ui/ui-chip-badge.png');
+  --ui-tooltip: url('/game-art/ui/ui-tooltip-plaque.png');
+  --ui-progress-track: url('/game-art/ui/ui-progress-track.png');
+  --ui-progress-fill: url('/game-art/ui/ui-progress-fill.png');
+  --ui-merchant: url('/game-art/ui/ui-merchant-row.png');
   --scene-bg: url('/game-art/backgrounds/stage-1-depot.png');
 }
 
@@ -1229,45 +1245,259 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .idQuoteText { display: block; color: var(--muted); font-style: italic; font-weight: 500; margin-top: 3px; }
 .itemDetailBtns { display: flex; gap: 8px; justify-content: center; }
 
-/* ===== Painted UI skin overrides ===== */
+/* ===== Raster game UI skin overrides ===== */
+.hud {
+  background-image:
+    linear-gradient(180deg, #0c0810aa, #0c0810dd),
+    var(--ui-hud);
+  background-position: center;
+  background-size: 100% 100%;
+  border-bottom-color: #b0893c66;
+}
+
+.bottomNav {
+  background-image:
+    linear-gradient(180deg, #08060aaa, #08060add),
+    var(--ui-nav);
+  background-position: center;
+  background-size: 100% 100%;
+  border-top-color: #b0893c66;
+}
+
+.drawer {
+  background-image:
+    linear-gradient(180deg, #110d16c8, #09060dde),
+    var(--ui-drawer);
+  background-position: center;
+  background-size: 100% 100%;
+  border-top-color: #80643a;
+  border-radius: 16px 16px 0 0;
+}
+
+.modal,
+.introBox,
+.sellerCard,
+.itemDetail {
+  background-image:
+    linear-gradient(180deg, #161019c0, #09070ed8),
+    var(--ui-panel);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #8c6c38;
+  border-radius: 12px;
+}
+
 .coins,
 .hudIcon,
-.stageBar,
-.sceneMeta span,
 .drawerClose,
-.navBtn.on,
 .btn:not(.primary):not(.danger),
+.sellBtn,
 .chip,
-.autoSell,
-.invItem,
-.toolCard,
-.toolBox,
-.upgradeRow,
-.prestNode,
-.batch,
-.collItem,
-.achRow,
-.quoteCard,
-.prestHeader,
-.bpCard,
-.deviceRow,
-.missionCard,
-.mutCard,
-.refineRow,
-.merchantOffer,
-.factoryHeader,
-.factoryLine,
-.backlogRow,
-.absurdRow {
+.autoSell select,
+.shelveBtn,
+.itemDetailClose {
   background-image:
-    linear-gradient(180deg, #382a50e8, #171225f0),
-    var(--ui-plate);
+    linear-gradient(180deg, #17121fc0, #08060ee8),
+    var(--ui-button);
   background-position: center;
-  background-size: auto, 580px 580px;
-  background-blend-mode: normal, soft-light;
+  background-size: 100% 100%;
+  border-color: #6f5a3c;
+  border-radius: 8px;
+  box-shadow: 0 4px 0 #050308, 0 8px 18px #0008;
+}
+
+.btn.primary,
+.chip.on,
+.sellBtn,
+.revealConfirm,
+.craftFlashCard,
+.riTargetTag {
+  background-image:
+    linear-gradient(180deg, #fff1a066, #6f3b0088),
+    var(--ui-button-primary);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #d7a331;
+  color: #241300;
+}
+
+.btn.danger,
+.boomBtn,
+.sellModeSwitch.on,
+.btn.grab {
+  background-image:
+    linear-gradient(180deg, #ff7a6a44, #4d0610aa),
+    var(--ui-button-danger);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #a83a2a;
+  color: #fff6db;
+}
+
+.navBtn {
+  border: 1px solid transparent;
+  border-radius: 8px;
 }
 
 .navBtn.on {
+  background-image:
+    linear-gradient(180deg, #fff1a02e, #00000055),
+    var(--ui-tab);
+  background-position: center;
+  background-size: 100% 100%;
   color: var(--gold);
-  border: 1px solid #6c558c88;
+  border-color: #b0893c;
+  box-shadow: 0 2px 0 #050308, inset 0 0 0 1px #fff2;
 }
+
+.sceneMeta span,
+.dudeName,
+.matBadge,
+.gateOverlay,
+.revengeTag,
+.toolChip,
+.chip,
+.bpReq,
+.itemRarityBadge,
+.itemKindBadge,
+.elemChip,
+.mutStat,
+.giantSpace,
+.giantPipeTag,
+.tier2Tag,
+.uniqueTag,
+.missionUnique,
+.absurdTag,
+.mutTag,
+.dangerTag,
+.sellModeSwitch {
+  background-image:
+    linear-gradient(180deg, #160f19aa, #08060ddd),
+    var(--ui-chip);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #75603d;
+  border-radius: 8px;
+}
+
+.invItem,
+.collItem,
+.recentChip,
+.revealItem,
+.riBack,
+.riFront {
+  background-image:
+    linear-gradient(180deg, #161019b5, #09070edc),
+    var(--ui-square);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #6c5738;
+  border-radius: 8px;
+}
+
+.toolCard,
+.toolBox,
+.bpCard,
+.prestHeader,
+.factorySpaceBar,
+.refineryStatus,
+.recentLoot,
+.popCard {
+  background-image:
+    linear-gradient(180deg, #161019c0, #08060ee4),
+    var(--ui-card);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #6f5a3c;
+  border-radius: 8px;
+}
+
+.upgradeRow,
+.prestNode,
+.batch,
+.luggage,
+.containerCard,
+.achRow,
+.quoteCard,
+.deviceRow,
+.backlogRow,
+.mutCard,
+.refineRow,
+.giantHeldRow,
+.pipelineRow,
+.giantCard,
+.missionRow {
+  background-image:
+    linear-gradient(180deg, #151019bb, #08060ee0),
+    var(--ui-row);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #6f5a3c;
+  border-radius: 8px;
+}
+
+.merchantOffer {
+  background-image:
+    linear-gradient(180deg, #151019bb, #08060ee0),
+    var(--ui-merchant);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #80643a;
+  border-radius: 8px;
+}
+
+.stageBar,
+.rageBar,
+.bigHp,
+.spaceBarTrack,
+.missionBarTrack {
+  background-image:
+    linear-gradient(180deg, #08060dcc, #020104ee),
+    var(--ui-progress-track);
+  background-position: center;
+  background-size: 100% 100%;
+  border-color: #6f5a3c;
+  border-radius: 8px;
+}
+
+.stageFill,
+.rageFill,
+.bigHpFill,
+.spaceBarFill,
+.missionBarFill {
+  background-image:
+    linear-gradient(90deg, #ff9d2eaa, #ffce3acc),
+    var(--ui-progress-fill);
+  background-position: center;
+  background-size: 100% 100%;
+  box-shadow: 0 0 14px #ffce3a88;
+}
+
+.bark,
+.sellerBubble,
+.collectToast,
+.expeditionBanner,
+.merchantBanner,
+.sellModeNote,
+.boxesEmpty {
+  background-image:
+    linear-gradient(180deg, #fff5dcc8, #b58955d8),
+    var(--ui-tooltip);
+  background-position: center;
+  background-size: 100% 100%;
+  border: 1px solid #8a6133;
+  border-radius: 8px;
+}
+
+.sellerBubble,
+.bark,
+.collectToast,
+.expeditionBanner,
+.merchantBanner,
+.sellModeNote,
+.boxesEmpty {
+  color: #1a1530;
+}
+
+.bark::after { border-top-color: #c79861; }
+.sellerBubble::before { border-bottom-color: #c79861; }
