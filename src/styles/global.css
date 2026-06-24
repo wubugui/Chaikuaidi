@@ -310,7 +310,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 /* ===================== DRAWER ===================== */
 .drawerWrap { position: fixed; inset: 0; background: #000a; display: flex; align-items: flex-end; z-index: 30; animation: fade 0.15s ease; }
 .drawer {
-  width: 100%; max-height: 72%;
+  width: 100%; max-height: min(82%, calc(100% - 72px));
   background:
     linear-gradient(180deg, #302446f2, #191325f8),
     var(--ui-plate) center top / 720px 720px;
@@ -324,13 +324,17 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .drawerTitle { font-weight: 900; font-size: 17px; }
 .drawerClose { background: var(--card); border: 1px solid var(--line); border-radius: 10px; width: 32px; height: 32px; font-size: 15px; }
-.drawerBody { padding: 14px 16px calc(18px + env(safe-area-inset-bottom)); overflow: auto; }
+.drawerBody { padding: 14px 16px calc(18px + env(safe-area-inset-bottom)); overflow: auto; scrollbar-color: #8c6c38 #100b17; scrollbar-width: thin; }
+.drawerBody::-webkit-scrollbar { width: 7px; }
+.drawerBody::-webkit-scrollbar-track { background: #100b17; border-left: 1px solid #3d2d46; }
+.drawerBody::-webkit-scrollbar-thumb { background: #8c6c38; border-radius: 999px; border: 1px solid #20162a; }
 
 /* ===================== BUTTONS ===================== */
 .btn {
   background: linear-gradient(180deg, var(--card2), var(--card)); border: 1px solid var(--line);
   border-radius: 12px; padding: 9px 14px; font-weight: 800; font-size: 13px; color: var(--ink);
   display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 0 #0006;
+  min-height: 38px; white-space: nowrap;
 }
 .btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 #0006; }
 .btn:disabled { opacity: 0.45; }
@@ -338,7 +342,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .btn.danger { background: linear-gradient(180deg, #ff6a7c, #e23a50); color: #fff; box-shadow: 0 3px 0 #8c1e2c; }
 .btn.small { padding: 6px 11px; font-size: 12px; border-radius: 10px; }
 .btn.big { font-size: 16px; padding: 12px 24px; }
-.btn.buy { min-width: 96px; justify-content: center; }
+.btn.buy { min-width: 84px; justify-content: center; }
 .btn.tool { width: 100%; justify-content: center; margin-top: 8px; }
 .cost { color: #2a1800; background: #ffffff55; border-radius: 8px; padding: 1px 7px; font-weight: 900; }
 .btn:not(.primary) .cost { color: var(--gold); background: #0003; }
@@ -407,8 +411,8 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .toolAff .gameIcon { width: 20px; height: 20px; }
 .toolLock { font-size: 12px; font-weight: 800; color: var(--muted); }
 .toolBtns { display: flex; gap: 6px; margin-top: auto; }
-.toolBtns .btn { flex: 1; justify-content: center; }
-.toolCard .btn.buy { width: 100%; justify-content: center; }
+.toolBtns .btn { flex: 1 1 0; min-width: 0; justify-content: center; padding-left: 6px; padding-right: 6px; }
+.toolCard .btn.buy { width: 100%; min-width: 0; justify-content: center; }
 .toolCard .btn .cost { font-size: 11px; }
 
 .toolBox { background: linear-gradient(180deg, #33264e, #281d3d); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
@@ -732,11 +736,12 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
 /* ---- 黑市商人 ---- */
 .merchantBanner {
-  position: absolute; left: 50%; top: 8px; transform: translateX(-50%); z-index: 40;
+  position: absolute; left: 50%; top: 118px; transform: translateX(-50%); z-index: 12;
   display: flex; align-items: center; gap: 6px; white-space: nowrap;
   background: linear-gradient(90deg, #3a1d52, #5a2a7a); color: #ffe9b3;
-  border: 1px solid #c084fc; border-radius: 999px; padding: 7px 16px; font-weight: 800;
-  box-shadow: 0 4px 14px #a855f766; cursor: pointer;
+  border: 1px solid #c084fc; border-radius: 999px; padding: 5px 12px; font-weight: 900;
+  max-width: calc(100% - 48px); overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 4px 14px #0009, 0 0 0 1px #fcd34d44 inset; cursor: pointer;
   animation: merchantBob 1.6s ease-in-out infinite;
 }
 .merchantBannerTime { color: #ffce3a; font-variant-numeric: tabular-nums; }
@@ -1257,16 +1262,21 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
 .bottomNav {
   background-image:
-    linear-gradient(180deg, #08060aaa, #08060add),
-    var(--ui-nav);
+    linear-gradient(180deg, #08060ad0, #08060af2),
+    var(--ui-hud);
   background-position: center;
   background-size: 100% 100%;
   border-top-color: #b0893c66;
+  justify-content: flex-start;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+
+.bottomNav::-webkit-scrollbar { display: none; }
 
 .drawer {
   background-image:
-    linear-gradient(180deg, #110d16c8, #09060dde),
+    linear-gradient(180deg, #110d16ee, #09060df4),
     var(--ui-drawer);
   background-position: center;
   background-size: 100% 100%;
@@ -1279,7 +1289,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .sellerCard,
 .itemDetail {
   background-image:
-    linear-gradient(180deg, #161019c0, #09070ed8),
+    linear-gradient(180deg, #161019ec, #09070ef4),
     var(--ui-panel);
   background-position: center;
   background-size: 100% 100%;
@@ -1297,7 +1307,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .shelveBtn,
 .itemDetailClose {
   background-image:
-    linear-gradient(180deg, #17121fc0, #08060ee8),
+    linear-gradient(180deg, #17121fe6, #08060ef5),
     var(--ui-button);
   background-position: center;
   background-size: 100% 100%;
@@ -1313,7 +1323,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .craftFlashCard,
 .riTargetTag {
   background-image:
-    linear-gradient(180deg, #fff1a066, #6f3b0088),
+    linear-gradient(180deg, #fff1a0a8, #6f3b00c8),
     var(--ui-button-primary);
   background-position: center;
   background-size: 100% 100%;
@@ -1326,7 +1336,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .sellModeSwitch.on,
 .btn.grab {
   background-image:
-    linear-gradient(180deg, #ff7a6a44, #4d0610aa),
+    linear-gradient(180deg, #ff7a6a88, #4d0610dd),
     var(--ui-button-danger);
   background-position: center;
   background-size: 100% 100%;
@@ -1337,6 +1347,13 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .navBtn {
   border: 1px solid transparent;
   border-radius: 8px;
+  background-image:
+    linear-gradient(180deg, #17121fc8, #08060ee8),
+    var(--ui-button);
+  background-position: center;
+  background-size: 100% 100%;
+  color: #d8c9a8;
+  box-shadow: inset 0 0 0 1px #0008;
 }
 
 .navBtn.on {
@@ -1372,7 +1389,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .dangerTag,
 .sellModeSwitch {
   background-image:
-    linear-gradient(180deg, #160f19aa, #08060ddd),
+    linear-gradient(180deg, #160f19e5, #08060df2),
     var(--ui-chip);
   background-position: center;
   background-size: 100% 100%;
@@ -1387,7 +1404,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .riBack,
 .riFront {
   background-image:
-    linear-gradient(180deg, #161019b5, #09070edc),
+    linear-gradient(180deg, #161019e8, #09070ef2),
     var(--ui-square);
   background-position: center;
   background-size: 100% 100%;
@@ -1404,7 +1421,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .recentLoot,
 .popCard {
   background-image:
-    linear-gradient(180deg, #161019c0, #08060ee4),
+    linear-gradient(180deg, #161019ea, #08060ef3),
     var(--ui-card);
   background-position: center;
   background-size: 100% 100%;
@@ -1428,7 +1445,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .giantCard,
 .missionRow {
   background-image:
-    linear-gradient(180deg, #151019bb, #08060ee0),
+    linear-gradient(180deg, #151019ea, #08060ef3),
     var(--ui-row);
   background-position: center;
   background-size: 100% 100%;
@@ -1438,7 +1455,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
 .merchantOffer {
   background-image:
-    linear-gradient(180deg, #151019bb, #08060ee0),
+    linear-gradient(180deg, #151019ea, #08060ef3),
     var(--ui-merchant);
   background-position: center;
   background-size: 100% 100%;
