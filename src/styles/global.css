@@ -99,16 +99,16 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
 /* ===================== SCENE ===================== */
 .scene { position: relative; flex: 1; min-height: 0; overflow: hidden; }
-.sceneBg {
-  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+.sceneBg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: #0b0716; }
+.sceneBgImg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
+}
+.sceneBgTint {
+  position: absolute; inset: 0; pointer-events: none;
   background:
     linear-gradient(180deg, #0905120a 0%, #09051205 50%, #09051255 100%),
-    var(--scene-bg) center / cover no-repeat;
-}
-.sceneBg::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: radial-gradient(560px 460px at 50% 46%, #0000 0%, #08050f33 78%, #05030a66 100%);
+    radial-gradient(560px 460px at 50% 46%, #0000 0%, #08050f33 78%, #05030a66 100%);
 }
 .hangLight {
   position: absolute; top: -60px; left: 50%; width: 380px; height: 380px; transform: translateX(-50%);

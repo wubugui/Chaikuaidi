@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { barkFor, BARKS_LUCKY } from '../data/barks';
 import { ITEM_MAP } from '../data/items';
 import { MATERIALS } from '../data/materials';
@@ -246,12 +246,14 @@ export function GameScene() {
   const ragePct = Math.min(100, Math.max(0, rage));
   const rageColor = ragePct >= 70 ? '#ff5a6e' : ragePct >= 40 ? '#ffce3a' : '#54e08a';
   const portraitId = workerPortraitId(combo);
-  const sceneStyle = { '--scene-bg': `url("${sceneBackground(stage)}")` } as CSSProperties;
 
   return (
-    <div className={'scene ' + heat + (shakeCls ? ' ' + shakeCls : '')} style={sceneStyle}>
-      {/* 背景：随阶段升级的手绘场景 */}
+    <div className={'scene ' + heat + (shakeCls ? ' ' + shakeCls : '')}>
+      {/* 背景：随阶段升级的手绘场景。用真实 <img>（与老哥头像同一机制，
+          避免 CSS 内联 var(url()) 相对路径在子路径部署下解析不到的坑） */}
       <div className="sceneBg">
+        <img className="sceneBgImg" src={sceneBackground(stage)} alt="" aria-hidden="true" draggable={false} />
+        <div className="sceneBgTint" />
         <div className="hangLight" />
         <div className="boxMountain" />
         <div className="floor" />
