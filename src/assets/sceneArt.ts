@@ -1,16 +1,18 @@
+import { assetUrl } from '../lib/asset';
+
 export const SCENE_BACKGROUNDS: Record<1 | 2 | 3 | 4, string> = {
-  1: '/game-art/backgrounds/stage-1-depot.png',
-  2: '/game-art/backgrounds/stage-2-market.png',
-  3: '/game-art/backgrounds/stage-3-factory.png',
-  4: '/game-art/backgrounds/stage-4-reactor.png',
+  1: assetUrl('/game-art/backgrounds/stage-1-depot.png'),
+  2: assetUrl('/game-art/backgrounds/stage-2-market.png'),
+  3: assetUrl('/game-art/backgrounds/stage-3-factory.png'),
+  4: assetUrl('/game-art/backgrounds/stage-4-reactor.png'),
 };
 
 export const WORKER_PORTRAITS = {
-  neutral: '/game-art/characters/worker-neutral.png',
-  angry: '/game-art/characters/worker-angry.png',
-  heated: '/game-art/characters/worker-heated.png',
-  furious: '/game-art/characters/worker-furious.png',
-  demon: '/game-art/characters/worker-demon.png',
+  neutral: assetUrl('/game-art/characters/worker-neutral.png'),
+  angry: assetUrl('/game-art/characters/worker-angry.png'),
+  heated: assetUrl('/game-art/characters/worker-heated.png'),
+  furious: assetUrl('/game-art/characters/worker-furious.png'),
+  demon: assetUrl('/game-art/characters/worker-demon.png'),
 } as const;
 
 export type WorkerPortraitId = keyof typeof WORKER_PORTRAITS;

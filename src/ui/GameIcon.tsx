@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { GAME_ART_BY_EMOJI, GAME_ART_BY_ID, GAME_ART_BY_KEY, GAME_ART_BY_NAME } from '../assets/gameArt';
+import { assetUrl } from '../lib/asset';
 
 interface GameIconLookup {
   kind?: string;
@@ -17,14 +18,12 @@ interface GameIconProps extends GameIconLookup {
 
 export function gameArtSrc({ kind, id, name, emoji }: GameIconLookup): string | null {
   const sid = id == null ? '' : String(id);
-  if (kind && sid) {
-    const byKey = GAME_ART_BY_KEY[`${kind}:${sid}`];
-    if (byKey) return byKey;
-  }
-  if (sid && GAME_ART_BY_ID[sid]) return GAME_ART_BY_ID[sid];
-  if (name && GAME_ART_BY_NAME[name]) return GAME_ART_BY_NAME[name];
-  if (emoji && GAME_ART_BY_EMOJI[emoji]) return GAME_ART_BY_EMOJI[emoji];
-  return null;
+  let raw: string | undefined;
+  if (kind && sid) raw = GAME_ART_BY_KEY[`${kind}:${sid}`];
+  if (!raw && sid) raw = GAME_ART_BY_ID[sid];
+  if (!raw && name) raw = GAME_ART_BY_NAME[name];
+  if (!raw && emoji) raw = GAME_ART_BY_EMOJI[emoji];
+  return raw ? assetUrl(raw) : null;
 }
 
 export function GameIcon({ kind, id, name, emoji, className = '', title, size, style }: GameIconProps) {
