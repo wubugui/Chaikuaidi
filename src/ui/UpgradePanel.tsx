@@ -5,6 +5,7 @@ import { TOOLS, toolUpgradeCost } from '../data/tools';
 import { UPGRADES, upgradeBulkCost, upgradeCost } from '../data/upgrades';
 import { useGame } from '../game/store';
 import { money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 // 升级解锁阶段
 const UPGRADE_STAGE: Record<string, number> = {
@@ -38,7 +39,7 @@ export function UpgradePanel() {
         {TOOLS.map((t) => {
           const owned = ownedTools.includes(t.id);
           const equipped = t.id === currentTool;
-          // 亲和度摘要：该工具擅长（>=1）的材质 emoji
+          // 亲和度摘要：该工具擅长（>=1）的材质
           const affList = (Object.keys(t.affinity) as MaterialId[])
             .filter((mat) => (t.affinity[mat] ?? 0) >= 1)
             .sort((a, b) => (t.affinity[b] ?? 0) - (t.affinity[a] ?? 0));
@@ -48,22 +49,22 @@ export function UpgradePanel() {
               return (
                 <div className="toolCard locked" key={t.id}>
                   <div className="toolCardHead">
-                    <span className="toolCardEmoji">{t.emoji}</span>
+                    <GameIcon className="toolCardEmoji" kind="tool" id={t.id} name={t.name} emoji={t.emoji} />
                     <span className="toolCardName">{t.name}</span>
                   </div>
-                  <div className="toolLock">🔒 阶段{t.unlockStage}</div>
+                  <div className="toolLock"><GameIcon kind="ui" id="lock" className="tinyIcon" />阶段{t.unlockStage}</div>
                 </div>
               );
             }
             return (
               <div className="toolCard" key={t.id}>
                 <div className="toolCardHead">
-                  <span className="toolCardEmoji">{t.emoji}</span>
+                  <GameIcon className="toolCardEmoji" kind="tool" id={t.id} name={t.name} emoji={t.emoji} />
                   <span className="toolCardName">{t.name}</span>
                 </div>
                 <div className="toolAff">
                   {affList.map((mat) => (
-                    <span key={mat} title={MATERIALS[mat].name}>{MATERIALS[mat].emoji}</span>
+                    <GameIcon key={mat} kind="material" id={mat} name={MATERIALS[mat].name} emoji={MATERIALS[mat].emoji} title={MATERIALS[mat].name} />
                   ))}
                 </div>
                 <button className="btn buy" disabled={m < t.cost} onClick={() => buyTool(t.id)}>
@@ -83,12 +84,12 @@ export function UpgradePanel() {
           return (
             <div className={'toolCard owned' + (equipped ? ' equipped' : '')} key={t.id}>
               <div className="toolCardHead">
-                <span className="toolCardEmoji">{t.emoji}</span>
+                <GameIcon className="toolCardEmoji" kind="tool" id={t.id} name={t.name} emoji={t.emoji} />
                 <span className="toolCardName">{t.name} <span className="toolLvl">Lv.{lvl}</span></span>
               </div>
               <div className="toolAff">
                 {affList.map((mat) => (
-                  <span key={mat} title={MATERIALS[mat].name}>{MATERIALS[mat].emoji}</span>
+                  <GameIcon key={mat} kind="material" id={mat} name={MATERIALS[mat].name} emoji={MATERIALS[mat].emoji} title={MATERIALS[mat].name} />
                 ))}
               </div>
               <div className="toolBtns">
@@ -108,7 +109,11 @@ export function UpgradePanel() {
                   升级
                   <span className="cost">
                     {money(cost.money)}
-                    {matDef ? ` ${cost.mat}×${matDef.emoji}` : ''}
+                    {matDef ? (
+                      <>
+                        {' '}{cost.mat}×<GameIcon kind="item" id={matDef.id} name={matDef.name} emoji={matDef.emoji} className="tinyIcon" />
+                      </>
+                    ) : ''}
                   </span>
                 </button>
               </div>
@@ -132,7 +137,7 @@ export function UpgradePanel() {
           if (stage < need) {
             return (
               <div className="upgradeRow locked" key={u.id}>
-                <span className="lockIcon">🔒</span>
+                <GameIcon kind="ui" id="lock" className="lockIcon" />
                 <span className="upInfo">阶段 {need} 解锁</span>
               </div>
             );
@@ -145,7 +150,7 @@ export function UpgradePanel() {
           return (
             <div className="upgradeRow" key={u.id}>
               <div className="upMain">
-                <span className="upEmoji">{u.emoji}</span>
+                <GameIcon className="upEmoji" kind="upgrade" id={u.id} name={u.name} emoji={u.emoji} />
                 <div className="upText">
                   <div className="upName">
                     {u.name} <span className="upLvl">Lv.{lvl}{u.maxLevel > 0 ? `/${u.maxLevel}` : ''}</span>

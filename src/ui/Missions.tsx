@@ -4,6 +4,7 @@ import { ORDNANCE_MAP } from '../data/ordnance';
 import { MUTATION_MAP, type MutationId } from '../data/mutations';
 import { useGame } from '../game/store';
 import { money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 /** 未满足的前置，返回人类可读的提示；满足则返回 null */
 function requireHint(def: MissionDef, done: string[], ordnance: Record<string, number>, mutations: string[]): string | null {
@@ -14,11 +15,11 @@ function requireHint(def: MissionDef, done: string[], ordnance: Record<string, n
   }
   if (req.ordnance && (ordnance[req.ordnance] ?? 0) < 1) {
     const o = ORDNANCE_MAP[req.ordnance];
-    return `需先备一发 ${o?.emoji ?? ''}${o?.name ?? req.ordnance}`;
+    return `需先备一发 ${o?.name ?? req.ordnance}`;
   }
   if (req.mutation && !mutations.includes(req.mutation)) {
     const mu = MUTATION_MAP[req.mutation as MutationId];
-    return `需先变异出 ${mu?.emoji ?? ''}${mu?.name ?? req.mutation}`;
+    return `需先变异出 ${mu?.name ?? req.mutation}`;
   }
   return null;
 }
@@ -52,10 +53,10 @@ export function Missions() {
           if (live) {
             return (
               <div className="missionRow inprogress" key={def.id}>
-                <span className="missionEmoji">{def.emoji}</span>
+                <GameIcon className="missionEmoji" kind="mission" id={def.id} name={def.name} emoji={def.emoji} />
                 <div className="missionInfo">
-                  <div className="missionName">{def.name} <span className="missionGoing">🛠️ 进行中（在现场亲自拆解）</span></div>
-                  <div className="missionFlavor">回主界面，用装备的工具把这座「📍 远征现场 · {def.name}」砸开——拆穿即收获 {unique?.emoji}{unique?.name}。</div>
+                  <div className="missionName">{def.name} <span className="missionGoing"><GameIcon kind="ui" id="workshop" className="tinyIcon" />进行中（在现场亲自拆解）</span></div>
+                  <div className="missionFlavor">回主界面，用装备的工具把这座「远征现场 · {def.name}」砸开——拆穿即收获 {unique && <GameIcon kind="item" id={unique.id} name={unique.name} emoji={unique.emoji} className="tinyIcon" />}{unique?.name}。</div>
                 </div>
               </div>
             );
@@ -65,10 +66,10 @@ export function Missions() {
           if (isDone) {
             return (
               <div className="missionRow done" key={def.id}>
-                <span className="missionEmoji">{def.emoji}</span>
+                <GameIcon className="missionEmoji" kind="mission" id={def.id} name={def.name} emoji={def.emoji} />
                 <div className="missionInfo">
                   <div className="missionName">{def.name} <span className="doneTag">✓ 已拆除</span></div>
-                  <div className="missionFlavor">已收入 {unique?.emoji}{unique?.name} · 独一无二，去过就没了。</div>
+                  <div className="missionFlavor">已收入 {unique && <GameIcon kind="item" id={unique.id} name={unique.name} emoji={unique.emoji} className="tinyIcon" />}{unique?.name} · 独一无二，去过就没了。</div>
                 </div>
               </div>
             );
@@ -79,18 +80,18 @@ export function Missions() {
           const poor = m < def.cost;
           return (
             <div className={'missionRow' + (locked ? ' locked' : '')} key={def.id}>
-              <span className="missionEmoji">{def.emoji}</span>
+              <GameIcon className="missionEmoji" kind="mission" id={def.id} name={def.name} emoji={def.emoji} />
               <div className="missionInfo">
                 <div className="missionName">
                   {def.name}
-                  <span className="missionUnique">🏅 唯一</span>
+                  <span className="missionUnique"><GameIcon kind="ui" id="unique" className="tinyIcon" />唯一</span>
                 </div>
                 <div className="missionFlavor">{def.flavor}</div>
                 <div className="missionMeta">
-                  卖家：<b>{def.seller.name}</b> · 到现场亲手拆 · 返还 {unique?.emoji}{unique?.name}
+                  卖家：<b>{def.seller.name}</b> · 到现场亲手拆 · 返还 {unique && <GameIcon kind="item" id={unique.id} name={unique.name} emoji={unique.emoji} className="tinyIcon" />}{unique?.name}
                 </div>
-                {lockedStage && <div className="missionLockHint">🔒 需阶段 {def.unlockStage}</div>}
-                {!lockedStage && hint && <div className="missionLockHint">🔒 {hint}</div>}
+                {lockedStage && <div className="missionLockHint"><GameIcon kind="ui" id="lock" className="tinyIcon" />需阶段 {def.unlockStage}</div>}
+                {!lockedStage && hint && <div className="missionLockHint"><GameIcon kind="ui" id="lock" className="tinyIcon" />{hint}</div>}
               </div>
               <div className="missionGoCol">
                 <button

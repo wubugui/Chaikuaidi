@@ -8,6 +8,7 @@ import { CONTAINERS, LUGGAGE } from '../data/shop';
 import { factoryFree } from '../game/state';
 import { useGame } from '../game/store';
 import { money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 function mmss(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -33,7 +34,7 @@ export function Merchant() {
   if (!merchant) {
     return (
       <div className="merchantPanel">
-        <div className="invEmpty">🕶️ 商人不在……下次到访还要等等。</div>
+        <div className="invEmpty"><GameIcon kind="ui" id="merchant" className="inlineIcon" />商人不在……下次到访还要等等。</div>
       </div>
     );
   }
@@ -42,7 +43,7 @@ export function Merchant() {
 
   return (
     <div className="merchantPanel">
-      <div className="merchantCountdown">🕶️ 黑市商人在场 · 限时 <b>{mmss(left)}</b></div>
+      <div className="merchantCountdown"><GameIcon kind="ui" id="merchant" className="inlineIcon" />黑市商人在场 · 限时 <b>{mmss(left)}</b></div>
       <p className="shopHint">限量稀缺货，过这村没这店——错过就得等下一趟。</p>
       <div className="merchantList">
         {merchant.offers.map((o) => {
@@ -71,27 +72,34 @@ export function Merchant() {
           const soldOut = o.stock <= 0;
           return (
             <div className={'merchantOffer' + (soldOut ? ' soldout' : '')} key={o.id}>
-              <div className="batchEmoji">{good.emoji}</div>
+              <GameIcon className="batchEmoji" name={good.name} emoji={good.emoji} />
               <div className="batchInfo">
                 <div className="batchName">
                   {good.name}
-                  {danger && <span className="dangerTag">⚠️ 危险品</span>}
-                  {mut && <span className="mutTag">🧬{mut.emoji}{mut.name}</span>}
+                  {danger && <span className="dangerTag"><GameIcon kind="ui" id="danger" className="tinyIcon" />危险品</span>}
+                  {mut && (
+                    <span className="mutTag">
+                      <GameIcon kind="ui" id="mutation" className="tinyIcon" />
+                      <GameIcon kind="mutation" id={mut.id} name={mut.name} emoji={mut.emoji} className="tinyIcon" />{mut.name}
+                    </span>
+                  )}
                   {giant && (
                     <span className="giantPipeTag">
-                      🏭{PIPELINE_NAME[giant.requirePipeline]} · 占 {giant.space} 格
+                      <GameIcon kind="ui" id="pipe" className="tinyIcon" />{PIPELINE_NAME[giant.requirePipeline]} · 占 {giant.space} 格
                     </span>
                   )}
                   {absurd && (
                     <span className="absurdTag">
-                      💥 需 {ord?.emoji}{ord?.name} 轰开 · 占 {absurd.space} 格
+                      <GameIcon kind="ui" id="boom" className="tinyIcon" />
+                      需 {ord && <GameIcon kind="ordnance" id={ord.id} name={ord.name} emoji={ord.emoji} className="tinyIcon" />}{ord?.name} 轰开 · 占 {absurd.space} 格
                     </span>
                   )}
-                  {absurd?.unique && <span className="uniqueTag">🏅 独一无二</span>}
+                  {absurd?.unique && <span className="uniqueTag"><GameIcon kind="ui" id="unique" className="tinyIcon" />独一无二</span>}
                 </div>
                 {mat && (
                   <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
-                    {mat.emoji} {mat.name}
+                    <GameIcon kind="material" id={mat.id} name={mat.name} emoji={mat.emoji} />
+                    {mat.name}
                   </span>
                 )}
                 <div className="merchantStock">{soldOut ? '售罄' : '剩 ×' + o.stock}</div>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="机甲核心">
+  <defs>
+    <linearGradient id="body" x1="26" y1="22" x2="101" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#e0ffe7"/><stop offset=".45" stop-color="#76e0a3"/><stop offset="1" stop-color="#24885c"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="22" y1="20" x2="104" y2="107" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#76e0a3"/>
+    </linearGradient>
+    <filter id="ds" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="5" stdDeviation="3" flood-color="#05020a" flood-opacity=".5"/>
+    </filter>
+  </defs>
+  <ellipse cx="64" cy="108" rx="38" ry="10" fill="#000" opacity=".26"/><g filter="url(#ds)"><rect x="42" y="35" width="44" height="45" rx="8" fill="url(#body)" stroke="#1b1126" stroke-width="5"/><rect x="48" y="43" width="12" height="10" fill="#bffaff" stroke="#1b1126" stroke-width="3"/><rect x="68" y="43" width="12" height="10" fill="#bffaff" stroke="#1b1126" stroke-width="3"/><path d="M42 62h44M37 81l-12 19M91 81l12 19M43 80v23M85 80v23" stroke="#1b1126" stroke-width="7" stroke-linecap="round"/><path d="M36 42 22 61M92 42l16 15" stroke="#1b1126" stroke-width="8" stroke-linecap="round"/></g>
+</svg>

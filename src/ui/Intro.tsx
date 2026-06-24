@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGame } from '../game/store';
+import { GameIcon } from './GameIcon';
 
 interface Slide {
   emoji: string;
@@ -16,6 +17,8 @@ const SLIDES: Slide[] = [
   { emoji: '📦✨', text: '那一刻你顿悟了：这些箱子，天生就是用来拆的。', sub: '拆得越快越爽，装备越来越离谱，骂得越来越上头。' },
 ];
 
+const SLIDE_ART = ['intro-depot', 'intro-worker', 'intro-bored', 'intro-rage', 'intro-smash', 'intro-reveal'];
+
 export function Intro() {
   const introSeen = useGame((s) => s.introSeen);
   const markIntroSeen = useGame((s) => s.markIntroSeen);
@@ -28,7 +31,7 @@ export function Intro() {
   return (
     <div className="introBg">
       <div className="introBox">
-        <div className="introEmoji">{slide.emoji}</div>
+        <GameIcon className="introEmoji" kind="story" id={SLIDE_ART[i]} emoji={slide.emoji} />
         <div className="introText">{slide.text}</div>
         {slide.sub && <div className="introSub">{slide.sub}</div>}
 
@@ -41,7 +44,7 @@ export function Intro() {
         <div className="introActions">
           <button className="btn" onClick={markIntroSeen}>跳过</button>
           {last ? (
-            <button className="btn primary big" onClick={markIntroSeen}>💢 开拆！</button>
+            <button className="btn primary big" onClick={markIntroSeen}><GameIcon kind="ui" id="crack" className="tinyIcon" />开拆！</button>
           ) : (
             <button className="btn primary" onClick={() => setI((v) => v + 1)}>继续 →</button>
           )}

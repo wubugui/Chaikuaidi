@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { on } from '../../game/events';
 import { sfxBoom } from '../../lib/audio';
+import { GameIcon } from '../GameIcon';
 
 /** 危险品爆炸时的全屏 💥 闪光 + 抖动 */
 export function BoomFlash() {
@@ -22,7 +23,7 @@ export function BoomFlash() {
   if (id === 0) return null;
   return (
     <div className="boomFlash" key={id}>
-      <span className="boomEmoji">💥</span>
+      <GameIcon className="boomEmoji" kind="ui" id="boom" />
     </div>
   );
 }

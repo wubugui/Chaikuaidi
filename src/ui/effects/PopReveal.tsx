@@ -5,6 +5,7 @@ import { neededParts } from '../../data/blueprints';
 import { useGame } from '../../game/store';
 import { isShowcase } from './RevealLayer';
 import { sfxLoot } from '../../lib/audio';
+import { GameIcon } from '../GameIcon';
 
 interface Pop {
   id: number;
@@ -56,7 +57,7 @@ export function PopReveal() {
     <>
       {boomKey > 0 && (
         <div className="absurdBoom" key={boomKey}>
-          <span className="absurdBoomEmoji">💥</span>
+          <GameIcon className="absurdBoomEmoji" kind="ui" id="boom" />
           <span className="absurdBoomLabel">离谱！</span>
         </div>
       )}
@@ -67,16 +68,16 @@ export function PopReveal() {
             const items = pop.data.items.slice(0, 4);
             return (
               <div className="popCard" key={pop.id} style={{ borderColor: topR.color }}>
-                <div className="popBack">❓</div>
+                <div className="popBack"><GameIcon kind="ui" id="unknown" /></div>
                 <div className="popFront">
                   {items.map((it, i) => {
                     const r = RARITIES[it.rarity];
                     const targetPart = it.kind === 'part' && it.itemId != null && need.has(it.itemId);
                     return (
                       <div className={'popItem' + (targetPart ? ' popItemTarget' : '')} key={i} style={{ borderColor: r.color }}>
-                        <span className="popEmoji">{it.emoji}</span>
+                        <GameIcon className="popEmoji" kind="item" id={it.itemId} name={it.name} emoji={it.emoji} />
                         <span className="popName" style={{ color: r.color }}>{it.name}</span>
-                        {targetPart && <span className="popTargetTag">✨</span>}
+                        {targetPart && <GameIcon className="popTargetTag" kind="ui" id="spark" />}
                       </div>
                     );
                   })}

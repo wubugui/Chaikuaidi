@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { barkFor, BARKS_LUCKY } from '../data/barks';
 import { ITEM_MAP } from '../data/items';
 import { MATERIALS } from '../data/materials';
 import { PARCEL_MAP } from '../data/parcels';
 import { MUTATION_MAP, type MutationId } from '../data/mutations';
 import { TOOL_MAP } from '../data/tools';
+import { sceneBackground, workerPortraitId, WORKER_PORTRAITS } from '../assets/sceneArt';
 import { benchCapacity, bodyAffinity, clickCooldown, clickPowerBase, comboMult, sellBonus } from '../game/compute';
 import { effectiveAffinity, type FeedbackLevel } from '../game/engine';
 import { on } from '../game/events';
@@ -13,22 +14,15 @@ import type { GameState, Parcel } from '../game/state';
 import { sellValue } from '../game/systems/loot';
 import { sfxBonk, sfxCrack, sfxRip } from '../lib/audio';
 import { fmt, money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 const BONK_BARKS = ['这玩意儿手抠不动啊！', '换个家伙！', '撬不动……得用对工具！'];
 
-interface Particle { id: number; x: number; y: number; dx: number; dy: number; char: string; }
+interface Particle { id: number; x: number; y: number; dx: number; dy: number; artId: string; }
 interface Dmg { id: number; x: number; y: number; text: string; big: boolean; }
 
 let pid = 1;
-const SCRAPS = ['✦', '✧', '🟫', '⬜', '📄', '💢'];
-
-function rageFace(combo: number): string {
-  if (combo >= 50) return '😈';
-  if (combo >= 20) return '🤬';
-  if (combo >= 8) return '😤';
-  if (combo >= 1) return '😠';
-  return '😐';
-}
+const SCRAPS = ['paper-a', 'paper-b', 'tape', 'spark-a', 'spark-b', 'crack'];
 
 /** 把当前玩家状态（肉身/变异门）代入有效亲和度（UI 用） */
 function effAff(s: GameState, p: Parcel): number {
@@ -53,6 +47,7 @@ export function GameScene() {
   const currentTool = useGame((s) => s.currentTool);
   const ownedTools = useGame((s) => s.ownedTools);
   const inventory = useGame((s) => s.inventory);
+  const stage = useGame((s) => s.stage);
   const click = useGame((s) => s.click);
   const selectTool = useGame((s) => s.selectTool);
   const shelveToBacklog = useGame((s) => s.shelveToBacklog);
@@ -180,7 +175,7 @@ export function GameScene() {
         y,
         dx: (Math.random() - 0.5) * 160,
         dy: -40 - Math.random() * 120,
-        char: SCRAPS[Math.floor(Math.random() * SCRAPS.length)],
+        artId: SCRAPS[Math.floor(Math.random() * SCRAPS.length)],
       });
     }
     setParticles((p) => [...p.slice(-40), ...next]);
@@ -250,21 +245,23 @@ export function GameScene() {
   const boxSize = n <= 1 ? 150 : n <= 2 ? 116 : n <= 4 ? 92 : n <= 6 ? 72 : 56;
   const ragePct = Math.min(100, Math.max(0, rage));
   const rageColor = ragePct >= 70 ? '#ff5a6e' : ragePct >= 40 ? '#ffce3a' : '#54e08a';
+  const portraitId = workerPortraitId(combo);
+  const sceneStyle = { '--scene-bg': `url("${sceneBackground(stage)}")` } as CSSProperties;
 
   return (
-    <div className={'scene ' + heat + (shakeCls ? ' ' + shakeCls : '')}>
-      {/* 背景：仓库 + 箱山 */}
+    <div className={'scene ' + heat + (shakeCls ? ' ' + shakeCls : '')} style={sceneStyle}>
+      {/* 背景：随阶段升级的手绘场景 */}
       <div className="sceneBg">
         <div className="hangLight" />
-        <div className="boxMountain">{'📦'.repeat(14)}</div>
+        <div className="boxMountain" />
         <div className="floor" />
       </div>
 
       {/* 小标牌 */}
       <div className="sceneMeta">
-        <span title="单次拆解（不含连击）">💪{fmt(cPower)}</span>
-        <span title="同时处理">📦{workbench.length}/{cap}</span>
-        <span title="待拆队列">📥{queueLen}</span>
+        <span title="单次拆解（不含连击）"><GameIcon kind="upgrade" id="clickPower" className="tinyIcon" />{fmt(cPower)}</span>
+        <span title="同时处理"><GameIcon kind="ui" id="logo" className="tinyIcon" />{workbench.length}/{cap}</span>
+        <span title="待拆队列"><GameIcon kind="ui" id="inbox" className="tinyIcon" />{queueLen}</span>
       </div>
 
       {/* 连击大表 */}
@@ -288,14 +285,15 @@ export function GameScene() {
         {/* 远征现场提示：台上有远征结构时，明确告知玩家正在现场亲手拆解 */}
         {expedition && (
           <div className="expeditionBanner">
-            📍 远征现场：{(expedition.label ?? '').replace('📍 远征现场 · ', '')} —— 砸穿它即完成
+            <GameIcon kind="ui" id="map" className="labelIcon" />
+            远征现场：{(expedition.label ?? '').replace('📍 远征现场 · ', '')} —— 砸穿它即完成
           </div>
         )}
 
         {/* 快递（主角，放大居中） */}
         <div className="boxes">
           {workbench.length === 0 ? (
-            <div className="boxesEmpty">📭 没货了……砸两下，新货马上到！</div>
+            <div className="boxesEmpty"><GameIcon kind="ui" id="inbox" className="inlineIcon" />没货了……砸两下，新货马上到！</div>
           ) : (
             workbench.map((p) => {
               const pct = Math.max(0, (p.sealHP / p.sealMax) * 100);
@@ -321,19 +319,33 @@ export function GameScene() {
                       shelveToBacklog(p.id);
                     }}
                   >
-                    📥
+                    <GameIcon kind="ui" id="inbox" />
                   </button>
                   <div className={'bigBoxWrap' + (gated ? ' jitter' : '')} key={gated ? jitterId : undefined}>
                     <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
-                      {mat.emoji} {mat.name}
+                      <GameIcon kind="material" id={mat.id} name={mat.name} emoji={mat.emoji} />
+                      {mat.name}
                     </span>
-                    {danger && <span className="dangerBadge" title="危险品：用拆弹钳才安全，错了会炸">⚠️ 危险</span>}
-                    <div className="bigBoxEmoji" key={swing} style={{ fontSize: boxSize }}>{p.emoji}</div>
-                    {!gated && pct < 67 && <span className="crack c1">💢</span>}
-                    {!gated && pct < 34 && <span className="crack c2">💥</span>}
+                    {danger && (
+                      <span className="dangerBadge" title="危险品：用拆弹钳才安全，错了会炸">
+                        <GameIcon kind="ui" id="danger" className="tinyIcon" />危险
+                      </span>
+                    )}
+                    <GameIcon
+                      key={swing}
+                      className="bigBoxEmoji"
+                      kind={p.label ? undefined : 'parcel'}
+                      id={p.label ? undefined : p.size}
+                      name={p.label ?? PARCEL_MAP[p.size].name}
+                      emoji={p.emoji}
+                      size={boxSize}
+                    />
+                    {!gated && pct < 67 && <GameIcon className="crack c1" kind="ui" id="crack" size={28} />}
+                    {!gated && pct < 34 && <GameIcon className="crack c2" kind="ui" id="boom" size={34} />}
                     {needMut && (
                       <div className="gateOverlay mutGate">
-                        🧬 需要变异：{needMut.emoji}{needMut.name}
+                        <GameIcon kind="ui" id="mutation" className="labelIcon" />
+                        需要变异：<GameIcon kind="mutation" id={needMut.id} name={needMut.name} emoji={needMut.emoji} className="labelIcon" />{needMut.name}
                       </div>
                     )}
                   </div>
@@ -348,30 +360,42 @@ export function GameScene() {
         {/* 暴躁老哥（站旁边念叨，变异后浑身长怪器官） */}
         <div className="dude side">
           {bark && <div className="bark" key={bark.id}>{bark.text}</div>}
-          <div className={'dudeFace' + (combo >= 20 ? ' mad' : '')}>{rageFace(combo)}</div>
+          <img
+            className={'dudePortrait' + (combo >= 20 ? ' mad' : '')}
+            src={WORKER_PORTRAITS[portraitId]}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+          />
           {mutations.length > 0 && (
             <div className="dudeMutations">
               {mutations.map((id, i) => (
-                <span className="mutBadge" key={id + i} title={MUTATION_MAP[id].name}>
-                  {MUTATION_MAP[id].emoji}
-                </span>
+                <GameIcon
+                  className="mutBadge"
+                  kind="mutation"
+                  id={id}
+                  name={MUTATION_MAP[id].name}
+                  emoji={MUTATION_MAP[id].emoji}
+                  key={id + i}
+                  title={MUTATION_MAP[id].name}
+                />
               ))}
             </div>
           )}
-          <div className="dudeHand" key={swing % 1000}>{tool.emoji}</div>
+          <GameIcon className="dudeHand" kind="tool" id={tool.id} name={tool.name} emoji={tool.emoji} key={swing % 1000} />
           <div className="dudeName">{tool.name}</div>
           {revengeLeft > 0 && <div className="revengeTag">报复×{revengeLeft}</div>}
         </div>
 
         {/* 粒子 */}
         {particles.map((p) => (
-          <span
+          <GameIcon
             className="scrap"
             key={p.id}
+            kind={p.artId === 'crack' ? 'ui' : 'fx'}
+            id={p.artId}
             style={{ left: p.x, top: p.y, ['--dx' as any]: p.dx + 'px', ['--dy' as any]: p.dy + 'px' }}
-          >
-            {p.char}
-          </span>
+          />
         ))}
         {/* 伤害数字 */}
         {dmgs.map((d) => (
@@ -380,7 +404,7 @@ export function GameScene() {
           </span>
         ))}
 
-        <div className="tapHint">👆 按住猛砸</div>
+        <div className="tapHint"><GameIcon kind="ui" id="click" className="inlineIcon" />按住猛砸</div>
       </div>
 
       {/* 暴怒条 */}
@@ -407,7 +431,7 @@ export function GameScene() {
                 onClick={() => selectTool(id)}
                 title={t.name}
               >
-                <span className="toolChipEmoji">{t.emoji}</span>
+                <GameIcon className="toolChipEmoji" kind="tool" id={t.id} name={t.name} emoji={t.emoji} />
                 <span className="toolChipName">{t.name}</span>
               </button>
             );
@@ -417,16 +441,22 @@ export function GameScene() {
 
       {/* 卖货条 */}
       <div className="sellBar">
-        <div className="bagInfo">🎒 背包 <b>{money(bagValue)}</b></div>
+        <div className="bagInfo"><GameIcon kind="ui" id="bag" className="inlineIcon" />背包 <b>{money(bagValue)}</b></div>
         <button className="sellBtn" disabled={bagValue <= 0} onClick={() => sellAllItems(null)}>
-          💰 全卖 {bagValue > 0 ? '+' + money(bagValue) : ''}
+          <GameIcon kind="ui" id="sell" className="inlineIcon" />全卖 {bagValue > 0 ? '+' + money(bagValue) : ''}
         </button>
       </div>
 
       {/* 变异时刻：全屏紫闪 + 新器官炸入 */}
       {mutateFx && (
         <div className="mutateFlash" key={mutateFx.id}>
-          <span className="mutateEmoji">{MUTATION_MAP[mutateFx.mut].emoji}</span>
+          <GameIcon
+            className="mutateEmoji"
+            kind="mutation"
+            id={mutateFx.mut}
+            name={MUTATION_MAP[mutateFx.mut].name}
+            emoji={MUTATION_MAP[mutateFx.mut].emoji}
+          />
           <span className="mutateLabel">变异！{MUTATION_MAP[mutateFx.mut].name}</span>
         </div>
       )}

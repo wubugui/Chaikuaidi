@@ -7,6 +7,7 @@ import { ORDNANCE_MAP } from '../data/ordnance';
 import { factoryFree, factoryUsed, type Parcel } from '../game/state';
 import { useGame } from '../game/store';
 import { fmt, money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 interface GiantRow {
   id: string;
@@ -92,13 +93,13 @@ export function Factory() {
   return (
     <div className="factoryPanel">
       <p className="shopHint">
-        巨型货（汽车/客机/货轮/坦克）暴力拆不开，得靠 🏭 拆卸管线慢慢肢解成成堆零件与原料。它们和管线都占厂房空间——放不下就先扩建或等现有的拆完。
+        巨型货（汽车/客机/货轮/坦克）暴力拆不开，得靠拆卸管线慢慢肢解成成堆零件与原料。它们和管线都占厂房空间——放不下就先扩建或等现有的拆完。
       </p>
 
       {/* 空间条 */}
       <div className="factorySpaceBar">
         <div className="factorySpaceHead">
-          <span>🏭 厂房空间</span>
+          <span><GameIcon kind="ui" id="factory" className="inlineIcon" />厂房空间</span>
           <b>{fmt(used)} / {fmt(factorySpace)}</b>
           <span className="factoryFree">（剩 {fmt(free)}）</span>
         </div>
@@ -111,9 +112,9 @@ export function Factory() {
       </div>
 
       {/* 厂房里的巨型货 */}
-      <h3 className="shopSecTitle">🚚 厂房里的巨型货</h3>
+      <h3 className="shopSecTitle"><GameIcon kind="ui" id="factory" className="inlineIcon" />厂房里的巨型货</h3>
       {heldGiants.length === 0 ? (
-        <div className="invEmpty">厂房空着——去下面买台巨型货，或找 🕶️ 黑市商人淘点货轮/坦克/飞机。</div>
+        <div className="invEmpty">厂房空着——去下面买台巨型货，或找黑市商人淘点货轮/坦克/飞机。</div>
       ) : (
         <div className="giantHeldList">
           {heldGiants.map((g) => {
@@ -121,18 +122,18 @@ export function Factory() {
             const pipeOn = hasPipeline && !!deviceEnabled[g.requirePipeline];
             return (
               <div className="giantHeldRow" key={g.id}>
-                <span className="giantEmoji">{g.emoji}</span>
+                <GameIcon className="giantEmoji" name={g.name} emoji={g.emoji} />
                 <div className="giantInfo">
                   <div className="giantName">
                     {g.name} <span className="backlogCount">×{fmt(g.count)}</span>
                     <span className="giantSpace">占 {g.space} 格</span>
                   </div>
                   {pipeOn ? (
-                    <span className="giantProgress">🏭 {PIPELINE_NAME[g.requirePipeline]} 正在拆解中…</span>
+                    <span className="giantProgress"><GameIcon kind="ui" id="pipe" className="tinyIcon" />{PIPELINE_NAME[g.requirePipeline]} 正在拆解中…</span>
                   ) : hasPipeline ? (
-                    <span className="giantNeedPipe">🏭{PIPELINE_NAME[g.requirePipeline]} 已停工——去下方开启它</span>
+                    <span className="giantNeedPipe"><GameIcon kind="ui" id="pipe" className="tinyIcon" />{PIPELINE_NAME[g.requirePipeline]} 已停工——去下方开启它</span>
                   ) : (
-                    <span className="giantNeedPipe">需要 🏭{PIPELINE_NAME[g.requirePipeline]}（去工坊合成）</span>
+                    <span className="giantNeedPipe">需要 <GameIcon kind="ui" id="pipe" className="tinyIcon" />{PIPELINE_NAME[g.requirePipeline]}（去工坊合成）</span>
                   )}
                 </div>
               </div>
@@ -144,7 +145,7 @@ export function Factory() {
       {/* 厂房里的离谱货（军火轰开） */}
       {heldAbsurds.length > 0 && (
         <>
-          <h3 className="shopSecTitle">💥 离谱货（军火轰开）</h3>
+          <h3 className="shopSecTitle"><GameIcon kind="ui" id="boom" className="inlineIcon" />离谱货（军火轰开）</h3>
           <p className="shopHint">高达/变形金刚/外星飞船/黑方碑——任何工具和管线都开不了，只能用对应军火「轰开」。轰开 = 大爆炸 + 高概率把老哥也炸出新变异！</p>
           <div className="giantHeldList">
             {heldAbsurds.map((a) => {
@@ -153,14 +154,14 @@ export function Factory() {
               const canBoom = have >= 1;
               return (
                 <div className="giantHeldRow absurdRow" key={a.name}>
-                  <span className="giantEmoji">{a.emoji}</span>
+                  <GameIcon className="giantEmoji" name={a.name} emoji={a.emoji} />
                   <div className="giantInfo">
                     <div className="giantName">
                       {a.name} <span className="backlogCount">×{fmt(a.count)}</span>
                       <span className="giantSpace">占 {a.space} 格</span>
                     </div>
                     <span className={canBoom ? 'giantProgress' : 'giantNeedPipe'}>
-                      💣 需要：{ord?.emoji}{ord?.name}（拥有 ×{fmt(have)}）
+                      需要：{ord && <GameIcon kind="ordnance" id={ord.id} name={ord.name} emoji={ord.emoji} className="tinyIcon" />}{ord?.name}（拥有 ×{fmt(have)}）
                     </span>
                   </div>
                   <div className="giantBuyCol">
@@ -170,7 +171,7 @@ export function Factory() {
                       onClick={() => useOrdnance(a.firstId)}
                       title={canBoom ? '用军火轰开它' : `先去工坊造一发${ord?.name}`}
                     >
-                      💥 轰开
+                      <GameIcon kind="ui" id="boom" className="tinyIcon" />轰开
                     </button>
                     {!canBoom && <span className="benchFullHint">没有{ord?.name}，去工坊合成</span>}
                   </div>
@@ -182,9 +183,9 @@ export function Factory() {
       )}
 
       {/* 已建拆卸管线 */}
-      <h3 className="shopSecTitle">🏭 拆卸管线</h3>
+      <h3 className="shopSecTitle"><GameIcon kind="ui" id="pipe" className="inlineIcon" />拆卸管线</h3>
       {pipelines.length === 0 ? (
-        <div className="invEmpty">还没建任何拆卸管线——去 🔧 工坊用零件合成一条。</div>
+        <div className="invEmpty">还没建任何拆卸管线——去工坊用零件合成一条。</div>
       ) : (
         <div className="pipelineList">
           {pipelines.map((p) => {
@@ -193,7 +194,7 @@ export function Factory() {
             const on = !!deviceEnabled[p.id];
             return (
               <div className="pipelineRow" key={p.id}>
-                <span className="deviceEmoji">🏭</span>
+                <GameIcon className="deviceEmoji" kind="ui" id="pipe" />
                 <span className="deviceEffect">
                   {PIPELINE_NAME[p.id]} ×{p.count}（占 {PIPELINE_SPACE[p.id] * p.count} 格）：每 ~{per}s 拆掉一件
                   {bp?.desc?.includes('货轮') ? '货轮/坦克' : '汽车/客机'}
@@ -203,7 +204,7 @@ export function Factory() {
                   onClick={() => toggleDevice(p.id)}
                   title={on ? '点击停工' : '点击开始运行（默认停工）'}
                 >
-                  {on ? '▶️ 运行中' : '⏸️ 已停'}
+                  {on ? <><GameIcon kind="ui" id="running" className="tinyIcon" />运行中</> : <><GameIcon kind="ui" id="paused" className="tinyIcon" />已停</>}
                 </button>
               </div>
             );
@@ -212,8 +213,8 @@ export function Factory() {
       )}
 
       {/* 重型货物购买（非商人专属） */}
-      <h3 className="shopSecTitle">🚛 重型货物</h3>
-      <p className="shopHint">空间不够会禁用——先扩建厂房或等现有的拆完。最稀缺的货轮/坦克/飞机只在 🕶️ 黑市商人到访时供货。</p>
+      <h3 className="shopSecTitle"><GameIcon kind="giant" id="g_car" className="inlineIcon" />重型货物</h3>
+      <p className="shopHint">空间不够会禁用——先扩建厂房或等现有的拆完。最稀缺的货轮/坦克/飞机只在黑市商人到访时供货。</p>
       <div className="giantShopList">
         {GIANTS.filter((g) => !g.merchantOnly).map((g) => {
           const locked = stage < g.unlockStage;
@@ -221,17 +222,17 @@ export function Factory() {
           const poor = m < g.price;
           return (
             <div className={'giantCard' + (locked ? ' locked' : '')} key={g.id}>
-              <div className="batchEmoji">{g.emoji}</div>
+              <GameIcon className="batchEmoji" kind="giant" id={g.id} name={g.name} emoji={g.emoji} />
               <div className="batchInfo">
                 <div className="batchName">
                   {g.name}
                   <span className="giantSpace">占 {g.space} 格</span>
-                  <span className="giantPipeTag">🏭{PIPELINE_NAME[g.requirePipeline]}</span>
+                  <span className="giantPipeTag"><GameIcon kind="ui" id="pipe" className="tinyIcon" />{PIPELINE_NAME[g.requirePipeline]}</span>
                 </div>
                 <div className="luggageFlavor">{g.flavor}</div>
               </div>
               {locked ? (
-                <div className="batchLock">🔒 阶段{g.unlockStage}</div>
+                <div className="batchLock"><GameIcon kind="ui" id="lock" className="tinyIcon" />阶段{g.unlockStage}</div>
               ) : (
                 <div className="giantBuyCol">
                   <button

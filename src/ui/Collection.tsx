@@ -1,6 +1,7 @@
 import { COLLECTIBLES } from '../data/items';
 import { RARITIES } from '../data/rarity';
 import { useGame } from '../game/store';
+import { GameIcon } from './GameIcon';
 
 export function Collection() {
   const collection = useGame((s) => s.collection);
@@ -10,7 +11,9 @@ export function Collection() {
     <div className="collection">
       <p className="collHint">
         收藏品图鉴 · {owned.size}/{COLLECTIBLES.length}
-        {owned.size === COLLECTIBLES.length && COLLECTIBLES.length > 0 && ' 🎉 已集齐！'}
+        {owned.size === COLLECTIBLES.length && COLLECTIBLES.length > 0 && (
+          <> <GameIcon kind="ui" id="achievement" className="tinyIcon" />已集齐！</>
+        )}
       </p>
       <div className="collGrid">
         {COLLECTIBLES.map((c) => {
@@ -22,7 +25,13 @@ export function Collection() {
               key={c.id}
               style={has ? { borderColor: r.color, boxShadow: `0 0 12px ${r.color}66` } : undefined}
             >
-              <div className="collEmoji">{has ? c.emoji : '❔'}</div>
+              <div>
+                {has ? (
+                  <GameIcon className="collEmoji" kind="item" id={c.id} name={c.name} emoji={c.emoji} />
+                ) : (
+                  <GameIcon className="collEmoji" kind="ui" id="unknown" />
+                )}
+              </div>
               <div className="collName">{has ? c.name : '???'}</div>
               {has && (
                 <>

@@ -1,5 +1,6 @@
 import { useGame } from '../game/store';
 import { fmt, money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 function dur(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -17,13 +18,13 @@ export function OfflineModal() {
   return (
     <div className="modalBg" onClick={dismiss}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modalTitle">🌙 欢迎回来</div>
+        <div className="modalTitle"><GameIcon kind="prestige" id="offline" className="inlineIcon" />欢迎回来</div>
         <p className="modalBody">
           你离开了 <b>{dur(offline.seconds)}</b>，自动拆包工帮你：
         </p>
         <div className="offlineStats">
-          <div>📦 拆了 <b>{fmt(offline.opened)}</b> 个</div>
-          <div>💰 赚了 <b>{money(offline.cash)}</b></div>
+          <div><GameIcon kind="ui" id="logo" className="inlineIcon" />拆了 <b>{fmt(offline.opened)}</b> 个</div>
+          <div><GameIcon kind="ui" id="sell" className="inlineIcon" />赚了 <b>{money(offline.cash)}</b></div>
         </div>
         <button className="btn primary" onClick={dismiss}>
           收下！

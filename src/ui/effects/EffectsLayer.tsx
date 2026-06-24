@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { RARITIES } from '../../data/rarity';
 import { on, type FloatText, type LootBurst } from '../../game/events';
 import { sfxLoot, sfxOpen, sfxRip } from '../../lib/audio';
+import { GameIcon } from '../GameIcon';
 
 interface FlyBurst extends LootBurst {
   x: number;
@@ -44,13 +45,12 @@ export function EffectsLayer() {
       {bursts.map((b) => {
         const r = RARITIES[b.rarity];
         return (
-          <span
+          <GameIcon
             key={b.id}
             className={'flyLoot r-' + b.rarity}
+            emoji={b.emoji}
             style={{ left: b.x + '%', color: r.color, ['--rot' as any]: b.rot + 'deg' }}
-          >
-            {b.emoji}
-          </span>
+          />
         );
       })}
 
@@ -62,10 +62,14 @@ export function EffectsLayer() {
 
       {newCollect && (
         <div className="collectToast" style={{ borderColor: RARITIES[newCollect.rarity].color }}>
-          <div className="ctEmoji">{newCollect.emoji}</div>
+          <GameIcon className="ctEmoji" emoji={newCollect.emoji} />
           <div className="ctText">
             <div className="ctTitle" style={{ color: RARITIES[newCollect.rarity].color }}>
-              {newCollect.newKind === 'quote' ? '🗯️ 新语录！' : '✨ 新收藏品！'}
+              {newCollect.newKind === 'quote' ? (
+                <><GameIcon kind="ui" id="quote" className="inlineIcon" />新语录！</>
+              ) : (
+                <><GameIcon kind="ui" id="spark" className="inlineIcon" />新收藏品！</>
+              )}
             </div>
             <div className="ctSub">
               {newCollect.newKind === 'quote'

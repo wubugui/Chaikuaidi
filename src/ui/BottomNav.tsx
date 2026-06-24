@@ -1,3 +1,5 @@
+import { GameIcon } from './GameIcon';
+
 export type PanelId = 'bag' | 'upgrade' | 'shop' | 'workshop' | 'refinery' | 'backlog' | 'factory' | 'merchant' | 'missions' | 'quotes' | 'mutations' | 'collection' | 'achievements' | 'prestige';
 
 export interface NavItem {
@@ -24,6 +26,14 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'prestige', label: '转生', emoji: '♻️', minStage: 4 },
 ];
 
+const NAV_ICON_ID: Partial<Record<PanelId, string>> = {
+  upgrade: 'workshop',
+  shop: 'logo',
+  backlog: 'inbox',
+  missions: 'map',
+  achievements: 'achievement',
+};
+
 interface Props {
   stage: number;
   active: PanelId | null;
@@ -43,7 +53,7 @@ export function BottomNav({ stage, active, onSelect, merchantPresent }: Props) {
             className={'navBtn' + (active === it.id ? ' on' : '') + (pulse ? ' merchantPulse' : '')}
             onClick={() => onSelect(it.id)}
           >
-            <span className="navEmoji">{it.emoji}</span>
+            <GameIcon className="navEmoji" kind="ui" id={NAV_ICON_ID[it.id] ?? it.id} name={it.label} emoji={it.emoji} />
             <span className="navLabel">{it.label}</span>
             {pulse && <span className="navBadge" />}
           </button>

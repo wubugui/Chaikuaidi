@@ -7,6 +7,7 @@ import { ITEM_MAP } from '../data/items';
 import { MATERIALS } from '../data/materials';
 import { useGame } from '../game/store';
 import { fmt, money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 function deviceEffectLine(devId: string, count: number): string {
   const bp = DEVICE_BLUEPRINT[devId];
@@ -65,9 +66,9 @@ export function Workshop() {
 
   return (
     <div className="workshop">
-      <p className="shopHint">拆解掉的 🔩 零件在这里变成自动化设备。设一张图纸为「目标」，它要的零件会在掉落和背包里发光。</p>
+      <p className="shopHint">拆解掉的零件在这里变成自动化设备。设一张图纸为「目标」，它要的零件会在掉落和背包里发光。</p>
 
-      <h3 className="shopSecTitle">📐 图纸 / 合成</h3>
+      <h3 className="shopSecTitle"><GameIcon kind="ui" id="blueprint" className="inlineIcon" />图纸 / 合成</h3>
       {BLUEPRINTS.map((bp) => {
         const owned = blueprints.includes(bp.id);
         const locked = stage < bp.unlockStage;
@@ -82,7 +83,7 @@ export function Workshop() {
         return (
           <div className={'bpCard' + (locked ? ' locked' : '') + (isTarget ? ' bpTarget' : '')} key={bp.id}>
             <div className="bpHead">
-              <span className="bpEmoji">{bp.emoji}</span>
+              <GameIcon className="bpEmoji" kind="blueprint" id={bp.id} name={bp.name} emoji={bp.emoji} />
               <div className="bpInfo">
                 <div className="bpName">
                   {bp.name}
@@ -105,18 +106,18 @@ export function Workshop() {
                       className={'bpReq' + (met ? ' met' : ' unmet') + (emphasize ? ' bpReqTarget' : '')}
                       title={it?.name}
                     >
-                      {emphasize && '✨'}
-                      {it?.emoji ?? '🔩'} {have}/{inp.qty}
+                      {emphasize && <GameIcon kind="ui" id="spark" className="tinyIcon" />}
+                      <GameIcon kind="item" id={it?.id} name={it?.name} emoji={it?.emoji} className="tinyIcon" /> {have}/{inp.qty}
                     </span>
                   );
                 })}
-                <span className="bpMoney">💰 {money(bp.moneyCost)}</span>
+                <span className="bpMoney"><GameIcon kind="ui" id="sell" className="tinyIcon" /> {money(bp.moneyCost)}</span>
               </div>
             )}
 
             <div className="bpActions">
               {locked ? (
-                <div className="batchLock">🔒 阶段{bp.unlockStage}</div>
+                <div className="batchLock"><GameIcon kind="ui" id="lock" className="tinyIcon" />阶段{bp.unlockStage}</div>
               ) : !owned ? (
                 <button className="btn buy" disabled={m < bp.buyCost} onClick={() => buyBlueprint(bp.id)}>
                   买图纸<span className="cost">{money(bp.buyCost)}</span>
@@ -127,13 +128,13 @@ export function Workshop() {
                     className={'btn small' + (isTarget ? ' primary' : '')}
                     onClick={() => setTarget(isTarget ? null : bp.id)}
                   >
-                    {isTarget ? '🎯 目标中' : '设为目标'}
+                    {isTarget ? <><GameIcon kind="ui" id="target" className="tinyIcon" />目标中</> : '设为目标'}
                   </button>
                   <button className="btn small primary" disabled={!canCraft} onClick={() => craft(bp.id)}>
                     合成
                   </button>
                   {pipelineSpaceBlocked(s, bp) && (
-                    <span className="benchFullHint">🏭 厂房放不下，先去厂房扩建</span>
+                    <span className="benchFullHint"><GameIcon kind="ui" id="factory" className="tinyIcon" />厂房放不下，先去厂房扩建</span>
                   )}
                 </>
               )}
@@ -142,7 +143,7 @@ export function Workshop() {
         );
       })}
 
-      <h3 className="shopSecTitle">⚙️ 设备</h3>
+      <h3 className="shopSecTitle"><GameIcon kind="ui" id="factory" className="inlineIcon" />设备</h3>
       {builtIds.length === 0 ? (
         <div className="invEmpty">还没造任何设备～合成一台自动拆转区，让它替你拆积压货。</div>
       ) : (
@@ -153,7 +154,7 @@ export function Workshop() {
             const on = !!deviceEnabled[d];
             return (
               <div className="deviceRow" key={d}>
-                <span className="deviceEmoji">{DEVICE_BLUEPRINT[d]?.emoji ?? '⚙️'}</span>
+                <GameIcon className="deviceEmoji" kind="blueprint" id={DEVICE_BLUEPRINT[d]?.id} name={DEVICE_BLUEPRINT[d]?.name} emoji={DEVICE_BLUEPRINT[d]?.emoji} />
                 <span className="deviceEffect">{deviceEffectLine(d, devices[d])}</span>
                 {togglable && (
                   <button
@@ -161,7 +162,7 @@ export function Workshop() {
                     onClick={() => toggleDevice(d)}
                     title={on ? '点击停工' : '点击开始运行（默认停工）'}
                   >
-                    {on ? '▶️ 运行中' : '⏸️ 已停'}
+                    {on ? <><GameIcon kind="ui" id="running" className="tinyIcon" />运行中</> : <><GameIcon kind="ui" id="paused" className="tinyIcon" />已停</>}
                   </button>
                 )}
               </div>
@@ -170,14 +171,14 @@ export function Workshop() {
         </div>
       )}
 
-      <h3 className="shopSecTitle">💥 军火库</h3>
+      <h3 className="shopSecTitle"><GameIcon kind="ui" id="boom" className="inlineIcon" />军火库</h3>
       {ownedOrd.length === 0 ? (
-        <div className="invEmpty">还没造军火～用 🧪 元素合成核弹/EMP/轨道炮，去厂房「轰开」离谱货。</div>
+        <div className="invEmpty">还没造军火～用元素合成核弹/EMP/轨道炮，去厂房「轰开」离谱货。</div>
       ) : (
         <div className="deviceList">
           {ownedOrd.map((o) => (
             <div className="deviceRow" key={o.id}>
-              <span className="deviceEmoji">{o.emoji}</span>
+              <GameIcon className="deviceEmoji" kind="ordnance" id={o.id} name={o.name} emoji={o.emoji} />
               <span className="deviceEffect">{o.name} ×{fmt(ordnance[o.id])} —— {o.desc}</span>
             </div>
           ))}

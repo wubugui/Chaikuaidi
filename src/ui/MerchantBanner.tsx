@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGame } from '../game/store';
+import { GameIcon } from './GameIcon';
 
 function mmss(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
@@ -27,7 +28,8 @@ export function MerchantBanner({ onOpen }: Props) {
 
   return (
     <button className="merchantBanner" onClick={onOpen}>
-      🕶️ 黑市商人来了！<span className="merchantBannerTime">限时 {mmss(left)}</span>
+      <GameIcon kind="ui" id="merchant" className="inlineIcon" />
+      黑市商人来了！<span className="merchantBannerTime">限时 {mmss(left)}</span>
     </button>
   );
 }

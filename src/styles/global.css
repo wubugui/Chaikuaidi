@@ -15,6 +15,8 @@
   --epic: #c07bff;
   --legend: #ffce3a;
   --absurd: #ff6ad5;
+  --ui-plate: url('/game-art/ui/panel-metal.png');
+  --scene-bg: url('/game-art/backgrounds/stage-1-depot.png');
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -28,6 +30,19 @@ body {
   overflow: hidden;
 }
 button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
+.gameIcon {
+  width: var(--icon-size, 1.25em);
+  height: var(--icon-size, 1.25em);
+  display: inline-block;
+  object-fit: contain;
+  vertical-align: -0.2em;
+  user-select: none;
+  -webkit-user-drag: none;
+  image-rendering: auto;
+}
+.inlineIcon { --icon-size: 1.18em; margin-right: 0.25em; }
+.tinyIcon { --icon-size: 1em; vertical-align: -0.16em; }
+.labelIcon { --icon-size: 1.05em; margin-right: 0.18em; }
 
 .game {
   position: relative;
@@ -36,12 +51,20 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   flex-direction: column;
   background:
     radial-gradient(1000px 600px at 50% -5%, #3a2a52 0%, transparent 60%),
-    linear-gradient(180deg, var(--bg1), var(--bg0));
+    linear-gradient(180deg, #20182fee, #0e0a16f5),
+    var(--ui-plate) center / 620px 620px;
   overflow: hidden;
 }
 
 /* ===================== HUD ===================== */
-.hud { padding: 8px 12px 6px; flex-shrink: 0; z-index: 6; }
+.hud {
+  padding: 8px 12px 6px; flex-shrink: 0; z-index: 6;
+  background:
+    linear-gradient(180deg, #332649ee, #1a1329f2),
+    var(--ui-plate) center top / 620px 620px;
+  border-bottom: 1px solid #6c558c88;
+  box-shadow: 0 7px 24px #0008, inset 0 -1px 0 #0008;
+}
 .hudTop { display: flex; align-items: center; gap: 10px; }
 .logo { font-weight: 800; font-size: 17px; letter-spacing: 0.5px; text-shadow: 0 2px 0 #0006; }
 .coins {
@@ -76,7 +99,17 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
 /* ===================== SCENE ===================== */
 .scene { position: relative; flex: 1; min-height: 0; overflow: hidden; }
-.sceneBg { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.sceneBg {
+  position: absolute; inset: 0; overflow: hidden; pointer-events: none;
+  background:
+    linear-gradient(180deg, #09051222 0%, #09051211 52%, #09051299 100%),
+    var(--scene-bg) center / cover no-repeat;
+}
+.sceneBg::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(420px 340px at 50% 50%, #0000 0%, #08050f77 72%, #05030aaa 100%);
+}
 .hangLight {
   position: absolute; top: -60px; left: 50%; width: 380px; height: 380px; transform: translateX(-50%);
   background: radial-gradient(circle, #fff5d633 0%, transparent 62%);
@@ -85,6 +118,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   position: absolute; bottom: 26%; left: 0; right: 0; text-align: center;
   font-size: 40px; line-height: 0.8; letter-spacing: -6px; opacity: 0.18;
   filter: grayscale(0.4); white-space: nowrap; overflow: hidden;
+  display: none;
 }
 .floor {
   position: absolute; bottom: 0; left: -20%; right: -20%; height: 34%;
@@ -93,6 +127,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
     linear-gradient(180deg, #2a2140, #15101f);
   transform: perspective(420px) rotateX(58deg); transform-origin: bottom;
   border-top: 2px solid #ffffff14;
+  display: none;
 }
 .scene.warm .hangLight { background: radial-gradient(circle, #ffcaa044 0%, transparent 62%); }
 .scene.hot .hangLight { background: radial-gradient(circle, #ff9a6655 0%, transparent 62%); }
@@ -130,6 +165,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .bigBox.d1 .bigBoxWrap { filter: brightness(0.94) saturate(0.9); }
 .bigBox.d2 .bigBoxWrap { filter: brightness(0.86) saturate(0.78); transform: rotate(-2deg) skewX(-3deg); }
 .bigBoxEmoji { line-height: 1; filter: drop-shadow(0 14px 10px #0008); animation: boxIdle 2.4s ease-in-out infinite; }
+.gameIcon.bigBoxEmoji { width: var(--icon-size, 150px); height: var(--icon-size, 150px); display: block; margin: 0 auto; }
 .stage:active .bigBoxEmoji { animation: boxHit 0.12s ease; }
 .bigBox.hurt .bigBoxEmoji { animation: boxShake 0.36s ease-in-out infinite; }
 .crack { position: absolute; font-size: 28px; pointer-events: none; animation: throb 0.6s ease-in-out infinite; }
@@ -142,6 +178,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; z-index: 3;
   box-shadow: 0 1px 3px #0007;
 }
+.matBadge .gameIcon { --icon-size: 1.15em; margin-right: 2px; }
 .bigBox.gated .bigBoxEmoji { filter: grayscale(0.7) brightness(0.7); }
 .gateOverlay {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -154,11 +191,20 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .bigHpFill { height: 100%; background: linear-gradient(90deg, var(--green), #8ef0b0); transition: width 0.08s linear; box-shadow: 0 0 10px #54e08a99; }
 
 /* 老哥：缩小，挪到左下角念叨 */
-.dude.side { position: absolute; left: 12px; bottom: 84px; display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 4; }
+.dude.side { position: absolute; left: 7px; bottom: 76px; display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 4; }
 .dudeFace { font-size: 50px; line-height: 1; filter: drop-shadow(0 5px 4px #0008); animation: dudeBob 2.6s ease-in-out infinite; }
+.gameIcon.dudeFace { width: 58px; height: 58px; }
 .dudeFace.mad { animation: madShake 0.18s infinite; }
-.dudeHand { position: absolute; right: -4px; top: 16px; font-size: 26px; transform-origin: bottom left; animation: swing 0.18s ease; filter: drop-shadow(0 2px 2px #0008); }
-.dudeName { font-size: 11px; font-weight: 800; color: var(--ink); background: #00000055; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; margin-top: 3px; white-space: nowrap; }
+.dudePortrait {
+  width: clamp(76px, 18vw, 106px); height: clamp(94px, 22vw, 130px);
+  object-fit: contain; object-position: bottom center;
+  filter: drop-shadow(0 8px 8px #000b);
+  animation: dudeBob 2.6s ease-in-out infinite;
+}
+.dudePortrait.mad { animation: madShake 0.18s infinite; }
+.dudeHand { position: absolute; right: 1px; top: 54px; font-size: 26px; transform-origin: bottom left; animation: swing 0.18s ease; filter: drop-shadow(0 2px 2px #0008); }
+.gameIcon.dudeHand { width: 34px; height: 34px; }
+.dudeName { font-size: 11px; font-weight: 800; color: var(--ink); background: #00000066; border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; margin-top: -8px; white-space: nowrap; }
 
 .bark {
   position: absolute; bottom: 64px; left: 8px;
@@ -170,6 +216,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .bark::after { content: ''; position: absolute; bottom: -9px; left: 22px; border: 9px solid transparent; border-top-color: #fff; border-bottom: 0; }
 
 .scrap { position: absolute; font-size: 20px; pointer-events: none; animation: scrapFly 0.6s ease-out forwards; will-change: transform, opacity; }
+.gameIcon.scrap { width: 22px; height: 22px; }
 .dmg { position: absolute; font-weight: 900; font-size: 20px; color: #fff; pointer-events: none; text-shadow: 0 2px 3px #000a; animation: dmgFloat 0.65s ease-out forwards; }
 .dmg.big { font-size: 30px; color: var(--gold); }
 .tapHint { position: absolute; bottom: 104px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); pointer-events: none; }
@@ -211,6 +258,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .toolChip.on { background: linear-gradient(180deg, var(--gold), var(--gold2)); color: #2a1800; border-color: transparent; }
 .toolChip:active { transform: translateY(1px); }
 .toolChipEmoji { font-size: 20px; line-height: 1; }
+.gameIcon.toolChipEmoji { width: 24px; height: 24px; }
 .toolChipName { font-size: 9px; font-weight: 800; white-space: nowrap; }
 
 .sellBar { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; align-items: center; gap: 10px; padding: 0 12px; z-index: 4; }
@@ -227,8 +275,12 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 /* ===================== BOTTOM NAV ===================== */
 .bottomNav {
   display: flex; gap: 4px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, #241b38, #1a1329); border-top: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, #2f2347f0, #171020f8),
+    var(--ui-plate) center bottom / 620px 620px;
+  border-top: 1px solid #6c558c88;
   flex-shrink: 0; z-index: 6; overflow-x: auto;
+  box-shadow: 0 -8px 26px #0008, inset 0 1px 0 #ffffff12;
 }
 .navBtn {
   flex: 1; min-width: 56px; display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -236,16 +288,24 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .navBtn.on { background: var(--card2); color: var(--gold); box-shadow: inset 0 0 0 1px var(--line); }
 .navEmoji { font-size: 20px; }
+.gameIcon.navEmoji { width: 23px; height: 23px; }
 .navLabel { font-size: 11px; font-weight: 700; }
 
 /* ===================== DRAWER ===================== */
 .drawerWrap { position: fixed; inset: 0; background: #000a; display: flex; align-items: flex-end; z-index: 30; animation: fade 0.15s ease; }
 .drawer {
-  width: 100%; max-height: 72%; background: linear-gradient(180deg, #271e3c, #1d1630);
+  width: 100%; max-height: 72%;
+  background:
+    linear-gradient(180deg, #302446f2, #191325f8),
+    var(--ui-plate) center top / 720px 720px;
   border-radius: 22px 22px 0 0; border-top: 2px solid var(--line);
   display: flex; flex-direction: column; box-shadow: 0 -10px 40px #000a; animation: sheetUp 0.22s ease;
 }
-.drawerHead { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+.drawerHead {
+  display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px;
+  border-bottom: 1px solid #6c558c88;
+  background: linear-gradient(180deg, #ffffff0c, #00000018);
+}
 .drawerTitle { font-weight: 900; font-size: 17px; }
 .drawerClose { background: var(--card); border: 1px solid var(--line); border-radius: 10px; width: 32px; height: 32px; font-size: 15px; }
 .drawerBody { padding: 14px 16px calc(18px + env(safe-area-inset-bottom)); overflow: auto; }
@@ -268,6 +328,37 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .btn:not(.primary) .cost { color: var(--gold); background: #0003; }
 .btn:disabled .cost { color: var(--red); }
 
+.hudIcon,
+.drawerClose,
+.btn:not(.primary):not(.danger),
+.chip,
+.autoSell,
+.invItem,
+.toolCard,
+.toolBox,
+.upgradeRow,
+.prestNode,
+.batch,
+.collItem,
+.achRow,
+.quoteCard,
+.prestHeader,
+.bpCard,
+.deviceRow,
+.missionCard,
+.mutCard,
+.refineRow,
+.merchantOffer,
+.sellerCard,
+.modal {
+  background-image:
+    linear-gradient(180deg, #37294fec, #191326f2),
+    var(--ui-plate);
+  background-position: center;
+  background-size: auto, 560px 560px;
+  background-blend-mode: normal, soft-light;
+}
+
 /* ===================== INVENTORY ===================== */
 .inventory, .upgrades, .shop, .quotes, .collection, .achievements, .prestige { display: block; }
 .invHead { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -281,6 +372,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .invItem { position: relative; padding: 9px 4px 7px; border-radius: 13px; background: var(--card); border: 2px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 2px; box-shadow: 0 2px 0 #0005; }
 .invItem:active { transform: translateY(2px); }
 .invEmoji { font-size: 28px; }
+.gameIcon.invEmoji { width: 34px; height: 34px; }
 .invCount { font-size: 11px; color: var(--muted); font-weight: 700; }
 .invVal { font-size: 12px; font-weight: 800; }
 
@@ -292,9 +384,11 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .toolCard.equipped { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 2px 0 #0004; }
 .toolCardHead { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .toolCardEmoji { font-size: 24px; line-height: 1; }
+.gameIcon.toolCardEmoji { width: 30px; height: 30px; flex: 0 0 auto; }
 .toolCardName { font-size: 13px; font-weight: 800; min-width: 0; }
 .toolLvl { font-size: 11px; color: var(--muted); font-weight: 700; }
 .toolAff { display: flex; gap: 4px; font-size: 17px; min-height: 20px; flex-wrap: wrap; }
+.toolAff .gameIcon { width: 20px; height: 20px; }
 .toolLock { font-size: 12px; font-weight: 800; color: var(--muted); }
 .toolBtns { display: flex; gap: 6px; margin-top: auto; }
 .toolBtns .btn { flex: 1; justify-content: center; }
@@ -312,6 +406,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .upgradeRow.locked { opacity: 0.5; }
 .upMain, .prestMain { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .upEmoji, .prestEmoji { font-size: 28px; }
+.gameIcon.upEmoji, .gameIcon.prestEmoji { width: 34px; height: 34px; flex: 0 0 auto; }
 .upName, .prestName { font-weight: 800; font-size: 14px; }
 .upLvl, .prestLvl { font-size: 11px; color: var(--muted); font-weight: 700; }
 .upDesc, .prestDesc { font-size: 11px; color: var(--muted); }
@@ -323,6 +418,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .batch { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; margin-bottom: 9px; box-shadow: 0 2px 0 #0004; }
 .batch.locked { opacity: 0.5; }
 .batchEmoji { font-size: 32px; }
+.gameIcon.batchEmoji { width: 44px; height: 44px; flex: 0 0 auto; }
 .batchInfo { flex: 1; min-width: 0; }
 .batchName { font-weight: 800; }
 .batchDesc { font-size: 11px; color: var(--muted); }
@@ -333,6 +429,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .collItem { background: var(--card); border: 2px solid var(--line); border-radius: 14px; padding: 12px 8px; text-align: center; box-shadow: 0 2px 0 #0004; }
 .collItem.locked { opacity: 0.5; filter: grayscale(0.6); }
 .collEmoji { font-size: 38px; }
+.gameIcon.collEmoji { width: 52px; height: 52px; }
 .collName { font-size: 12px; font-weight: 800; margin-top: 4px; }
 .collRarity { font-size: 11px; margin-top: 2px; font-weight: 700; }
 .collPassive { font-size: 10px; color: var(--green); margin-top: 2px; font-weight: 700; }
@@ -341,6 +438,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .achRow { display: flex; align-items: center; gap: 11px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; opacity: 0.65; }
 .achRow.done { opacity: 1; border-color: var(--green); box-shadow: 0 0 0 1px #54e08a55, 0 2px 0 #0004; }
 .achEmoji { font-size: 24px; }
+.gameIcon.achEmoji { width: 32px; height: 32px; flex: 0 0 auto; }
 .achText { flex: 1; }
 .achName { font-weight: 800; font-size: 13px; }
 .achDesc { font-size: 11px; color: var(--muted); }
@@ -367,8 +465,11 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 /* ===================== FX ===================== */
 .fxLayer { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
 .flyLoot { position: absolute; bottom: 30%; font-size: 32px; animation: lootFly 1.1s ease-out forwards; filter: drop-shadow(0 0 8px currentColor); }
+.gameIcon.flyLoot { width: 38px; height: 38px; }
 .flyLoot.r-legendary { font-size: 44px; }
+.gameIcon.flyLoot.r-legendary { width: 50px; height: 50px; }
 .flyLoot.r-absurd { font-size: 50px; animation: lootFly 1.1s ease-out forwards, rainbow 0.6s linear infinite; }
+.gameIcon.flyLoot.r-absurd { width: 56px; height: 56px; }
 .cashFloat { position: absolute; left: 50%; top: 46%; font-size: 24px; font-weight: 900; animation: dmgFloat 0.9s ease-out forwards; text-shadow: 0 2px 4px #000a; }
 .collectToast {
   position: fixed; top: 76px; left: 50%; transform: translateX(-50%);
@@ -377,6 +478,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   box-shadow: 0 10px 30px #000a; animation: toastIn 0.3s ease, toastOut 0.3s ease 2.3s forwards; z-index: 45;
 }
 .ctEmoji { font-size: 40px; }
+.gameIcon.ctEmoji { width: 52px; height: 52px; }
 .ctTitle { font-weight: 900; }
 .ctSub { font-size: 12px; color: var(--muted); max-width: 60vw; }
 
@@ -441,7 +543,9 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .revealItems.n1 .revealItem { padding: 22px 28px; min-width: 160px; }
 .riEmoji { font-size: 64px; line-height: 1; animation: riBob 1.8s ease-in-out infinite; }
+.gameIcon.riEmoji { width: 70px; height: 70px; }
 .revealItems.n1 .riEmoji { font-size: 104px; }
+.revealItems.n1 .gameIcon.riEmoji { width: 112px; height: 112px; }
 .riName { font-size: 16px; font-weight: 900; margin-top: 8px; text-shadow: 0 1px 3px #000a; }
 .riTag { font-size: 13px; font-weight: 800; color: var(--gold); margin-top: 3px; }
 .riNew { margin-top: 6px; font-size: 11px; font-weight: 900; color: #1a1330; background: var(--gold); border-radius: 999px; padding: 2px 10px; display: inline-block; animation: throb 0.6s ease-in-out infinite; }
@@ -532,6 +636,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .popFront { display: flex; flex-direction: column; gap: 4px; animation: popFlip 0.4s ease backwards; }
 .popItem { display: flex; align-items: center; gap: 7px; border-left: 3px solid var(--line); padding-left: 7px; }
 .popEmoji { font-size: 24px; line-height: 1; }
+.gameIcon.popEmoji { width: 28px; height: 28px; flex: 0 0 auto; }
 .popName { font-size: 12px; font-weight: 800; }
 @keyframes popFloat {
   0% { transform: translateY(14px) scale(0.92); opacity: 0; }
@@ -585,6 +690,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
 }
 .backlogEmoji { font-size: 30px; }
+.gameIcon.backlogEmoji { width: 42px; height: 42px; flex: 0 0 auto; }
 .backlogInfo { flex: 1; display: flex; flex-direction: column; gap: 4px; }
 .backlogName { font-weight: 800; }
 .backlogCount { color: var(--muted); font-weight: 600; }
@@ -661,6 +767,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   animation: boomFade 0.6s ease-out forwards;
 }
 .boomEmoji { font-size: 140px; animation: boomPop 0.6s ease-out forwards; }
+.gameIcon.boomEmoji { width: 150px; height: 150px; }
 @keyframes boomFade { 0% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes boomPop {
   0% { transform: scale(0.2) rotate(-8deg); }
@@ -670,15 +777,34 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
 /* ===================== MODAL / INTRO ===================== */
 .modalBg { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
-.modal { background: linear-gradient(180deg, #2a2040, #1f1733); border: 2px solid var(--line); border-radius: 20px; padding: 26px; max-width: 360px; text-align: center; box-shadow: 0 20px 60px #000a; animation: sheetPop 0.22s ease; }
+.modal {
+  background:
+    linear-gradient(180deg, #302446f2, #191325f8),
+    var(--ui-plate) center / 620px 620px;
+  border: 2px solid var(--line); border-radius: 20px; padding: 26px; max-width: 360px; text-align: center; box-shadow: 0 20px 60px #000a; animation: sheetPop 0.22s ease;
+}
 .modalTitle { font-size: 23px; font-weight: 900; margin-bottom: 8px; }
 .modalBody { color: var(--muted); font-size: 14px; }
 .offlineStats { display: flex; flex-direction: column; gap: 6px; margin: 16px 0; font-size: 17px; font-weight: 700; }
 .modal .btn { width: 100%; justify-content: center; margin-top: 10px; }
 
-.introBg { position: fixed; inset: 0; background: radial-gradient(800px 600px at 50% 25%, #2a2040 0%, #0a0712 80%); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 24px; }
-.introBox { max-width: 460px; text-align: center; }
+.introBg {
+  position: fixed; inset: 0;
+  background:
+    linear-gradient(180deg, #08040c99, #06040dee),
+    url('/game-art/backgrounds/stage-1-depot.png') center / cover no-repeat;
+  display: flex; align-items: center; justify-content: center; z-index: 60; padding: 24px;
+}
+.introBox {
+  max-width: 460px; text-align: center; padding: 26px 24px 24px; border-radius: 20px;
+  background:
+    linear-gradient(180deg, #302446e8, #191325f0),
+    var(--ui-plate) center / 620px 620px;
+  border: 2px solid #6c558c88;
+  box-shadow: 0 24px 70px #000c, inset 0 1px 0 #ffffff14;
+}
 .introEmoji { font-size: 70px; margin-bottom: 18px; animation: sheetPop 0.4s ease; }
+.gameIcon.introEmoji { width: 90px; height: 90px; }
 .introText { font-size: 20px; font-weight: 900; line-height: 1.5; }
 .introSub { font-size: 14px; color: var(--muted); margin-top: 12px; line-height: 1.55; }
 .introDots { display: flex; gap: 7px; justify-content: center; margin: 26px 0; }
@@ -722,6 +848,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   font-size: 18px; line-height: 1; filter: drop-shadow(0 1px 2px #000a);
   animation: mutWiggle 2.2s ease-in-out infinite;
 }
+.gameIcon.mutBadge { width: 22px; height: 22px; }
 .mutBadge:nth-child(2n) { animation-delay: -0.7s; }
 .mutBadge:nth-child(3n) { animation-delay: -1.3s; }
 
@@ -736,6 +863,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   animation: mutateFade 1.4s ease-out forwards;
 }
 .mutateEmoji { font-size: 150px; animation: mutatePop 1.4s cubic-bezier(.2,1.4,.4,1) forwards; filter: drop-shadow(0 6px 16px #000a); }
+.gameIcon.mutateEmoji { width: 160px; height: 160px; }
 .mutateLabel { font-size: 26px; font-weight: 900; color: #fff; text-shadow: 0 2px 8px #7c3aed, 0 0 18px #a855f7; }
 
 /* 变异面板 */
@@ -756,6 +884,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .mutCard.locked { opacity: 0.55; }
 .mutCard.locked .mutCardEmoji { filter: grayscale(1) brightness(0.7); }
 .mutCardEmoji { font-size: 34px; line-height: 1; }
+.gameIcon.mutCardEmoji { width: 44px; height: 44px; flex: 0 0 auto; }
 .mutCardBody { flex: 1; }
 .mutCardName { font-weight: 900; font-size: 15px; }
 .mutCount { margin-left: 6px; font-size: 12px; color: #d8b4fe; font-weight: 800; }
@@ -804,6 +933,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .bpCard.bpTarget { border-color: #ffd54a; box-shadow: 0 0 0 1px #ffd54a66, 0 0 16px #ffd54a33; }
 .bpHead { display: flex; gap: 10px; align-items: flex-start; }
 .bpEmoji { font-size: 26px; line-height: 1; }
+.gameIcon.bpEmoji { width: 34px; height: 34px; flex: 0 0 auto; }
 .bpInfo { flex: 1; min-width: 0; }
 .bpName { font-weight: 900; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .bpBuilt { font-size: 11px; font-weight: 700; color: #34d399; background: #34d39922; border: 1px solid #34d39966; border-radius: 8px; padding: 1px 6px; }
@@ -821,6 +951,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .deviceList { display: flex; flex-direction: column; gap: 6px; }
 .deviceRow { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: var(--card); }
 .deviceEmoji { font-size: 20px; }
+.gameIcon.deviceEmoji { width: 28px; height: 28px; flex: 0 0 auto; }
 .deviceEffect { font-size: 13px; font-weight: 700; }
 
 /* 揭晓特写：目标零件标签/光晕 */
@@ -877,6 +1008,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   border: 1px solid var(--line); border-radius: 11px; padding: 8px 10px; background: var(--card);
 }
 .giantEmoji { font-size: 26px; }
+.gameIcon.giantEmoji { width: 42px; height: 42px; flex: 0 0 auto; }
 .giantInfo { display: flex; flex-direction: column; gap: 3px; }
 .giantName { font-size: 14px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .giantSpace {
@@ -909,6 +1041,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-size: 12px;
 }
 .elemEmoji { font-size: 16px; }
+.gameIcon.elemEmoji { width: 20px; height: 20px; }
 .elemName { color: #c9bfe0; }
 .elemCount { font-weight: 900; color: var(--gold); }
 .refineList { display: flex; flex-direction: column; gap: 8px; }
@@ -962,6 +1095,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .missionRow.done { opacity: 0.6; filter: grayscale(0.5); }
 .missionRow.inprogress { border-color: #60a5fa; box-shadow: 0 0 0 1px #60a5fa44 inset; }
 .missionEmoji { font-size: 34px; line-height: 1; flex: 0 0 auto; }
+.gameIcon.missionEmoji { width: 46px; height: 46px; }
 .missionInfo { flex: 1 1 auto; min-width: 0; }
 .missionName { font-weight: 800; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .missionUnique {
@@ -993,7 +1127,9 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .sellerCard {
   position: relative; width: 100%; max-width: 360px;
-  background: linear-gradient(180deg, #2c2348, #1c1630);
+  background:
+    linear-gradient(180deg, #302446f2, #191325f8),
+    var(--ui-plate) center / 620px 620px;
   border: 2px solid var(--line); border-radius: 20px; padding: 44px 22px 22px;
   box-shadow: 0 24px 60px #000b; text-align: center; animation: sellerBarge 0.3s cubic-bezier(.2,1.3,.5,1);
 }
@@ -1006,6 +1142,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   font-size: 64px; line-height: 1;
   filter: drop-shadow(0 6px 10px #000a); animation: sellerBob 2s ease-in-out infinite;
 }
+.gameIcon.sellerCharacter { width: 74px; height: 74px; }
 @keyframes sellerBob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-5px); } }
 .sellerNameTag {
   display: inline-block; font-weight: 900; font-size: 15px; color: #fcd34d;
@@ -1036,6 +1173,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   animation: absurdBoomFade 0.7s ease-out forwards;
 }
 .absurdBoomEmoji { font-size: 120px; animation: absurdBoomPop 0.7s ease-out forwards; }
+.gameIcon.absurdBoomEmoji { width: 120px; height: 120px; }
 .absurdBoomLabel { font-size: 26px; font-weight: 900; color: #ec4899; text-shadow: 0 0 18px #ec4899; }
 @keyframes absurdBoomFade { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes absurdBoomPop {
@@ -1051,6 +1189,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .sellModeNote { font-size: 12px; color: #ff9aa6; background: #ef444418; border: 1px solid #ef444455; border-radius: 10px; padding: 7px 10px; margin-bottom: 10px; }
 .invItem.sellModeItem { border-style: dashed; }
 .sellHint { position: absolute; top: 3px; left: 4px; font-size: 12px; }
+.gameIcon.sellHint { width: 15px; height: 15px; }
 
 /* ===================== P7: 「最近获得」集中区 ===================== */
 .recentLoot { background: linear-gradient(180deg, #2b2142, #20182f); border: 1px solid var(--line); border-radius: 14px; padding: 9px 11px; margin-bottom: 12px; box-shadow: inset 0 0 0 1px #ffffff0a; }
@@ -1062,16 +1201,21 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .recentChip:active { transform: translateY(2px); }
 .recentChipEmoji { font-size: 24px; line-height: 1; }
+.gameIcon.recentChipEmoji { width: 29px; height: 29px; }
 
 /* ===================== P7: 物品介绍弹窗 ===================== */
 .itemDetailBg { position: fixed; inset: 0; background: #000b; display: flex; align-items: center; justify-content: center; z-index: 55; padding: 20px; animation: fade 0.15s ease; }
 .itemDetail {
   position: relative; width: 100%; max-width: 320px; text-align: center;
-  background: linear-gradient(180deg, #2a2040, #1f1733); border: 2px solid var(--line);
+  background:
+    linear-gradient(180deg, #302446f2, #191325f8),
+    var(--ui-plate) center / 620px 620px;
+  border: 2px solid var(--line);
   border-radius: 20px; padding: 24px 22px 20px; box-shadow: 0 20px 60px #000a; animation: sheetPop 0.2s ease;
 }
 .itemDetailClose { position: absolute; top: 10px; right: 10px; width: 30px; height: 30px; border-radius: 9px; background: var(--card); border: 1px solid var(--line); color: var(--ink); font-size: 14px; }
 .itemDetailEmoji { font-size: 64px; line-height: 1; margin-bottom: 6px; }
+.gameIcon.itemDetailEmoji { width: 74px; height: 74px; }
 .itemDetailName { font-size: 19px; font-weight: 900; margin-bottom: 8px; }
 .itemDetailBadges { display: flex; justify-content: center; gap: 7px; margin-bottom: 14px; flex-wrap: wrap; }
 .itemRarityBadge { font-size: 12px; font-weight: 800; border: 1px solid; border-radius: 999px; padding: 2px 10px; }
@@ -1084,3 +1228,46 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .itemDetailQuote { flex-direction: column; }
 .idQuoteText { display: block; color: var(--muted); font-style: italic; font-weight: 500; margin-top: 3px; }
 .itemDetailBtns { display: flex; gap: 8px; justify-content: center; }
+
+/* ===== Painted UI skin overrides ===== */
+.coins,
+.hudIcon,
+.stageBar,
+.sceneMeta span,
+.drawerClose,
+.navBtn.on,
+.btn:not(.primary):not(.danger),
+.chip,
+.autoSell,
+.invItem,
+.toolCard,
+.toolBox,
+.upgradeRow,
+.prestNode,
+.batch,
+.collItem,
+.achRow,
+.quoteCard,
+.prestHeader,
+.bpCard,
+.deviceRow,
+.missionCard,
+.mutCard,
+.refineRow,
+.merchantOffer,
+.factoryHeader,
+.factoryLine,
+.backlogRow,
+.absurdRow {
+  background-image:
+    linear-gradient(180deg, #382a50e8, #171225f0),
+    var(--ui-plate);
+  background-position: center;
+  background-size: auto, 580px 580px;
+  background-blend-mode: normal, soft-light;
+}
+
+.navBtn.on {
+  color: var(--gold);
+  border: 1px solid #6c558c88;
+}

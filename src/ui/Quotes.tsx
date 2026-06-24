@@ -2,6 +2,7 @@ import { QUOTES } from '../data/quotes';
 import { RARITIES } from '../data/rarity';
 import { quoteSlots } from '../game/compute';
 import { useGame } from '../game/store';
+import { GameIcon } from './GameIcon';
 
 export function Quotes() {
   const owned = useGame((s) => s.quotes);
@@ -17,7 +18,7 @@ export function Quotes() {
   return (
     <div className="quotes">
       <p className="quotesHint">
-        🗯️ 暴躁老哥语录 · 收集 {owned.length}/{QUOTES.length} · 装备槽 {equipped.length}/{slots}
+        <GameIcon kind="ui" id="quote" className="inlineIcon" />暴躁老哥语录 · 收集 {owned.length}/{QUOTES.length} · 装备槽 {equipped.length}/{slots}
       </p>
       <p className="quotesSub">骂得越凶，拆得越猛。装备语录吃加成（槽位靠转生「嘴遁扩容」扩展）。</p>
       <div className="quoteList">

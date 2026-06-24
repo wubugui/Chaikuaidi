@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { STAGES } from '../data/stages';
 import { useGame } from '../game/store';
 import { fmt, money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 export function Topbar() {
   const m = useGame((s) => s.money);
@@ -22,14 +23,16 @@ export function Topbar() {
   return (
     <header className="hud">
       <div className="hudTop">
-        <div className="logo">📦 拆快递</div>
+        <div className="logo"><GameIcon kind="ui" id="logo" className="inlineIcon" />拆快递</div>
         <div className="coins">
-          <span className="coinIcon">🪙</span>
+          <GameIcon className="coinIcon" kind="ui" id="coin" />
           <span className="coinVal">{money(m)}</span>
         </div>
-        {rep > 0 && <div className="repChip">⭐{fmt(rep)}</div>}
+        {rep > 0 && <div className="repChip"><GameIcon kind="ui" id="reputation" className="tinyIcon" />{fmt(rep)}</div>}
         <div className="hudIcons">
-          <button className="hudIcon" onClick={toggleAudio} title="音效">{audio ? '🔊' : '🔇'}</button>
+          <button className="hudIcon" onClick={toggleAudio} title="音效">
+            <GameIcon kind="ui" id={audio ? 'sound-on' : 'sound-off'} />
+          </button>
           {confirm ? (
             <span className="resetConfirm">
               重开?
@@ -37,15 +40,17 @@ export function Topbar() {
               <button className="hudIcon" onClick={() => setConfirm(false)}>✕</button>
             </span>
           ) : (
-            <button className="hudIcon" onClick={() => setConfirm(true)} title="重开存档">🗑️</button>
+            <button className="hudIcon" onClick={() => setConfirm(true)} title="重开存档">
+              <GameIcon kind="ui" id="trash" />
+            </button>
           )}
         </div>
       </div>
       <div className="stageBar" title={stageDef.unlocks}>
         <div className="stageFill" style={{ width: pct + '%' }} />
         <div className="stageText">
-          <span>{stageDef.emoji} {stageDef.name}</span>
-          {next ? <span className="stageNext">距「{next.name}」 {money(Math.max(0, to - runEarned))}</span> : <span className="stageNext">已封顶 👑</span>}
+          <span><GameIcon kind="stage" id={`stage-${stageDef.id}`} name={stageDef.name} emoji={stageDef.emoji} className="tinyIcon" />{stageDef.name}</span>
+          {next ? <span className="stageNext">距「{next.name}」 {money(Math.max(0, to - runEarned))}</span> : <span className="stageNext">已封顶</span>}
         </div>
       </div>
     </header>

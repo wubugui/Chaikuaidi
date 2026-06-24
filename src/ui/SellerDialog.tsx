@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { on } from '../game/events';
+import { GameIcon } from './GameIcon';
 
 interface SellerPayload {
   name: string;
@@ -35,7 +36,7 @@ export function SellerDialog() {
   return (
     <div className="sellerBg" onClick={advance}>
       <div className="sellerCard" onClick={(e) => e.stopPropagation()}>
-        <div className="sellerCharacter">{seller.emoji}</div>
+        <GameIcon className="sellerCharacter" kind="seller" name={seller.name} emoji={seller.emoji} />
         <div className="sellerNameTag">{seller.name}</div>
         <div className="sellerItemTag">关于「{seller.item}」</div>
         <div className="sellerBubble">{lines[idx]}</div>

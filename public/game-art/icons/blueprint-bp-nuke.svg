@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="原子弹图纸">
+  <defs>
+    <linearGradient id="body" x1="26" y1="22" x2="101" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#f0f2f5"/><stop offset="1" stop-color="#7d8794"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="22" y1="20" x2="104" y2="107" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f0f2f5"/>
+    </linearGradient>
+    <filter id="ds" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="5" stdDeviation="3" flood-color="#05020a" flood-opacity=".5"/>
+    </filter>
+  </defs>
+  <ellipse cx="64" cy="108" rx="38" ry="10" fill="#000" opacity=".26"/><g filter="url(#ds)"><path d="M30 31h60c8 0 12 5 8 13l-7 14 7 15c4 8 0 14-8 14H30c8-11 8-45 0-56Z" fill="#9ad7ff" stroke="#1b1126" stroke-width="5" stroke-linejoin="round"/><path d="M45 48h31M45 62h20M70 62h12M45 75h36" stroke="#0f3d61" stroke-width="4" opacity=".55" stroke-linecap="round"/></g>
+</svg>

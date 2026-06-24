@@ -2,6 +2,7 @@ import { MATERIALS, type MaterialId } from '../data/materials';
 import { MUTATIONS, MUTATION_MAP } from '../data/mutations';
 import { bodyAffinity } from '../game/compute';
 import { useGame } from '../game/store';
+import { GameIcon } from './GameIcon';
 
 export function Mutations() {
   const s = useGame();
@@ -23,13 +24,14 @@ export function Mutations() {
       </p>
 
       <div className="mutSummary">
-        <span className="mutStat">📦 工作台 +{benchBonus} <small>（变异部分）</small></span>
+        <span className="mutStat"><GameIcon kind="ui" id="logo" className="tinyIcon" />工作台 +{benchBonus} <small>（变异部分）</small></span>
         {bodyMats.length > 0 ? (
           <span className="mutStat">
-            🧬 肉身效率：{bodyMats.map((x) => MATERIALS[x.m].emoji + MATERIALS[x.m].name).join(' ')}
+            <GameIcon kind="ui" id="mutation" className="tinyIcon" />
+            肉身效率：{bodyMats.map((x) => MATERIALS[x.m].name).join(' / ')}
           </span>
         ) : (
-          <span className="mutStat dim">🧬 暂无肉身材质效率</span>
+          <span className="mutStat dim"><GameIcon kind="ui" id="mutation" className="tinyIcon" />暂无肉身材质效率</span>
         )}
         <span className="mutStat dim">已变异 {s.mutations.length}/{MUTATIONS.length}</span>
       </div>
@@ -40,7 +42,7 @@ export function Mutations() {
           const count = s.mutations.filter((x) => x === m.id).length;
           return (
             <div className={'mutCard' + (has ? ' owned' : ' locked')} key={m.id}>
-              <div className="mutCardEmoji">{m.emoji}</div>
+              <GameIcon className="mutCardEmoji" kind="mutation" id={m.id} name={m.name} emoji={m.emoji} />
               <div className="mutCardBody">
                 <div className="mutCardName">
                   {m.name}

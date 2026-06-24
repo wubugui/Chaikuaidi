@@ -28,22 +28,40 @@ import { Intro } from './ui/Intro';
 import { useGameLoop } from './game/loop';
 import { ensureStarter, useGame } from './game/store';
 import { setAudioEnabled } from './lib/audio';
+import { GameIcon } from './ui/GameIcon';
 
 const PANEL_TITLE: Record<PanelId, string> = {
-  bag: '🎒 背包',
-  upgrade: '🛠️ 升级 & 装备',
-  shop: '🛒 进货批次',
-  workshop: '🛠️ 工坊',
-  refinery: '🧪 元素提炼',
-  backlog: '📥 积压区',
-  factory: '🏭 厂房 & 拆卸管线',
-  missions: '🗺️ 离场远征',
-  merchant: '🕶️ 黑市商人',
-  quotes: '🗯️ 暴躁语录',
-  mutations: '🧬 变异肉身',
-  collection: '🖼️ 收藏图鉴',
-  achievements: '🏅 成就',
-  prestige: '♻️ 跑路重开',
+  bag: '背包',
+  upgrade: '升级 & 装备',
+  shop: '进货批次',
+  workshop: '工坊',
+  refinery: '元素提炼',
+  backlog: '积压区',
+  factory: '厂房 & 拆卸管线',
+  missions: '离场远征',
+  merchant: '黑市商人',
+  quotes: '暴躁语录',
+  mutations: '变异肉身',
+  collection: '收藏图鉴',
+  achievements: '成就',
+  prestige: '跑路重开',
+};
+
+const PANEL_ICON_ID: Record<PanelId, string> = {
+  bag: 'bag',
+  upgrade: 'workshop',
+  shop: 'logo',
+  workshop: 'workshop',
+  refinery: 'refinery',
+  backlog: 'inbox',
+  factory: 'factory',
+  missions: 'map',
+  merchant: 'merchant',
+  quotes: 'quote',
+  mutations: 'mutation',
+  collection: 'collection',
+  achievements: 'achievement',
+  prestige: 'prestige',
 };
 
 export default function App() {
@@ -82,7 +100,10 @@ export default function App() {
         <div className="drawerWrap" onClick={() => setPanel(null)}>
           <div className="drawer" onClick={(e) => e.stopPropagation()}>
             <div className="drawerHead">
-              <span className="drawerTitle">{PANEL_TITLE[active]}</span>
+              <span className="drawerTitle">
+                <GameIcon kind="ui" id={PANEL_ICON_ID[active]} className="inlineIcon" />
+                {PANEL_TITLE[active]}
+              </span>
               <button className="drawerClose" onClick={() => setPanel(null)}>✕</button>
             </div>
             <div className="drawerBody">

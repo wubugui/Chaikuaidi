@@ -9,6 +9,7 @@ import { useGame } from '../game/store';
 import { sellValue } from '../game/systems/loot';
 import type { ItemKind, Rarity } from '../data/types';
 import { fmt, money } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 const KIND_LABEL: Record<ItemKind, string> = {
   sellable: '可卖',
@@ -35,7 +36,14 @@ function ItemDetail({ id, onClose }: { id: string; onClose: () => void }) {
     <div className="itemDetailBg" onClick={onClose}>
       <div className="itemDetail" style={{ borderColor: r.color }} onClick={(e) => e.stopPropagation()}>
         <button className="itemDetailClose" onClick={onClose}>✕</button>
-        <div className="itemDetailEmoji" style={{ filter: `drop-shadow(0 0 14px ${r.color})` }}>{it.emoji}</div>
+        <GameIcon
+          className="itemDetailEmoji"
+          kind="item"
+          id={it.id}
+          name={it.name}
+          emoji={it.emoji}
+          style={{ filter: `drop-shadow(0 0 14px ${r.color})` }}
+        />
         <div className="itemDetailName">{it.name}</div>
         <div className="itemDetailBadges">
           <span className="itemRarityBadge" style={{ color: r.color, borderColor: r.color }}>
@@ -155,9 +163,9 @@ export function Inventory() {
         title={sellMode ? `点击卖出一个 ${it.name}（¥${fmt(val)}）` : `${it.name}（${r.name}）· 点击看介绍`}
         onClick={() => onGridClick(id)}
       >
-        {wanted && <span className="partNeedBadge">✨</span>}
-        {sellMode && <span className="sellHint">💰</span>}
-        <span className="invEmoji">{it.emoji}</span>
+        {wanted && <GameIcon kind="ui" id="spark" className="partNeedBadge" />}
+        {sellMode && <GameIcon kind="ui" id="coin" className="sellHint" />}
+        <GameIcon className="invEmoji" kind="item" id={it.id} name={it.name} emoji={it.emoji} />
         <span className="invCount">×{fmt(inventory[id])}</span>
         <span className="invVal" style={{ color: r.color }}>
           ¥{fmt(val)}
@@ -169,7 +177,7 @@ export function Inventory() {
   return (
     <div className="inventory">
       <div className={'invHead' + (sellMode ? ' invHeadSell' : '')}>
-        <span className="invTitle">🎒 背包</span>
+        <span className="invTitle"><GameIcon kind="ui" id="bag" className="inlineIcon" />背包</span>
         <span className="invTotal">合计 {money(totalValue)}</span>
         <label className={'switch sellModeSwitch' + (sellMode ? ' on' : '')}>
           <input type="checkbox" checked={sellMode} onChange={(e) => setSellMode(e.target.checked)} />
@@ -180,11 +188,11 @@ export function Inventory() {
         </button>
       </div>
 
-      {sellMode && <div className="sellModeNote">💰 卖出模式：点击物品即卖出一个。点掉「卖出模式」可恢复看介绍。</div>}
+      {sellMode && <div className="sellModeNote"><GameIcon kind="ui" id="coin" className="inlineIcon" />卖出模式：点击物品即卖出一个。点掉「卖出模式」可恢复看介绍。</div>}
 
       {recentLoot.length > 0 && (
         <div className="recentLoot">
-          <div className="recentLootTitle">✨ 最近获得 <span className="invGroupHint">稀有+ 战利品集中区（点击看介绍）</span></div>
+          <div className="recentLootTitle"><GameIcon kind="ui" id="spark" className="inlineIcon" />最近获得 <span className="invGroupHint">稀有+ 战利品集中区（点击看介绍）</span></div>
           <div className="recentLootRow">
             {recentLoot.map((e, i) => {
               const it = ITEM_MAP[e.itemId];
@@ -198,7 +206,7 @@ export function Inventory() {
                   title={`${it.name}（${r.name}）· 点击看介绍`}
                   onClick={() => setDetailId(e.itemId)}
                 >
-                  <span className="recentChipEmoji">{it.emoji}</span>
+                  <GameIcon className="recentChipEmoji" kind="item" id={it.id} name={it.name} emoji={it.emoji} />
                 </button>
               );
             })}
@@ -237,11 +245,11 @@ export function Inventory() {
 
       {ordIds.length > 0 && (
         <div className="invPartSec">
-          <div className="invGroupTitle">💥 军火 <span className="invGroupHint">用来「轰开」离谱货（去厂房）</span></div>
+          <div className="invGroupTitle"><GameIcon kind="ui" id="boom" className="inlineIcon" />军火 <span className="invGroupHint">用来「轰开」离谱货（去厂房）</span></div>
           <div className="invGrid">
             {ordIds.map((o) => (
               <div key={o.id} className="invItem ordInvItem" title={`${o.name} · ${o.desc}`}>
-                <span className="invEmoji">{o.emoji}</span>
+                <GameIcon className="invEmoji" kind="ordnance" id={o.id} name={o.name} emoji={o.emoji} />
                 <span className="invCount">×{fmt(ordnance[o.id])}</span>
                 <span className="invVal ordInvName">{o.name}</span>
               </div>
@@ -252,14 +260,14 @@ export function Inventory() {
 
       {elemIds.length > 0 && (
         <div className="invPartSec">
-          <div className="invGroupTitle">🧪 元素 <span className="invGroupHint">提炼产物，造军火用，尽量别卖</span></div>
+          <div className="invGroupTitle"><GameIcon kind="ui" id="refinery" className="inlineIcon" />元素 <span className="invGroupHint">提炼产物，造军火用，尽量别卖</span></div>
           <div className="invGrid">{elemIds.map(renderItem)}</div>
         </div>
       )}
 
       {partIds.length > 0 && (
         <div className="invPartSec">
-          <div className="invGroupTitle">🔩 零件 <span className="invGroupHint">合成设备/工具用，尽量别卖</span></div>
+          <div className="invGroupTitle"><GameIcon kind="material" id="metal" className="inlineIcon" />零件 <span className="invGroupHint">合成设备/工具用，尽量别卖</span></div>
           <div className="invGrid">{partIds.map(renderItem)}</div>
         </div>
       )}

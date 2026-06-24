@@ -6,6 +6,7 @@ import { benchCapacity } from '../game/compute';
 import { backlogGroupKey, type Parcel } from '../game/state';
 import { useGame } from '../game/store';
 import { fmt } from '../lib/format';
+import { GameIcon } from './GameIcon';
 
 interface Group {
   key: string;
@@ -64,28 +65,34 @@ export function Backlog() {
             const mut = g.needMut ? MUTATION_MAP[g.needMut] : null;
             return (
               <div className="backlogRow" key={g.key}>
-                <span className="backlogEmoji">{g.emoji}</span>
+                <GameIcon className="backlogEmoji" name={g.name} emoji={g.emoji} />
                 <div className="backlogInfo">
                   <div className="backlogName">
                     {g.name} <span className="backlogCount">×{fmt(g.count)}</span>
-                    {g.danger && <span className="dangerTag">⚠️</span>}
-                    {mut && <span className="mutTag">🧬{mut.emoji}</span>}
+                    {g.danger && <span className="dangerTag"><GameIcon kind="ui" id="danger" className="tinyIcon" /></span>}
+                    {mut && (
+                      <span className="mutTag">
+                        <GameIcon kind="ui" id="mutation" className="tinyIcon" />
+                        <GameIcon kind="mutation" id={mut.id} name={mut.name} emoji={mut.emoji} className="tinyIcon" />
+                      </span>
+                    )}
                     {g.requirePipeline && (
-                      <span className="giantPipeTag">🏭 需要管线：{PIPELINE_NAME[g.requirePipeline] ?? g.requirePipeline}</span>
+                      <span className="giantPipeTag"><GameIcon kind="ui" id="pipe" className="tinyIcon" />需要管线：{PIPELINE_NAME[g.requirePipeline] ?? g.requirePipeline}</span>
                     )}
                     {g.requireOrdnance && (
-                      <span className="absurdTag">💥 离谱货：去厂房用军火轰开</span>
+                      <span className="absurdTag"><GameIcon kind="ui" id="boom" className="tinyIcon" />离谱货：去厂房用军火轰开</span>
                     )}
                   </div>
                   <span className="matBadge" style={{ background: mat.color + '33', borderColor: mat.color }}>
-                    {mat.emoji} {mat.name}
+                    <GameIcon kind="material" id={mat.id} name={mat.name} emoji={mat.emoji} />
+                    {mat.name}
                   </span>
                 </div>
                 <div className="backlogBtns">
                   {g.requireOrdnance ? (
-                    <span className="benchFullHint">💥 离谱货：只能在「厂房」用军火轰开</span>
+                    <span className="benchFullHint"><GameIcon kind="ui" id="boom" className="tinyIcon" />离谱货：只能在「厂房」用军火轰开</span>
                   ) : g.requirePipeline ? (
-                    <span className="benchFullHint">🏭 巨型货：只能在「厂房」靠拆卸管线拆解</span>
+                    <span className="benchFullHint"><GameIcon kind="ui" id="pipe" className="tinyIcon" />巨型货：只能在「厂房」靠拆卸管线拆解</span>
                   ) : (
                     <>
                       <button
