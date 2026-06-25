@@ -119,6 +119,36 @@ describe('owned-goods inventory', () => {
   });
 });
 
+describe('tool shop progression', () => {
+  it('a fresh run starts with bare hands only', () => {
+    runtimeGameStore.setState({
+      run: { ...createInitialRunState() },
+      meta: { ...createInitialMetaState() },
+    });
+    actions.ensureP1Run();
+    const tools = Object.keys(runtimeGameStore.getState().run.tools);
+    expect(tools).toEqual(['hand']);
+  });
+
+  it('buyTool costs money, grants the tool, and is a no-op when broke', () => {
+    runtimeGameStore.setState({
+      run: { ...createInitialRunState(), money: 0 },
+      meta: { ...createInitialMetaState() },
+    });
+    actions.ensureP1Run();
+    runtimeGameStore.setState({ ...runtimeGameStore.getState(), run: { ...runtimeGameStore.getState().run, money: 0 } });
+    actions.buyTool('hammer');
+    expect(runtimeGameStore.getState().run.tools.hammer).toBeUndefined(); // broke -> blocked
+
+    runtimeGameStore.setState({ ...runtimeGameStore.getState(), run: { ...runtimeGameStore.getState().run, money: 1000 } });
+    actions.buyTool('hammer');
+    const run = runtimeGameStore.getState().run;
+    expect(run.tools.hammer).toBeDefined();
+    expect(run.money).toBeLessThan(1000);
+    expect(run.selectedSourceId).toBe('hammer');
+  });
+});
+
 describe('machine upgrade tree', () => {
   it('machines start at level 1 and report an escalating upgrade cost', () => {
     const machineId = Object.keys(runtimeGameStore.getState().run.machines)[0];

@@ -36,7 +36,7 @@ const RISK_ORDER: Record<RiskLevel, number> = { unknown: 0, suspicious: 1, dange
 const SOURCE_MAP = Object.fromEntries([...TOOLS, ...MACHINES].map((source) => [source.id, source]));
 const TOOL_IDS = new Set(TOOLS.map((tool) => tool.id));
 const MACHINE_IDS = new Set(MACHINES.map((machine) => machine.id));
-const STARTER_TOOL_IDS = new Set(['hand', 'hammer', 'crowbar', 'remote-probe']);
+const STARTER_TOOL_IDS = new Set(['hand']);
 const STARTER_MACHINE_IDS = new Set(['hydraulic-hammer', 'scrap-arm']);
 const PIPELINE_SOURCE_IDS = new Set(['heavy-crusher', 'crawler-press', 'rail-smash-array']);
 // 机器升级专用稀有材料：砸特殊货物时按计数掉进 run.materials，升级时消耗。
@@ -914,6 +914,36 @@ export const actions = {
       },
     });
     emitGameFx({ kind: 'reward', targetId, intensity: 0.4, value: scrapGain, message: `当废铁卖了：+${scrapGain} 废料` });
+  },
+
+  // 工具铺：花拆快递攒的钱买更趁手的家伙。买不起就先回去拆快递。
+  buyTool(toolId: string) {
+    const store = runtimeGameStore.getState();
+    const def = TOOL_MAP[toolId];
+    if (!def) return;
+    if (store.run.tools[toolId]) return; // 已拥有
+    const price = def.price ?? 0;
+    if (store.run.money < price) {
+      emitGameFx({ kind: 'ineffective', intensity: 0.3, message: '钱不够，先去拆几个快递。' });
+      return;
+    }
+    store.setRun({
+      ...store.run,
+      money: store.run.money - price,
+      tools: {
+        ...store.run.tools,
+        [toolId]: {
+          toolId,
+          durability: def.durability ?? 999,
+          maxDurability: def.durability ?? 999,
+          broken: false,
+          tags: def.tags,
+        },
+      },
+      selectedSourceId: toolId,
+      storyLog: [...store.run.storyLog, `buy-tool:${toolId}`],
+    });
+    emitGameFx({ kind: 'reward', intensity: 0.5, message: `入手了：${def.name}。` });
   },
 
   selectSource(sourceId: string) {

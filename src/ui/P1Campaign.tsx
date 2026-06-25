@@ -4,6 +4,7 @@ import {
   BLACK_MARKET_OFFER_MAP,
   GOODS_SHOP,
   ITEM_MAP,
+  TOOL_SHOP,
   MACHINES,
   RISK_MAP,
   RUMOR_MAP,
@@ -584,6 +585,32 @@ export function P1Campaign() {
 
               {openPanel === 'goods' && (
                 <div className="p1GoodsPanel" data-testid="goods-panel">
+                  {/* 工具铺：徒手免费，更趁手的家伙得花拆快递的钱买。没对的工具，硬货砸不动。 */}
+                  <div className="p1BlockHeader">
+                    <span className="p1Eyebrow">工具铺</span>
+                    <b>现金 ¥{Math.floor(run.money)}</b>
+                  </div>
+                  <div className="p1ToolShop">
+                    {TOOL_SHOP.map((tool) => {
+                      const owned = !!run.tools[tool.id];
+                      const canPay = run.money >= (tool.price ?? 0);
+                      return (
+                        <div className={`p1ToolShopItem ${owned ? 'owned' : ''}`} key={tool.id} data-testid="tool-shop-item">
+                          <img src={assetUrl(toolIcon(tool.id))} alt="" draggable={false} />
+                          <div className="p1ToolShopMeta">
+                            <strong>{tool.name}</strong>
+                            <small>{tool.tags.join('/')}</small>
+                          </div>
+                          {owned ? (
+                            <span className="p1ToolOwned">已拥有</span>
+                          ) : (
+                            <button className="p1BuyBtn" disabled={!canPay} onClick={() => actions.buyTool(tool.id)}>买 ¥{tool.price}</button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
                   {/* 货架：买来的独一无二货物。同时只能砸一件，可随时切换，进度保留。 */}
                   <div className="p1BlockHeader">
                     <span className="p1Eyebrow">我的货架</span>

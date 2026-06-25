@@ -35,6 +35,8 @@ export const MATERIALS = P1_MATERIALS;
 export const BLACK_MARKET_OFFERS = P2_BLACK_MARKET_OFFERS;
 export const GOODS_SHOP = P1_GOODS_SHOP;
 export const GOODS_SHOP_MAP = P1_GOODS_SHOP_MAP;
+// 工具铺：可花钱购买的 P1 手持工具（徒手免费、起步即有；其余靠拆快递攒钱买）。
+export const TOOL_SHOP = P1_TOOLS.filter((tool) => (tool.price ?? 0) > 0);
 
 export const TARGET_MAP = Object.fromEntries(TARGETS.map((target) => [target.id, target]));
 export const RISK_MAP = { ...P1_RISK_MAP, ...P2_RISK_MAP };
