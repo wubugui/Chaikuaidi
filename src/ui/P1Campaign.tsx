@@ -86,7 +86,8 @@ export function P1Campaign() {
     didBoot.current = true;
     actions.ensureP1Run();
     if (!run.currentTarget && !run.runResult) {
-      window.setTimeout(() => actions.startRecommendedTarget(), 0);
+      // 开局即上工：先拆快递。快递是老哥的日常工作，没钱时永远能回来拆。
+      window.setTimeout(() => actions.openParcel(), 0);
     }
   }, [run.currentTarget, run.runResult]);
 
@@ -281,8 +282,13 @@ export function P1Campaign() {
 
   const continueAfterResult = () => {
     const result = run.runResult;
+    const completedTarget = result?.targetId ? TARGET_MAP[result.targetId] : undefined;
     actions.dismissResult();
-    if (result?.reason === 'completed') actions.startRecommendedTarget();
+    // 拆完快递就继续拆下一个快递（日常工作流）；拆完特殊货物则回到目标清单挑下一件。
+    if (result?.reason === 'completed') {
+      if (completedTarget && completedTarget.id.startsWith('parcel-')) actions.openParcel();
+      else actions.startRecommendedTarget();
+    }
   };
 
   // 底部菜单坞：低频面板按需打开，平时不在屏上
@@ -473,11 +479,19 @@ export function P1Campaign() {
           if (next) actions.selectSource(next.id);
         }}>
           <button
+            className="p1ParcelBtn"
+            onClick={() => actions.openParcel()}
+            title="回去拆快递：老哥的日常工作，永远有货、永远来钱"
+          >
+            <span>拆快递</span>
+            <small>日常</small>
+          </button>
+          <button
             className={`p1AutoBtn ${run.autoPipeline ? 'on' : ''}`}
             onClick={() => actions.toggleAutoPipeline()}
-            title="全自动砸击管线：自动对准部位连续砸、自动切视角，一路砸穿目标"
+            title="自动拆快递管线：开启后自动连拆快递、自动结算、自动开下一单（只对快递生效）"
           >
-            <span>自动</span>
+            <span>自动拆</span>
             <small>{run.autoPipeline ? '运行中' : '关'}</small>
           </button>
           {ownedTools.map((tool, index) => (
@@ -508,6 +522,9 @@ export function P1Campaign() {
                   {run.hitMode === 'melee' ? '近身砸' : '远程试探'}
                 </button>
                 <button className="danger" disabled={!rageReady} onClick={() => actions.useRageBurst(selectedPart.id)}>暴走砸</button>
+                {target && !target.id.startsWith('parcel-') && (
+                  <button className="ghost" onClick={() => actions.scrapSellCurrent()} title="砸不动？当废铁卖了，按价值折算废料">当废铁卖</button>
+                )}
                 <button className="ghost" disabled={!target} onClick={() => actions.retreatTarget()}>撤退</button>
               </div>
             </>

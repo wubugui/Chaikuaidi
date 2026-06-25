@@ -179,6 +179,21 @@ function isImportantTarget(target: TargetDef): boolean {
   return target.scale !== 'desktop' || target.id === 'parcel-tape-final';
 }
 
+// 快递是主角的"日常工作"：永远可拆、可重复、是没钱时的兜底收入来源。
+// 非快递货物（保险柜/汽车/导弹…）都是独一无二、需要精心拆解的特殊体验，不走自动管线。
+function isParcel(target: TargetDef | undefined): boolean {
+  return !!target && target.id.startsWith('parcel-');
+}
+
+// 选一个当前已解锁的快递来拆：在已发现的快递里挑收益较高的一档，带点随机让"日常"不至于完全重复。
+function pickParcelTargetId(meta: MetaState): string | null {
+  const parcels = TARGETS.filter((target) => isParcel(target) && meta.discoveredTargets.includes(target.id));
+  if (parcels.length === 0) return null;
+  const best = Math.max(...parcels.map((target) => target.rewards.cash ?? 0));
+  const pool = parcels.filter((target) => (target.rewards.cash ?? 0) >= best * 0.5);
+  return pick(pool.length > 0 ? pool : parcels).id;
+}
+
 function archiveForRisk(riskId: string): string | undefined {
   return ACCIDENT_ARCHIVES.find((archive) => archive.riskId === riskId)?.id;
 }
@@ -712,6 +727,51 @@ export const actions = {
     if (next) actions.startTarget(next.id);
   },
 
+  // 拆快递：主角的日常工作。永远可用、可重复，是没钱时的兜底收入。
+  openParcel() {
+    const store = runtimeGameStore.getState();
+    const parcelId = pickParcelTargetId(store.meta);
+    if (!parcelId) return;
+    if (store.run.runResult) store.setRun({ ...store.run, runResult: null });
+    actions.startTarget(parcelId, { ignoreCost: true });
+  },
+
+  // 博弈逃生口之一："当废铁卖了"。放弃当前砸不动的特殊货物，按其价值折算一笔废料。
+  scrapSellCurrent() {
+    const store = runtimeGameStore.getState();
+    const targetId = store.run.currentTarget?.targetId;
+    if (!targetId) return;
+    const target = TARGET_MAP[targetId];
+    if (!target || isParcel(target)) return;
+    const value = target.entryCost?.money ?? Math.ceil((target.rewards.cash ?? 0) * 0.3);
+    const scrapGain = Math.max(1, Math.ceil(value * 0.3));
+    store.setRun({
+      ...store.run,
+      activeHit: null,
+      currentTarget: null,
+      scrap: store.run.scrap + scrapGain,
+      runResult: {
+        reason: 'retreated',
+        targetId,
+        money: store.run.money,
+        scrap: store.run.scrap + scrapGain,
+        reputation: 0,
+        rumors: [],
+        accidentArchives: [],
+        worldChanges: [`${target.name} 被老哥当废铁处理掉，换了 ${scrapGain} 废料。`],
+      },
+      storyLog: [...store.run.storyLog, `scrap-sell:${targetId}`],
+    });
+    store.setMeta({
+      ...store.meta,
+      factory: {
+        ...store.meta.factory,
+        usedSlots: Math.max(0, store.meta.factory.usedSlots - targetFactorySlots(target)),
+      },
+    });
+    emitGameFx({ kind: 'reward', targetId, intensity: 0.4, value: scrapGain, message: `当废铁卖了：+${scrapGain} 废料` });
+  },
+
   selectSource(sourceId: string) {
     const store = runtimeGameStore.getState();
     if (!damageSourceExists(sourceId)) return;
@@ -1062,8 +1122,9 @@ export const actions = {
     }
     for (const [machineId, partId] of toHit) actions.hitPart(partId, machineId);
 
-    // 全自动管线：开启后自动对准暴露部位连续砸、自动切视角、一路砸穿整个目标
-    if (runtimeGameStore.getState().run.autoPipeline) {
+    // 自动拆快递管线：只对快递生效。特殊货物是要精心拆解的体验，不走全自动。
+    // 开启后自动对准暴露部位连续砸、自动切视角，一路把当前快递砸穿。
+    if (runtimeGameStore.getState().run.autoPipeline && isParcel(target)) {
       for (let i = 0; i < 4; i++) {
         const live = runtimeGameStore.getState().run;
         if (!live.currentTarget) break;
@@ -1074,6 +1135,13 @@ export const actions = {
         }
         actions.hitPart(picked.partId, bestAutoSourceFor(live, target, picked.partId));
       }
+    }
+
+    // 自动拆快递管线的"完全不用操心"：拆完一个快递后自动结算并开下一个，钱自己进账。
+    // 只在刚拆完的是快递时续流，特殊货物结算后不会被自动接管。
+    const after = runtimeGameStore.getState().run;
+    if (after.autoPipeline && !after.currentTarget && after.runResult?.reason === 'completed' && isParcel(TARGET_MAP[after.runResult.targetId ?? ''])) {
+      actions.openParcel();
     }
   },
 
