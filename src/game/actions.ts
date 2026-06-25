@@ -918,6 +918,62 @@ export const actions = {
     emitGameFx({ kind: 'reward', targetId, intensity: 0.4, value: scrapGain, message: `当废铁卖了：+${scrapGain} 废料` });
   },
 
+  // 博弈逃生口之一："瞎几把砸"。砸不动也硬来，赌一把：偶尔蒙对砸进去/掉点东西，
+  // 多数时候啥也没有，偶尔还磕到自己。给走投无路的玩家一个赌徒选项。
+  blindSmash() {
+    const store = runtimeGameStore.getState();
+    const run = store.run;
+    if (!run.currentTarget) return;
+    const target = TARGET_MAP[run.currentTarget.targetId];
+    if (!target || isParcel(target)) return;
+    const candidates = target.parts.filter((p) => {
+      const ps = run.currentTarget!.parts[p.id];
+      return ps?.exposed && !ps.destroyed;
+    });
+    if (candidates.length === 0) return;
+    const partDef = pick(candidates);
+    const partState = run.currentTarget.parts[partDef.id];
+    const sourceId = run.selectedSourceId;
+    const roll = Math.random();
+
+    if (roll < 0.12) {
+      // 大运：瞎砸竟然砸进去一大块 + 掉点钱
+      const mult = Math.ceil(partState.maxHp * (0.16 + Math.random() * 0.12));
+      const hit = applyPartHit(run.currentTarget, partDef.id, sourceId, 0, mult, true);
+      const cash = 5 + Math.floor(Math.random() * 16);
+      store.setRun({
+        ...run,
+        currentTarget: { ...hit.target, selectedPartId: partDef.id },
+        money: run.money + cash,
+        storyLog: [...run.storyLog, `blind-jackpot:${partDef.id}`],
+      });
+      emitGameFx({ kind: hit.destroyed ? 'final-break' : 'crack', targetId: target.id, partId: partDef.id, intensity: 0.9, value: cash, message: `邪门，瞎砸这一下还真进去了！+¥${cash}` });
+      if (hit.completed) {
+        emitGameFx({ kind: 'final-break', targetId: target.id, partId: partDef.id, intensity: 1, message: `${target.name} 被瞎猫碰上死耗子砸开了。` });
+        settleCompletedTarget(target, false);
+      }
+    } else if (roll < 0.34) {
+      // 小运：蒙对一下，掉点渣
+      const mult = Math.ceil(partState.maxHp * 0.04) + 1;
+      const hit = applyPartHit(run.currentTarget, partDef.id, sourceId, 0, mult, true);
+      store.setRun({
+        ...run,
+        currentTarget: { ...hit.target, selectedPartId: partDef.id },
+        scrap: run.scrap + 1,
+        storyLog: [...run.storyLog, `blind-chip:${partDef.id}`],
+      });
+      emitGameFx({ kind: 'hit', targetId: target.id, partId: partDef.id, intensity: 0.4, message: '蒙对一下，掉了点渣 +1废料' });
+    } else if (roll < 0.78) {
+      // 没用
+      emitGameFx({ kind: 'ineffective', targetId: target.id, partId: partDef.id, intensity: 0.3, message: '瞎砸半天，纹丝不动。' });
+    } else {
+      // 小挫折：磕到自己，丢一点点钱（不致命）
+      const loss = Math.min(Math.floor(run.money), 2 + Math.floor(Math.random() * 4));
+      if (loss > 0) store.setRun({ ...run, money: run.money - loss, storyLog: [...run.storyLog, 'blind-backfire'] });
+      emitGameFx({ kind: 'danger', targetId: target.id, partId: partDef.id, intensity: 0.4, riskLevel: 'suspicious', message: loss > 0 ? `手一滑磕到自己，骂骂咧咧 -¥${loss}` : '手一滑，差点伤到自己。' });
+    }
+  },
+
   // 工具铺：花拆快递攒的钱买更趁手的家伙。买不起就先回去拆快递。
   buyTool(toolId: string) {
     const store = runtimeGameStore.getState();

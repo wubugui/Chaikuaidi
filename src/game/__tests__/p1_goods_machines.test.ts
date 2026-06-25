@@ -119,6 +119,35 @@ describe('owned-goods inventory', () => {
   });
 });
 
+describe('瞎几把砸 blind-smash gamble', () => {
+  it('is a no-op on parcels (only for special goods)', () => {
+    runtimeGameStore.setState({ run: { ...createInitialRunState() }, meta: { ...createInitialMetaState() } });
+    actions.ensureP1Run();
+    actions.openParcel();
+    const before = JSON.stringify(runtimeGameStore.getState().run.currentTarget);
+    actions.blindSmash();
+    expect(JSON.stringify(runtimeGameStore.getState().run.currentTarget)).toBe(before);
+  });
+
+  it('over many rolls it sometimes chips an un-smashable good and never crashes', () => {
+    runtimeGameStore.setState({ run: { ...createInitialRunState(), money: 100_000 }, meta: { ...createInitialMetaState() } });
+    actions.ensureP1Run();
+    runtimeGameStore.setState({ ...runtimeGameStore.getState(), run: { ...runtimeGameStore.getState().run, money: 100_000 } });
+    actions.buyGood('good-blackball'); // requiredTags remote; player owns only 'hand'
+    let everDamaged = false;
+    for (let i = 0; i < 400; i++) {
+      const r = runtimeGameStore.getState().run;
+      if (!r.currentTarget) break; // got lucky and finished it
+      const hpBefore = r.currentTarget.parts['blackball-core']?.hp ?? 0;
+      actions.blindSmash();
+      const after = runtimeGameStore.getState().run.currentTarget;
+      const hpAfter = after?.parts['blackball-core']?.hp ?? 0;
+      if (!after || hpAfter < hpBefore) everDamaged = true;
+    }
+    expect(everDamaged).toBe(true); // blind smashing does eventually get through
+  });
+});
+
 describe('tool shop progression', () => {
   it('a fresh run starts with bare hands only', () => {
     runtimeGameStore.setState({

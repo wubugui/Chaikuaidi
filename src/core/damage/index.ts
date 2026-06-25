@@ -39,6 +39,7 @@ export function applyPartHit(
   sourceId: string,
   combo: number,
   damageMultiplier = 1,
+  ignoreRequiredTags = false,
 ): PartHitResult {
   const targetDef = TARGET_MAP[runtime.targetId];
   const partDef = targetDef?.parts.find((part) => part.id === partId);
@@ -58,7 +59,7 @@ export function applyPartHit(
       unlockedViews: [],
     };
   }
-  if (partDef.requiredTags?.length && !source.tags.some((tag) => partDef.requiredTags?.includes(tag))) {
+  if (!ignoreRequiredTags && partDef.requiredTags?.length && !source.tags.some((tag) => partDef.requiredTags?.includes(tag))) {
     return {
       target: runtime,
       damage: 0,

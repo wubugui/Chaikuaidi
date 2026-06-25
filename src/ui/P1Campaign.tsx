@@ -547,7 +547,10 @@ export function P1Campaign() {
                 </button>
                 <button className="danger" disabled={!rageReady} onClick={() => actions.useRageBurst(selectedPart.id)}>暴走砸</button>
                 {target && !target.id.startsWith('parcel-') && (
-                  <button className="ghost" onClick={() => actions.scrapSellCurrent()} title="砸不动？当废铁卖了，按价值折算废料">当废铁卖</button>
+                  <>
+                    <button className="ghost" onClick={() => actions.blindSmash()} title="砸不动也硬来，赌一把：偶尔蒙对，多数没用，偶尔磕到自己">瞎几把砸</button>
+                    <button className="ghost" onClick={() => actions.scrapSellCurrent()} title="砸不动？当废铁卖了，按价值折算废料">当废铁卖</button>
+                  </>
                 )}
                 <button className="ghost" disabled={!target} onClick={() => actions.retreatTarget()}>撤退</button>
               </div>
