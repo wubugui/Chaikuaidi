@@ -100,6 +100,7 @@ export interface RunState {
   activeHit: { partId: string; sourceId: string } | null;
   selectedSourceId: string;
   hitMode: HitMode;
+  autoPipeline: boolean;
   currentTarget: TargetRuntimeState | null;
   tools: Record<string, ToolRuntimeState>;
   machines: Record<string, MachineRuntimeState>;
@@ -155,6 +156,7 @@ export function createInitialRunState(): RunState {
     activeHit: null,
     selectedSourceId: 'hand',
     hitMode: 'melee',
+    autoPipeline: false,
     currentTarget: null,
     tools: {},
     machines: {},

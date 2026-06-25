@@ -23,7 +23,7 @@ import {
   TOOL_MAP,
   TOOLS,
 } from '../content';
-import type { BlackMarketOfferDef, DamageSourceDef, RiskLevel, TargetDef } from '../content/types';
+import type { BlackMarketOfferDef, DamageSourceDef, MachineDef, RiskLevel, TargetDef } from '../content/types';
 import { runtimeGameStore } from './runtimeStore';
 import { emitGameFx } from './runtimeEvents';
 
@@ -75,6 +75,62 @@ function bestOwnedSourceFor(run: RunState, target: TargetDef, partId: string | n
     }
   }
   return best;
+}
+
+// 自动管线：从拥有的工具 + 机械里挑对该部位最有效的砸击源（忽略作业位限制，保证永远砸得动）
+function bestAutoSourceFor(run: RunState, target: TargetDef, partId: string): string {
+  const partDef = target.parts.find((part) => part.id === partId);
+  const material = partDef ? MATERIAL_MAP[partDef.material] : undefined;
+  if (!material) return run.selectedSourceId;
+  const candidates = [
+    ...Object.entries(run.tools).filter(([, tool]) => !tool.broken).map(([id]) => id),
+    ...Object.entries(run.machines).filter(([, machine]) => machine.durability > 0).map(([id]) => id),
+  ];
+  let best = run.selectedSourceId;
+  let bestScore = -1;
+  for (const id of candidates) {
+    if (GIANT_SOURCE_IDS.has(id) && target.scale === 'desktop') continue;
+    const source = sourceFor(id);
+    if (!source) continue;
+    if (partDef?.requiredTags?.length && !source.tags.some((tag) => partDef.requiredTags?.includes(tag))) continue;
+    const preview = previewDamage(source, material);
+    const score = (preview.effective ? 1000 : 0) + preview.amount;
+    if (score > bestScore) {
+      bestScore = score;
+      best = id;
+    }
+  }
+  return best;
+}
+
+// 自动管线：挑下一个要砸的部位（优先当前视角，挑血量最低的先砸开，再自动流转）
+function pickAutoPart(run: RunState, target: TargetDef): { partId: string; viewId: string } | null {
+  const ct = run.currentTarget;
+  if (!ct) return null;
+  const exposed = target.parts.filter((part) => {
+    const ps = ct.parts[part.id];
+    return ps && ps.exposed && !ps.destroyed;
+  });
+  if (!exposed.length) return null;
+  const inView = exposed.filter((part) => part.viewId === ct.currentViewId);
+  const reachable = exposed.filter((part) => ct.unlockedViews.includes(part.viewId));
+  const pool = inView.length ? inView : reachable.length ? reachable : exposed;
+  pool.sort((a, b) => ct.parts[a.id].hp - ct.parts[b.id].hp);
+  return { partId: pool[0].id, viewId: pool[0].viewId };
+}
+
+// 机械流转：部位砸开后，找下一个有合适作业位的暴露部位（血量最低优先）
+function nextMachinePart(run: RunState, target: TargetDef, machineDef: MachineDef): string | null {
+  const ct = run.currentTarget;
+  if (!ct) return null;
+  const candidates = target.parts.filter((part) => {
+    const ps = ct.parts[part.id];
+    if (!ps || !ps.exposed || ps.destroyed) return false;
+    return part.machineSlots.some((slot) => machineDef.slotTags.some((tag) => slot.accepts.includes(tag)));
+  });
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => ct.parts[a.id].hp - ct.parts[b.id].hp);
+  return candidates[0].id;
 }
 
 function unique<T>(items: T[]): T[] {
@@ -716,7 +772,7 @@ export const actions = {
     const finalThreshold = Math.max(2, Math.ceil(partState.maxHp * 0.06));
 
     // 重要目标：机械削到临界就停手，最后一击留给玩家（偶尔提示一次，不刷屏）
-    if (isMachine && isImportantTarget(target) && partState.hp <= finalThreshold) {
+    if (isMachine && isImportantTarget(target) && partState.hp <= finalThreshold && !run.autoPipeline) {
       if (Math.random() < 0.12) {
         emitGameFx({ kind: 'final-ready', targetId: target.id, partId, sourceId, intensity: 0.75, message: '机械削到临界了，最后一击留给老哥。' });
       }
@@ -962,24 +1018,27 @@ export const actions = {
     const store = runtimeGameStore.getState();
     const run = store.run;
     if (!run.currentTarget) return;
+    const target = TARGET_MAP[run.currentTarget.targetId];
+    if (!target) return;
     const dt = 0.65;
     let machines = run.machines;
     let changed = false;
     const toHit: Array<[string, string]> = [];
-    // 每台机械各自独立处理（可同时挂在不同部位；一台机械只占一个部位）
+    // 每台机械独立处理（可同时挂在不同部位；一台机械只占一个部位）
     for (const [machineId, machine] of Object.entries(run.machines)) {
       if (!machine.deployedPartId) continue;
       const def = MACHINES.find((item) => item.id === machineId);
       if (!def) continue;
       const partState = run.currentTarget.parts[machine.deployedPartId];
-      // 部位已砸开 -> 自动撤下，别再对着空气砸（修掉"无效命中刷屏"）
+      // 部位砸开 -> 自动流转到下一个可作业部位（修掉"机械砸完一个就停"）
       if (!partState || partState.destroyed) {
-        machines = { ...machines, [machineId]: { ...machine, deployedPartId: null, overheat: 0, jammed: false } };
+        const next = nextMachinePart(run, target, def);
+        machines = { ...machines, [machineId]: { ...machine, deployedPartId: next, overheat: 0, jammed: false } };
         changed = true;
         continue;
       }
       if (machine.durability <= 0) continue;
-      // 卡死自动冷却，降到阈值以下自动恢复（不必每次手动修）
+      // 卡死自动冷却，降到阈值以下自动恢复
       if (machine.jammed) {
         const cooled = Math.max(0, machine.overheat - dt * 1.6);
         machines = { ...machines, [machineId]: { ...machine, overheat: cooled, jammed: cooled > def.overheatSeconds * 0.35 } };
@@ -1002,6 +1061,27 @@ export const actions = {
       latest.setRun({ ...latest.run, machines });
     }
     for (const [machineId, partId] of toHit) actions.hitPart(partId, machineId);
+
+    // 全自动管线：开启后自动对准暴露部位连续砸、自动切视角、一路砸穿整个目标
+    if (runtimeGameStore.getState().run.autoPipeline) {
+      for (let i = 0; i < 4; i++) {
+        const live = runtimeGameStore.getState().run;
+        if (!live.currentTarget) break;
+        const picked = pickAutoPart(live, target);
+        if (!picked) break;
+        if (picked.viewId !== live.currentTarget.currentViewId && live.currentTarget.unlockedViews.includes(picked.viewId)) {
+          actions.switchView(picked.viewId);
+        }
+        actions.hitPart(picked.partId, bestAutoSourceFor(live, target, picked.partId));
+      }
+    }
+  },
+
+  toggleAutoPipeline() {
+    const store = runtimeGameStore.getState();
+    const next = !store.run.autoPipeline;
+    store.setRun({ ...store.run, autoPipeline: next });
+    emitGameFx({ kind: 'stage', targetId: store.run.currentTarget?.targetId, intensity: 0.5, message: next ? '自动管线已开启，老哥先歇着。' : '自动管线已关闭，亲手砸。' });
   },
 
   repairMachine(machineId: string) {

@@ -472,6 +472,14 @@ export function P1Campaign() {
           const next = ownedTools[(idx + (event.deltaY > 0 ? 1 : -1) + ownedTools.length) % ownedTools.length];
           if (next) actions.selectSource(next.id);
         }}>
+          <button
+            className={`p1AutoBtn ${run.autoPipeline ? 'on' : ''}`}
+            onClick={() => actions.toggleAutoPipeline()}
+            title="全自动砸击管线：自动对准部位连续砸、自动切视角，一路砸穿目标"
+          >
+            <span>自动</span>
+            <small>{run.autoPipeline ? '运行中' : '关'}</small>
+          </button>
           {ownedTools.map((tool, index) => (
             <button
               key={tool.id}
