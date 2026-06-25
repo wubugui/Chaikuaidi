@@ -13,7 +13,7 @@ import type { PartDef, RiskLevel, TargetDef } from '../content/types';
 import { SELLER_MAP } from '../content/sellers';
 import { actions } from '../game/actions';
 import { onGameFx, type GameFxEvent } from '../game/runtimeEvents';
-import { useRuntimeGame } from '../game/runtimeStore';
+import { runtimeGameStore, useRuntimeGame } from '../game/runtimeStore';
 import { getAudioVolume, setAudioVolume, sfxBonk, sfxBoom, sfxCash, sfxCrack, sfxMaterialHit } from '../lib/audio';
 import { assetUrl } from '../lib/asset';
 
@@ -74,6 +74,7 @@ export function P1Campaign() {
   const [sellerLine, setSellerLine] = useState(0);
   const [bursts, setBursts] = useState<Array<{ id: number; x: number; y: number; kind: string; bits: Array<{ tx: number; ty: number }> }>>([]);
   const holdTimer = useRef<number | null>(null);
+  const heldPart = useRef<string | null>(null);
   const shakeTimer = useRef<number | null>(null);
   const freezeTimer = useRef<number | null>(null);
   const burstId = useRef(0);
@@ -148,6 +149,24 @@ export function P1Campaign() {
       if (holdTimer.current) window.clearInterval(holdTimer.current);
       if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
       if (freezeTimer.current) window.clearTimeout(freezeTimer.current);
+    };
+  }, []);
+
+  // 兜底：无论指针在哪松开（包括按钮因部位砸开变 disabled 不再回调的情况），都停手
+  useEffect(() => {
+    const release = () => {
+      if (holdTimer.current) {
+        window.clearInterval(holdTimer.current);
+        holdTimer.current = null;
+      }
+      heldPart.current = null;
+      actions.stopHit();
+    };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
+    return () => {
+      window.removeEventListener('pointerup', release);
+      window.removeEventListener('pointercancel', release);
     };
   }, []);
 
@@ -227,6 +246,7 @@ export function P1Campaign() {
       window.clearInterval(holdTimer.current);
       holdTimer.current = null;
     }
+    heldPart.current = null;
     actions.stopHit();
   };
 
@@ -235,9 +255,21 @@ export function P1Campaign() {
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     stopHold();
+    heldPart.current = partId;
     actions.startHit(partId, run.selectedSourceId);
     actions.hitPart(partId, run.selectedSourceId);
-    holdTimer.current = window.setInterval(() => actions.hitPart(partId, run.selectedSourceId), run.hitMode === 'remote' ? 460 : 260);
+    holdTimer.current = window.setInterval(() => {
+      const pid = heldPart.current;
+      if (!pid) return;
+      const live = runtimeGameStore.getState().run;
+      const partRuntime = live.currentTarget?.parts[pid];
+      // 部位砸开 / 目标结束 / 不可砸 -> 自动停手，别再对着空气狂刷"砸不到"
+      if (!live.currentTarget || !partRuntime || partRuntime.destroyed || !partRuntime.exposed) {
+        stopHold();
+        return;
+      }
+      actions.hitPart(pid, live.selectedSourceId);
+    }, run.hitMode === 'remote' ? 460 : 260);
   };
 
   const startTarget = (targetId: string) => {
