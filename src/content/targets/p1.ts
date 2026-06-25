@@ -624,43 +624,68 @@ export const P1_TARGETS: TargetDef[] = [
   },
 ];
 
-// 货架商店专属：一个"看起来很牛逼但徒手/大锤根本砸不动"的怪东西。
-// requiredTags=['remote'] —— 没有远程试探架就是 0 伤害，逼出博弈：当废铁卖 / 瞎砸 / 换货 / 回去拆快递。
-// 一旦凑到远程装置，它就能砸开，掉落机器升级用的稀有材料。
+// 货架商店专属：一个"看起来很牛逼但徒手/大锤根本砸不动"的两段式怪东西。
+// 第一段——外壳 requiredTags=['remote']：没有远程试探架就是 0 伤害，逼出博弈
+//   （当废铁卖 / 瞎砸 / 换货 / 回去拆快递）。凑到远程装置才能敲开外壳。
+// 第二段——壳裂开后露出不稳定的内核：任何工具都能砸，但越砸越躁，
+//   砸狠了会放电（异常征兆），形成"见好就收还是榨干"的二次决策。
 P1_TARGETS.push({
   id: 'oddity-blackball',
   name: '不讲道理的黑铁球',
-  scale: 'desktop',
-  presentation: 'workbench',
+  scale: 'closeup',
+  presentation: 'multi-part',
   phase: 'p1',
-  intro: '卖家说这是「陨星压缩核」，沉得像有人在里面拽。徒手和大锤砸上去只有闷响，连个白印都没有。',
+  intro: '卖家说这是「陨星压缩核」，沉得像有人在里面拽。徒手和大锤砸上去只有闷响，连个白印都没有——它在等一个对的家伙。',
   icon: safeArt,
+  sellerId: 'monolith',
   views: [
     {
-      id: 'front',
-      name: '工作台',
+      id: 'outer',
+      name: '外壳',
       background: marketBg,
-      hotspots: [{ id: 'blackball-hotspot', partId: 'blackball-core', x: 0.38, y: 0.34, width: 0.24, height: 0.26 }],
+      hotspots: [{ id: 'blackball-shell-hotspot', partId: 'blackball-shell', x: 0.36, y: 0.32, width: 0.28, height: 0.3 }],
+    },
+    {
+      id: 'inner',
+      name: '内核',
+      background: marketBg,
+      hotspots: [{ id: 'blackball-core-hotspot', partId: 'blackball-core', x: 0.42, y: 0.38, width: 0.2, height: 0.2 }],
     },
   ],
   parts: [
     {
-      id: 'blackball-core',
-      name: '致密核',
-      viewId: 'front',
+      id: 'blackball-shell',
+      name: '致密外壳',
+      viewId: 'outer',
       material: 'volatile',
-      hp: 110,
+      hp: 90,
       requiredTags: ['remote'],
       stages: [
         { id: 'sealed', threshold: 1, art: safeArt, label: '一点都没动' },
-        { id: 'humming', threshold: 0.5, art: safeArt, label: '开始低频嗡鸣' },
-        { id: 'cracked', threshold: 0, art: safeArt, label: '核裂开了' },
+        { id: 'humming', threshold: 0.5, art: safeArt, label: '壳里开始低频嗡鸣' },
+        { id: 'cracked', threshold: 0, art: safeArt, label: '外壳裂开了' },
       ],
       machineSlots: [{ id: 'blackball-remote-slot', accepts: ['remote'], x: 0.5, y: 0.46 }],
       riskTriggers: [],
+      unlocksParts: ['blackball-core'],
+      unlocksViews: ['inner'],
+    },
+    {
+      id: 'blackball-core',
+      name: '不稳定内核',
+      viewId: 'inner',
+      material: 'anomaly',
+      hp: 70,
+      stages: [
+        { id: 'glowing', threshold: 1, art: safeArt, label: '核在发光' },
+        { id: 'agitated', threshold: 0.5, art: safeArt, label: '光开始乱跳' },
+        { id: 'spent', threshold: 0, art: safeArt, label: '核被榨干了' },
+      ],
+      machineSlots: [],
+      riskTriggers: [{ riskId: 'anomaly-hum', level: 'dangerous', threshold: 0.45, hint: '内核越砸越躁，再硬来可能要放电。' }],
     },
   ],
-  risks: [],
+  risks: [{ riskId: 'anomaly-hum', partIds: ['blackball-core'] }],
   rewards: { cash: 260, scrap: 8, items: ['m_hardcore', 'm_pressgem', 'goldbar'], rumors: [], accidentArchives: [] },
 });
 

@@ -241,10 +241,15 @@ export function P1Campaign() {
   const seller = target?.sellerId ? SELLER_MAP[target.sellerId] : undefined;
   const sellerLines = seller ? [target?.intro ?? '', ...seller.lines].filter(Boolean) : [];
   const sellerText = sellerLines.length ? sellerLines[sellerLine % sellerLines.length] : '';
+  // 卖家立绘只在"第一次遇到这件货"时弹一次；之后从货架切回来不再重播，免得啰嗦。
+  const seenSellers = useRef<Set<string>>(new Set());
   useEffect(() => {
+    if (!target?.id || !target.sellerId) { setSellerOpen(false); return; }
+    if (seenSellers.current.has(target.id)) { setSellerOpen(false); return; }
+    seenSellers.current.add(target.id);
     setSellerOpen(true);
     setSellerLine(0);
-  }, [target?.id]);
+  }, [target?.id, target?.sellerId]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

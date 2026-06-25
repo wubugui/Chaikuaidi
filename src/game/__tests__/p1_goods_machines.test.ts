@@ -84,16 +84,26 @@ describe('owned-goods inventory', () => {
 
   it('a hard good with requiredTags is un-smashable without the right tool (drives 博弈)', () => {
     actions.buyGood('good-blackball');
-    const before = runtimeGameStore.getState().run.currentTarget!.parts['blackball-core'].hp;
-    // hammer has no 'remote' tag -> requiredTags gate -> zero damage
-    for (let i = 0; i < 30; i++) actions.hitPart('blackball-core', 'hammer');
-    const afterHammer = runtimeGameStore.getState().run.currentTarget!.parts['blackball-core'].hp;
+    const before = runtimeGameStore.getState().run.currentTarget!.parts['blackball-shell'].hp;
+    // hammer has no 'remote' tag -> requiredTags gate on the shell -> zero damage
+    for (let i = 0; i < 30; i++) actions.hitPart('blackball-shell', 'hammer');
+    const afterHammer = runtimeGameStore.getState().run.currentTarget!.parts['blackball-shell'].hp;
     expect(afterHammer).toBe(before);
 
-    // remote-probe satisfies the gate -> it chips away
-    for (let i = 0; i < 30; i++) actions.hitPart('blackball-core', 'remote-probe');
-    const afterRemote = runtimeGameStore.getState().run.currentTarget!.parts['blackball-core'].hp;
+    // remote-probe satisfies the gate -> it chips the shell away
+    for (let i = 0; i < 30; i++) actions.hitPart('blackball-shell', 'remote-probe');
+    const afterRemote = runtimeGameStore.getState().run.currentTarget!.parts['blackball-shell'].hp;
     expect(afterRemote).toBeLessThan(before);
+  });
+
+  it('cracking the shell reveals the inner core (two-phase reveal)', () => {
+    actions.buyGood('good-blackball');
+    expect(runtimeGameStore.getState().run.currentTarget!.parts['blackball-core'].exposed).toBe(false);
+    for (let i = 0; i < 200 && !runtimeGameStore.getState().run.currentTarget!.parts['blackball-shell'].destroyed; i++) {
+      actions.hitPart('blackball-shell', 'remote-probe');
+    }
+    expect(runtimeGameStore.getState().run.currentTarget!.parts['blackball-shell'].destroyed).toBe(true);
+    expect(runtimeGameStore.getState().run.currentTarget!.parts['blackball-core'].exposed).toBe(true);
   });
 
   it('scrapSellCurrent removes the good from the shelf and pays scrap', () => {
@@ -133,16 +143,16 @@ describe('瞎几把砸 blind-smash gamble', () => {
     runtimeGameStore.setState({ run: { ...createInitialRunState(), money: 100_000 }, meta: { ...createInitialMetaState() } });
     actions.ensureP1Run();
     runtimeGameStore.setState({ ...runtimeGameStore.getState(), run: { ...runtimeGameStore.getState().run, money: 100_000 } });
-    actions.buyGood('good-blackball'); // requiredTags remote; player owns only 'hand'
+    actions.buyGood('good-blackball'); // shell gated by requiredTags remote; player owns only 'hand'
+    const totalHp = (rt: any) => Object.values(rt.parts).reduce((s: number, p: any) => s + (p.destroyed ? 0 : p.hp), 0);
     let everDamaged = false;
     for (let i = 0; i < 400; i++) {
       const r = runtimeGameStore.getState().run;
       if (!r.currentTarget) break; // got lucky and finished it
-      const hpBefore = r.currentTarget.parts['blackball-core']?.hp ?? 0;
+      const before = totalHp(r.currentTarget);
       actions.blindSmash();
       const after = runtimeGameStore.getState().run.currentTarget;
-      const hpAfter = after?.parts['blackball-core']?.hp ?? 0;
-      if (!after || hpAfter < hpBefore) everDamaged = true;
+      if (!after || totalHp(after) < before) everDamaged = true;
     }
     expect(everDamaged).toBe(true); // blind smashing does eventually get through
   });
