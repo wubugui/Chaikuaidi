@@ -434,10 +434,15 @@ function settleAccident(target: TargetDef, riskId: string, severity: AccidentSev
     summary,
   };
 
+  // 非轻微事故会毁掉台上这件货：若它是货架货物，从货架移除（别留下能复活的"鬼货"）。
+  const activeId = store.run.activeGoodInstanceId;
+  const destroysGood = severity !== 'minor' && !!activeId;
   store.setRun({
     ...store.run,
     activeHit: null,
     currentTarget: severity === 'minor' ? store.run.currentTarget : null,
+    ownedGoods: destroysGood ? store.run.ownedGoods.filter((g) => g.instanceId !== activeId) : store.run.ownedGoods,
+    activeGoodInstanceId: destroysGood ? null : store.run.activeGoodInstanceId,
     accident,
     runResult: result,
     storyLog: [...store.run.storyLog, `accident:${riskId}:${severity}`],

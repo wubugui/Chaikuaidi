@@ -106,6 +106,22 @@ describe('owned-goods inventory', () => {
     expect(runtimeGameStore.getState().run.currentTarget!.parts['blackball-core'].exposed).toBe(true);
   });
 
+  it('a good destroyed in an accident is removed from the shelf (no ghost good)', () => {
+    runtimeGameStore.setState({
+      ...runtimeGameStore.getState(),
+      run: { ...runtimeGameStore.getState().run, money: 50_000, ownedGoods: [], activeGoodInstanceId: null },
+    });
+    actions.buyGood('good-missile'); // missile has a critical explosion risk
+    expect(runtimeGameStore.getState().run.ownedGoods.length).toBe(1);
+    // recklessly hammer the warhead body until it goes off
+    for (let i = 0; i < 200 && !runtimeGameStore.getState().run.runResult; i++) {
+      actions.hitPart('missile-body', 'hammer');
+    }
+    expect(runtimeGameStore.getState().run.runResult?.reason).toBe('accident');
+    expect(runtimeGameStore.getState().run.ownedGoods.length).toBe(0); // gone, not resurrectable
+    expect(runtimeGameStore.getState().run.activeGoodInstanceId).toBeNull();
+  });
+
   it('scrapSellCurrent removes the good from the shelf and pays scrap', () => {
     actions.buyGood('good-blackball');
     const scrapBefore = runtimeGameStore.getState().run.scrap;
