@@ -52,6 +52,7 @@ describe('old-save rehydrate', () => {
 
     const { default: App } = await import('../App');
     const { useGame } = await import('../game/store');
+    const { runtimeGameStore } = await import('../game/runtimeStore');
 
     const div = document.createElement('div');
     document.body.appendChild(div);
@@ -69,6 +70,15 @@ describe('old-save rehydrate', () => {
     await act(async () => {
       for (let i = 0; i < 5; i++) useGame.getState().click();
     });
+    const migrated = useGame.getState();
+    expect(migrated.money).toBeGreaterThanOrEqual(5000);
+    expect(migrated.currentTool).toBe('grinder');
+    expect(migrated.ownedTools).toContain('hand');
+    expect(migrated.ownedTools).toContain('grinder');
+    expect(migrated.collection).toEqual(expect.arrayContaining(['snail', 'doll']));
+    expect(migrated.achievements).toEqual(expect.any(Array));
+    expect(runtimeGameStore.getState().run.money).toBeGreaterThanOrEqual(5000);
+    expect(runtimeGameStore.getState().meta.collection).toEqual(expect.arrayContaining(['snail', 'doll']));
 
     await act(async () => {
       root.unmount();

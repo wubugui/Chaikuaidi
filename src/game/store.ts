@@ -19,6 +19,7 @@ import { MISSION_MAP } from '../data/missions';
 import { REFINERY_DEVICE, REFINERY_SPACE } from '../data/refine';
 import type { Rarity, ToolId } from '../data/types';
 import { emit, seedId } from './events';
+import { syncRuntimeFromLegacy } from './legacyBridge';
 import {
   doClick,
   doTick,
@@ -122,6 +123,7 @@ interface Actions {
 }
 
 type Store = GameState & Actions & { offline: OfflineResult | null };
+const SAVE_VERSION = 2;
 
 /** 生成一个可变草稿（顶层与会变动的集合都用新引用） */
 function draft(s: GameState): GameState {
@@ -689,6 +691,7 @@ export const useGame = create<Store>()(
         const fresh = initialState();
         for (let i = 0; i < 3; i++) fresh.queue.push(makeParcel(i === 0 ? 'envelope' : 'small', liveRand));
         refillBench(fresh);
+        syncRuntimeFromLegacy(fresh);
         set({ ...fresh, offline: null });
       },
 
@@ -696,8 +699,11 @@ export const useGame = create<Store>()(
     }),
     {
       name: 'chaikuaidi-save',
-      version: 1,
+      version: SAVE_VERSION,
       storage: createJSONStorage(safeStorage),
+      migrate: (persistedState) => {
+        return { ...initialState(), ...(persistedState as Partial<Store>) } as Store;
+      },
       partialize: (s) => {
         const {
           offline, click, tick, buyUpgrade, buyTool, selectTool, upgradeTool, buyAutoSell, setAutoSell, sellItem,
@@ -800,6 +806,7 @@ export const useGame = create<Store>()(
           for (let i = 0; i < 2; i++) d.queue.push(makeParcel('small', liveRand));
           refillBench(d);
         }
+        syncRuntimeFromLegacy(d);
         useGame.setState({ ...d, offline: res.opened > 0 || res.cash > 0 ? res : null });
       },
     },
@@ -814,6 +821,7 @@ export function ensureStarter() {
     d.queue.push(makeParcel('envelope', liveRand));
     for (let i = 0; i < 2; i++) d.queue.push(makeParcel('small', liveRand));
     refillBench(d);
+    syncRuntimeFromLegacy(d);
     useGame.setState(d);
   }
 }

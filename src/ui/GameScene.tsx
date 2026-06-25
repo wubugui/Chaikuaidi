@@ -15,6 +15,8 @@ import { sellValue } from '../game/systems/loot';
 import { sfxBonk, sfxCrack, sfxRip } from '../lib/audio';
 import { fmt, money } from '../lib/format';
 import { GameIcon } from './GameIcon';
+import { PixiStage } from '../scene/PixiStage';
+import { P1Campaign } from './P1Campaign';
 
 const BONK_BARKS = ['这玩意儿手抠不动啊！', '换个家伙！', '撬不动……得用对工具！'];
 
@@ -284,6 +286,9 @@ export function GameScene() {
         onPointerLeave={endHold}
         onPointerCancel={endHold}
       >
+        <PixiStage />
+        <P1Campaign />
+
         {/* 远征现场提示：台上有远征结构时，明确告知玩家正在现场亲手拆解 */}
         {expedition && (
           <div className="expeditionBanner">

@@ -11,14 +11,21 @@
     "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run build && npm run test:e2e",
     "test:watch": "vitest"
   },
   "dependencies": {
+    "idb": "^8.0.3",
+    "pixi.js": "^8.19.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "zod": "^4.4.3",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

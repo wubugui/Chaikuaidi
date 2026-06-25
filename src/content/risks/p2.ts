@@ -1,0 +1,78 @@
+import type { RiskDef } from '../types';
+
+export const P2_RISKS: RiskDef[] = [
+  {
+    id: 'bio-egg-hatch',
+    name: '活体孵化反击',
+    category: 'bio',
+    phase: 'p2',
+    description: '蛋壳里的东西会在裂缝扩大后反咬工具和老哥，越暴躁越容易把它砸醒。',
+    baseChance: 0.26,
+    preventions: ['先检查内膜脉动', '用远程试探开内壳', '避免暴走砸最后一层'],
+  },
+  {
+    id: 'anomaly-meteor-core',
+    name: '陨石异常重力',
+    category: 'anomaly',
+    phase: 'p2',
+    description: '陨石核心会让砸击方向短暂反转，工具可能被吸进裂缝。',
+    baseChance: 0.24,
+    preventions: ['先敲松外壳', '使用轨道或远程设备', '临界阶段停手检查'],
+  },
+  {
+    id: 'corrosion-black-vault',
+    name: '黑箱腐蚀雾',
+    category: 'corrosion',
+    phase: 'p2',
+    description: '黑市委托里的密封箱会喷出腐蚀雾，轻则损工具，重则清空作业位。',
+    baseChance: 0.2,
+    preventions: ['用管线预处理外层', '先检查阀口', '不要近身连续砸'],
+  },
+  {
+    id: 'legal-city-response',
+    name: '城市执法追责',
+    category: 'legal',
+    phase: 'p2',
+    description: '现场目标动静太大时会招来追责，信誉和委托路线都会受影响。',
+    baseChance: 0.18,
+    preventions: ['选择偏僻区域先砸', '完成卖家遮掩委托', '必要时撤退保档案'],
+  },
+  {
+    id: 'pollution-reactor-leak',
+    name: '污染泄漏',
+    category: 'pollution',
+    phase: 'p2',
+    description: '核电站、管线和异常燃料会把一轮砸成长期污染事故。',
+    baseChance: 0.36,
+    preventions: ['远程拆燃料棒', '用轨道阵列削弱外层', '避免暴走砸反应堆核心'],
+  },
+  {
+    id: 'world-structure-collapse',
+    name: '世界级坍塌',
+    category: 'world',
+    phase: 'p2',
+    description: '桥、发射台和空间站这类现场目标会因为关键部位误砸引发世界变化。',
+    baseChance: 0.3,
+    preventions: ['分区砸击', '让管线停在临界前', '关键部位亲手慢砸'],
+  },
+  {
+    id: 'mutation-giant-overload',
+    name: '巨大化过载',
+    category: 'mutation',
+    phase: 'p2',
+    description: '老哥巨大化后每一拳都很爽，但时间越久越容易留下不可逆副作用。',
+    baseChance: 0.28,
+    preventions: ['只在终局级目标使用', '倒计时结束前撤退', '用传闻确认黑方碑反应'],
+  },
+  {
+    id: 'anomaly-monolith-echo',
+    name: '黑方碑回声',
+    category: 'anomaly',
+    phase: 'p2',
+    description: '黑方碑会记住老哥每一轮的死法和事故，下一轮可能把目标变得更离谱。',
+    baseChance: 0.42,
+    preventions: ['收集足够事故档案', '用高达级冲桩臂破外层', '巨大化只留给最终裂隙'],
+  },
+];
+
+export const P2_RISK_MAP = Object.fromEntries(P2_RISKS.map((risk) => [risk.id, risk]));

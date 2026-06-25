@@ -1,0 +1,40 @@
+import type { MachineDef } from '../types';
+
+export const P2_MACHINES: MachineDef[] = [
+  {
+    id: 'heavy-crusher',
+    kind: 'machine',
+    name: '重型破碎线',
+    tags: ['pipeline', 'hydraulic'],
+    slotTags: ['pipeline', 'hydraulic'],
+    power: 34,
+    durability: 260,
+    repairCost: { money: 180, items: { p_gear: 1, p_belt: 1 } },
+    overheatSeconds: 16,
+    materialBonus: { metal: 1.5, stone: 1.25, wood: 1.2 },
+  },
+  {
+    id: 'crawler-press',
+    kind: 'machine',
+    name: '履带冲压管线',
+    tags: ['pipeline', 'hammer'],
+    slotTags: ['pipeline', 'hydraulic'],
+    power: 46,
+    durability: 230,
+    repairCost: { money: 240, items: { p_servo: 1, r_alloyblock: 1 } },
+    overheatSeconds: 13,
+    materialBonus: { metal: 1.65, stone: 1.35 },
+  },
+  {
+    id: 'rail-smash-array',
+    kind: 'machine',
+    name: '轨道砸击阵列',
+    tags: ['pipeline', 'remote'],
+    slotTags: ['pipeline', 'remote'],
+    power: 52,
+    durability: 200,
+    repairCost: { money: 320, items: { milchip: 1, e_copper: 2 } },
+    overheatSeconds: 11,
+    materialBonus: { volatile: 1.2, anomaly: 1.1, metal: 1.35 },
+  },
+];

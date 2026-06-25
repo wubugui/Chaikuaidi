@@ -3,6 +3,7 @@ import type { Rarity } from '../data/types';
 /** 用 Web Audio 合成音效，零资源。首个用户手势后才可播放。 */
 let ctx: AudioContext | null = null;
 let enabled = true;
+let volume = 1;
 
 function ac(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -19,6 +20,12 @@ export function setAudioEnabled(on: boolean) {
 export function isAudioEnabled() {
   return enabled;
 }
+export function setAudioVolume(nextVolume: number) {
+  volume = Math.max(0, Math.min(1, nextVolume));
+}
+export function getAudioVolume() {
+  return volume;
+}
 
 function blip(freq: number, dur: number, type: OscillatorType, gain = 0.08) {
   if (!enabled) return;
@@ -29,7 +36,7 @@ function blip(freq: number, dur: number, type: OscillatorType, gain = 0.08) {
   const g = c.createGain();
   osc.type = type;
   osc.frequency.value = freq;
-  g.gain.setValueAtTime(gain, c.currentTime);
+  g.gain.setValueAtTime(gain * volume, c.currentTime);
   g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
   osc.connect(g).connect(c.destination);
   osc.start();
@@ -47,7 +54,7 @@ function noise(dur: number, gain = 0.05) {
   for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
   const src = c.createBufferSource();
   const g = c.createGain();
-  g.gain.value = gain;
+  g.gain.value = gain * volume;
   src.buffer = buf;
   src.connect(g).connect(c.destination);
   src.start();
