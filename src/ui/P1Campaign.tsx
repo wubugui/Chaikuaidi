@@ -277,7 +277,6 @@ export function P1Campaign() {
               const part = target.parts.find((item) => item.id === hotspot.partId);
               const runtimePart = run.currentTarget?.parts[hotspot.partId];
               if (!part || !runtimePart?.exposed) return null;
-              const pct = Math.max(0, runtimePart.hp / runtimePart.maxHp);
               const partRisk = part.riskTriggers.map((trigger) => run.risks[trigger.riskId]).find(Boolean);
               return (
                 <button
@@ -300,8 +299,8 @@ export function P1Campaign() {
                   onPointerLeave={stopHold}
                   onClick={(event) => event.stopPropagation()}
                 >
+                  <span className="p1HotspotGlow" aria-hidden="true" />
                   <span className="p1HotspotName">{part.name}</span>
-                  <i style={{ width: `${pct * 100}%` }} />
                 </button>
               );
             })}
