@@ -10,6 +10,7 @@ import {
   TOOLS,
 } from '../content';
 import type { DamageSourceTag, PartDef, RiskLevel, TargetDef } from '../content/types';
+import { SELLER_MAP } from '../content/sellers';
 import { actions } from '../game/actions';
 import { onGameFx, type GameFxEvent } from '../game/runtimeEvents';
 import { useRuntimeGame } from '../game/runtimeStore';
@@ -78,6 +79,8 @@ export function P1Campaign() {
   const [shake, setShake] = useState('');
   const [freeze, setFreeze] = useState(false);
   const [hoveredPart, setHoveredPart] = useState<string | null>(null);
+  const [sellerOpen, setSellerOpen] = useState(true);
+  const [sellerLine, setSellerLine] = useState(0);
   const [bursts, setBursts] = useState<Array<{ id: number; x: number; y: number; kind: string; bits: Array<{ tx: number; ty: number }> }>>([]);
   const holdTimer = useRef<number | null>(null);
   const shakeTimer = useRef<number | null>(null);
@@ -203,6 +206,15 @@ export function P1Campaign() {
   }
   const targetDamage = dmgMax > 0 ? Math.min(1, Math.max(0, 1 - dmgHp / dmgMax)) : 0;
   const spriteFilter = `drop-shadow(0 26px 20px #000c) brightness(${(1 - targetDamage * 0.3).toFixed(3)}) contrast(${(1 + targetDamage * 0.28).toFixed(3)}) saturate(${(1 - targetDamage * 0.34).toFixed(3)})`;
+
+  // 卖家对白气泡（diegetic）：第一句用目标 intro，之后轮播卖家吐槽
+  const seller = target?.sellerId ? SELLER_MAP[target.sellerId] : undefined;
+  const sellerLines = seller ? [target?.intro ?? '', ...seller.lines].filter(Boolean) : [];
+  const sellerText = sellerLines.length ? sellerLines[sellerLine % sellerLines.length] : '';
+  useEffect(() => {
+    setSellerOpen(true);
+    setSellerLine(0);
+  }, [target?.id]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -369,6 +381,28 @@ export function P1Campaign() {
           </div>
         )}
       </div>
+
+      {/* ===== 卖家对白气泡 ===== */}
+      {seller && sellerOpen && (
+        <div className="p1Seller">
+          <button className="p1SellerAvatar" onClick={() => setSellerLine((line) => line + 1)} title="再听一句">
+            {seller.emoji}
+          </button>
+          <div className="p1SellerBubble">
+            <div className="p1SellerHead">
+              <b>{seller.name}</b>
+              <button className="p1SellerClose" onClick={() => setSellerOpen(false)} title="收起">✕</button>
+            </div>
+            <p>{sellerText}</p>
+            {sellerLines.length > 1 && <small>点头像再听一句</small>}
+          </div>
+        </div>
+      )}
+      {seller && !sellerOpen && (
+        <button className="p1SellerReopen" onClick={() => setSellerOpen(true)} title={`${seller.name}：再聊两句`}>
+          {seller.emoji}
+        </button>
+      )}
 
       {/* ===== 顶部极简 HUD ===== */}
       <header className="p1Hud">
@@ -593,10 +627,14 @@ export function P1Campaign() {
       {run.runResult && (
         <div className="p1ResultOverlay" role="dialog" aria-modal="true">
           <div className="p1ResultCard">
-            <span className="p1Eyebrow">本次结算</span>
+            <span className="p1Eyebrow">旧货市场快报 · 号外</span>
             <h2>
-              {run.runResult.reason === 'completed' ? '砸开了' : run.runResult.reason === 'retreated' ? '撤退成功' : run.runResult.reason === 'death' ? '本轮结束' : '事故记录'}
+              {run.runResult.reason === 'completed' ? '砸开了！' : run.runResult.reason === 'retreated' ? '老哥及时撤退' : run.runResult.reason === 'death' ? '本轮终结' : '现场发生事故'}
             </h2>
+            <div className="p1ClipByline">
+              <span>本报砸击现场讯</span>
+              <span>信誉 +{run.runResult.reputation}</span>
+            </div>
             <p>{run.accident?.summary ?? (run.runResult.reason === 'completed' ? '奖励已入账，下一个更离谱。' : '情报保留，长期进度不会清空。')}</p>
             <div className="p1ResultStats">
               <span>现金 +{Math.floor(run.runResult.reason === 'completed' ? run.runResult.money : 0)}</span>
