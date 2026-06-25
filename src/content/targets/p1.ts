@@ -281,6 +281,7 @@ export const P1_TARGETS: TargetDef[] = [
         viewId: 'front',
         material: 'metal',
         hp: 160,
+        glyph: '🎛️',
         stages: [
           { id: 'intact', threshold: 1, art: safeArt, label: '锁盘完整' },
           { id: 'loose', threshold: 0.5, art: safeArt, label: '锁盘松动' },
@@ -297,6 +298,7 @@ export const P1_TARGETS: TargetDef[] = [
         viewId: 'front',
         material: 'metal',
         hp: 120,
+        glyph: '🚪',
         stages: [
           { id: 'intact', threshold: 1, art: safeArt, label: '门缝严丝合缝' },
           { id: 'warped', threshold: 0.5, art: safeArt, label: '门缝变形' },
@@ -311,6 +313,7 @@ export const P1_TARGETS: TargetDef[] = [
         viewId: 'side',
         material: 'metal',
         hp: 180,
+        glyph: '🔩',
         stages: [
           { id: 'intact', threshold: 1, art: safeArt, label: '铰链完整' },
           { id: 'bent', threshold: 0.5, art: safeArt, label: '铰链歪了' },
@@ -325,6 +328,7 @@ export const P1_TARGETS: TargetDef[] = [
         viewId: 'side',
         material: 'metal',
         hp: 140,
+        glyph: '🔗',
         stages: [
           { id: 'intact', threshold: 1, art: safeArt, label: '焊缝很硬' },
           { id: 'split', threshold: 0.5, art: safeArt, label: '焊缝裂开' },
@@ -340,10 +344,11 @@ export const P1_TARGETS: TargetDef[] = [
         viewId: 'inside',
         material: 'wood',
         hp: 70,
+        glyph: '🎁',
         stages: [
-          { id: 'locked', threshold: 1, art: safeArt, label: '里面还有盒' },
-          { id: 'splinter', threshold: 0.5, art: safeArt, label: '木盒裂开' },
-          { id: 'done', threshold: 0, art: safeArt, label: '秘密到手' },
+          { id: 'locked', threshold: 1, art: safeArt, label: '里面还有盒', glyph: '🎁' },
+          { id: 'splinter', threshold: 0.5, art: safeArt, label: '木盒裂开', glyph: '📦' },
+          { id: 'done', threshold: 0, art: safeArt, label: '秘密到手', glyph: '📜' },
         ],
         machineSlots: [],
         riskTriggers: [{ riskId: 'anomaly-hum', level: 'unknown', threshold: 0.1, hint: '木盒里有一张完全漆黑的照片。' }],
@@ -417,6 +422,7 @@ export const P1_TARGETS: TargetDef[] = [
     parts: [
       {
         id: 'car-hood',
+        glyph: '🔲',
         name: '引擎盖',
         viewId: 'whole',
         material: 'metal',
@@ -432,6 +438,7 @@ export const P1_TARGETS: TargetDef[] = [
       },
       {
         id: 'car-window',
+        glyph: '🪟',
         name: '车窗',
         viewId: 'whole',
         material: 'stone',
@@ -446,6 +453,7 @@ export const P1_TARGETS: TargetDef[] = [
       },
       {
         id: 'car-door',
+        glyph: '🚪',
         name: '车门',
         viewId: 'whole',
         material: 'metal',
@@ -460,6 +468,7 @@ export const P1_TARGETS: TargetDef[] = [
       },
       {
         id: 'car-trunk',
+        glyph: '🧳',
         name: '后备箱盖',
         viewId: 'whole',
         material: 'metal',
@@ -475,6 +484,7 @@ export const P1_TARGETS: TargetDef[] = [
       },
       {
         id: 'car-frame',
+        glyph: '🚗',
         name: '车架',
         viewId: 'whole',
         material: 'metal',
@@ -490,6 +500,7 @@ export const P1_TARGETS: TargetDef[] = [
       },
       {
         id: 'car-engine',
+        glyph: '⚙️',
         name: '发动机',
         viewId: 'front',
         material: 'metal',
@@ -504,6 +515,7 @@ export const P1_TARGETS: TargetDef[] = [
       },
       {
         id: 'car-battery',
+        glyph: '🔋',
         name: '旧电池',
         viewId: 'front',
         material: 'volatile',
@@ -518,6 +530,7 @@ export const P1_TARGETS: TargetDef[] = [
       },
       {
         id: 'car-trunk-lock',
+        glyph: '🔒',
         name: '后备箱锁',
         viewId: 'rear',
         material: 'metal',
@@ -532,6 +545,7 @@ export const P1_TARGETS: TargetDef[] = [
       },
       {
         id: 'car-under-device',
+        glyph: '📟',
         name: '底盘不明装置',
         viewId: 'under',
         material: 'volatile',

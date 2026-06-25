@@ -381,6 +381,31 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .p1Hotspot:hover:not(:disabled) .p1HotspotName,
 .p1Hotspot.selected .p1HotspotName { opacity: 1; }
 
+/* 分层高亮：从原图裁出该部位区域，叠在本体上；hover/选中时那一块真实美术亮起来 */
+.p1PartCut { position: absolute; inset: 0; pointer-events: none; z-index: 4; opacity: 0; transition: opacity 0.18s ease; }
+.p1PartCut:not(.active) { animation: p1CutIdle 2.6s ease-in-out infinite; }
+@keyframes p1CutIdle { 0%, 100% { opacity: 0; } 50% { opacity: 0.1; } }
+.p1PartCut.active { opacity: 1; animation: none; }
+.p1PartCut.active::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, #ffe79033 0%, #ffce3a14 45%, transparent 72%);
+  mix-blend-mode: screen;
+}
+.p1PartCutImg {
+  position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%);
+  width: clamp(220px, 30vw, 420px); max-height: 56%; object-fit: contain;
+  filter: brightness(1.62) saturate(1.25) drop-shadow(0 0 14px #ffe79a);
+}
+.p1PartCutImg.closeup { width: clamp(300px, 38vw, 540px); max-height: 64%; }
+.p1PartCutImg.scene { width: clamp(440px, 56vw, 860px); max-height: 70%; }
+.p1PartCutImg.site { width: clamp(500px, 64vw, 980px); max-height: 74%; }
+.p1PartCut.dangerous .p1PartCutImg,
+.p1PartCut.critical .p1PartCutImg { filter: brightness(1.32) saturate(1.1) drop-shadow(0 0 12px #ff8a9a); }
+/* 命中时选中部位的高亮块轻微脉冲 */
+.p1Stage.shakeS .p1PartCut.active .p1PartCutImg,
+.p1Stage.shakeM .p1PartCut.active .p1PartCutImg,
+.p1Stage.shakeL .p1PartCut.active .p1PartCutImg { filter: brightness(1.7) saturate(1.2) drop-shadow(0 0 16px #fff3c0); }
+
 .p1FxLayer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
 .p1Fx {
   position: absolute; max-width: min(320px, 44vw); padding: 5px 10px; border-radius: 999px;

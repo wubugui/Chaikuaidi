@@ -1142,3 +1142,8 @@ export const actions = {
     store.setRun({ ...store.run, runResult: null, accident: null });
   },
 };
+
+// 开发期调试钩子（生产构建中 import.meta.env.DEV 为 false，整段被裁剪）
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  (window as unknown as { __smash?: unknown }).__smash = { actions, store: runtimeGameStore };
+}

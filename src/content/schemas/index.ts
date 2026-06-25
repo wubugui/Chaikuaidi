@@ -50,6 +50,7 @@ export const partStageSchema = z.object({
   threshold: z.number().min(0).max(1),
   art: z.string().min(1),
   label: z.string().min(1),
+  glyph: z.string().optional(),
 });
 
 export const machineSlotSchema = z.object({
@@ -73,6 +74,7 @@ export const partSchema = z.object({
   viewId: z.string().min(1),
   material: materialIdSchema,
   hp: z.number().positive(),
+  glyph: z.string().optional(),
   stages: z.array(partStageSchema).min(1),
   machineSlots: z.array(machineSlotSchema),
   riskTriggers: z.array(riskTriggerSchema),

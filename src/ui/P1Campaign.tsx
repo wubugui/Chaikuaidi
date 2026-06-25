@@ -76,6 +76,7 @@ export function P1Campaign() {
   const [audioVolume, setAudioVolumeState] = useState(() => getAudioVolume());
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
   const [shake, setShake] = useState('');
+  const [hoveredPart, setHoveredPart] = useState<string | null>(null);
   const [bursts, setBursts] = useState<Array<{ id: number; x: number; y: number; kind: string; bits: Array<{ tx: number; ty: number }> }>>([]);
   const holdTimer = useRef<number | null>(null);
   const shakeTimer = useRef<number | null>(null);
@@ -273,6 +274,28 @@ export function P1Campaign() {
             <div className="p1Worker" title={`老哥状态：${rageState}`}>
               <img src={workerSrc} alt="" draggable={false} />
             </div>
+            {/* 分层高亮：把当前视角每个部位从原图里裁出来，hover/选中时那一块真实美术亮起来 */}
+            {target.scale !== 'desktop' &&
+              currentView?.hotspots.map((hotspot) => {
+                const part = target.parts.find((item) => item.id === hotspot.partId);
+                const runtimePart = run.currentTarget?.parts[hotspot.partId];
+                if (!part || !runtimePart?.exposed || runtimePart.destroyed) return null;
+                const cutStage = stageForPart(target, part, runtimePart.hp, runtimePart.maxHp);
+                const cutArt = cutStage?.art ?? target.icon;
+                const partRisk = part.riskTriggers.map((trigger) => run.risks[trigger.riskId]).find(Boolean);
+                const active = hoveredPart === part.id || selectedPartId === part.id;
+                const inset = `${(hotspot.y * 100).toFixed(2)}% ${((1 - hotspot.x - hotspot.width) * 100).toFixed(2)}% ${((1 - hotspot.y - hotspot.height) * 100).toFixed(2)}% ${(hotspot.x * 100).toFixed(2)}%`;
+                return (
+                  <span
+                    key={`cut-${hotspot.id}`}
+                    className={`p1PartCut ${active ? 'active' : ''} ${riskClass(partRisk?.level)}`}
+                    style={{ clipPath: `inset(${inset} round 14px)` }}
+                    aria-hidden="true"
+                  >
+                    <img className={`p1PartCutImg ${target.scale}`} src={assetUrl(cutArt)} alt="" draggable={false} />
+                  </span>
+                );
+              })}
             {currentView?.hotspots.map((hotspot) => {
               const part = target.parts.find((item) => item.id === hotspot.partId);
               const runtimePart = run.currentTarget?.parts[hotspot.partId];
@@ -293,13 +316,16 @@ export function P1Campaign() {
                     actions.selectSource(run.selectedSourceId);
                     startHold(part.id, event);
                   }}
-                  onPointerEnter={() => selectedPartId !== part.id && actions.tickRuntime(0)}
+                  onPointerEnter={() => setHoveredPart(part.id)}
                   onPointerUp={stopHold}
                   onPointerCancel={stopHold}
-                  onPointerLeave={stopHold}
+                  onPointerLeave={() => {
+                    setHoveredPart((current) => (current === part.id ? null : current));
+                    stopHold();
+                  }}
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <span className="p1HotspotGlow" aria-hidden="true" />
+                  {target.scale === 'desktop' && <span className="p1HotspotGlow" aria-hidden="true" />}
                   <span className="p1HotspotName">{part.name}</span>
                 </button>
               );
