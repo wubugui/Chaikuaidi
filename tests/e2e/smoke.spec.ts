@@ -4,7 +4,6 @@ test('loads the game shell and mounts the Pixi stage', async ({ page }, testInfo
   await page.goto('/');
 
   await expect(page.locator('.game')).toBeVisible();
-  await expect(page.locator('.hud')).toBeVisible();
   await expect(page.locator('[data-testid="pixi-stage"]')).toBeVisible();
   await expect(page.locator('canvas[data-testid="pixi-stage-canvas"]')).toHaveCount(1);
 
@@ -12,8 +11,8 @@ test('loads the game shell and mounts the Pixi stage', async ({ page }, testInfo
   expect(pixiBox?.width).toBeGreaterThan(200);
   expect(pixiBox?.height).toBeGreaterThan(200);
 
-  await page.getByRole('button', { name: '跳过' }).click();
   await expect(page.locator('[data-testid="p1-campaign"]')).toBeVisible();
+  await expect(page.locator('.p1StatusStrip')).toBeVisible();
   await expect(page.getByText('普通快递').first()).toBeVisible();
   await expect(page.locator('.p1Hotspot').first()).toBeVisible();
 

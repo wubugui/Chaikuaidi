@@ -15,7 +15,6 @@
 - [DESIGN.md](./DESIGN.md)：完整策划案。
 - [DEVELOPMENT_TODO.md](./DEVELOPMENT_TODO.md)：开发执行清单和 P1/P2 任务拆解。
 - [ARCHITECTURE.md](./ARCHITECTURE.md)：正式技术架构。
-- [docs/legacy-migration-inventory.md](./docs/legacy-migration-inventory.md)：旧系统迁移盘点。
 
 ## 第一阶段范围
 

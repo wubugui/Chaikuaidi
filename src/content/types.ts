@@ -1,4 +1,4 @@
-import type { MaterialId } from '../data/materials';
+export type MaterialId = 'paper' | 'wood' | 'metal' | 'stone' | 'volatile' | 'anomaly' | 'organic';
 
 export type ContentPhase = 'p1' | 'p2';
 export type TargetScale = 'desktop' | 'closeup' | 'scene' | 'site';

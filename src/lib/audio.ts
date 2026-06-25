@@ -1,4 +1,4 @@
-import type { Rarity } from '../data/types';
+type Rarity = 'common' | 'rare' | 'epic' | 'legendary' | 'absurd';
 
 /** 用 Web Audio 合成音效，零资源。首个用户手势后才可播放。 */
 let ctx: AudioContext | null = null;

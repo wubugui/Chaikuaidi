@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - claude/package-unboxing-game-o28j2z
+      - claude/game-design-conflict-8pwzyo
   workflow_dispatch:
 
 # 允许部署到 GitHub Pages

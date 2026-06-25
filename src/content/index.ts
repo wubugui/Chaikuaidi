@@ -1,4 +1,4 @@
-import { ITEM_MAP } from '../data/items';
+import { ITEM_MAP } from './items';
 import { P2_BLACK_MARKET_OFFER_MAP, P2_BLACK_MARKET_OFFERS } from './blackMarket/p2';
 import { P1_MACHINES } from './machines/p1';
 import { P2_MACHINES } from './machines/p2';
