@@ -29,7 +29,7 @@ const TUTORIAL_COPY: Record<string, string> = {
   'missile-dont-touch': '这不是普通货。检查、远程试探、撤退都是真选项。',
 };
 
-/** 砸击源 id → 手绘工具图标（工具坞 + 鼠标光标用） */
+/** 砸击源 id -> 手绘工具图标（工具坞 + 鼠标光标用） */
 const TOOL_ICON: Record<string, string> = {
   hand: '/game-art/icons/tool-hand.png',
   hammer: '/game-art/icons/tool-press.png',
@@ -175,7 +175,7 @@ export function P1Campaign() {
           : '/game-art/characters/worker-neutral.png',
   );
 
-  // 拥有的工具 → 工具坞 + 数字键热键
+  // 拥有的工具 -> 工具坞 + 数字键热键
   const ownedTools = useMemo(() => TOOLS.filter((tool) => run.tools[tool.id]), [run.tools]);
   const activeTool = TOOLS.find((tool) => tool.id === run.selectedSourceId) ?? ownedTools[0];
   const stageCursor = activeTool ? `url("${assetUrl(toolIcon(activeTool.id))}") 16 16, crosshair` : 'crosshair';
@@ -387,10 +387,10 @@ export function P1Campaign() {
         >
           <img className="p1SellerVNPortrait" src={assetUrl(seller.portrait)} alt={seller.name} draggable={false} />
           <div className="p1SellerVNBox">
-            <button className="p1SellerVNClose" onClick={(event) => { event.stopPropagation(); setSellerOpen(false); }} title="跳过">✕</button>
+            <button className="p1SellerVNClose" onClick={(event) => { event.stopPropagation(); setSellerOpen(false); }} title="跳过">×</button>
             <span className="p1SellerVNName">{seller.name}</span>
             <p className="p1SellerVNText">{sellerText}</p>
-            <span className="p1SellerVNHint">{sellerLine + 1 >= sellerLines.length ? '点一下 · 开砸！' : '点一下 · 还有呢 ▶'}</span>
+            <span className="p1SellerVNHint">{sellerLine + 1 >= sellerLines.length ? '点一下 · 开砸！' : '点一下 · 还有呢'}</span>
           </div>
         </div>
       )}
@@ -496,7 +496,7 @@ export function P1Campaign() {
           <div className="p1OverlayCard" onPointerDown={(event) => event.stopPropagation()}>
             <div className="p1OverlayHead">
               <b>{menu.find((item) => item.id === openPanel)?.label}</b>
-              <button className="p1OverlayClose" onClick={() => setOpenPanel(null)}>✕</button>
+              <button className="p1OverlayClose" onClick={() => setOpenPanel(null)}>×</button>
             </div>
             <div className="p1OverlayBody">
               {openPanel === 'targets' && (

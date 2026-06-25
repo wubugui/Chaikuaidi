@@ -1015,7 +1015,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 @keyframes revealBoom { 0% { transform: scale(0.2); opacity: 0; } 60% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1.6); opacity: 0; } }
 
-/* 翻牌：先 ❓ 背面，到点翻面亮出物品 */
+/* 翻牌：先问号背面，到点翻面亮出物品 */
 .riFlip {
   position: relative; background: transparent; border: none; padding: 0; min-width: 120px;
   perspective: 700px; animation: none;
@@ -1075,7 +1075,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   animation: throb 1.4s ease-in-out infinite;
 }
 
-/* ---- 设备开关（▶️ 运行中 / ⏸️ 已停） ---- */
+/* ---- 设备开关（运行中 / 已停） ---- */
 .deviceToggle { margin-left: auto; flex: 0 0 auto; white-space: nowrap; }
 
 /* ---- 神秘行李进货区 ---- */

@@ -50,8 +50,6 @@ export interface PartStageDef {
   threshold: number;
   art: string;
   label: string;
-  /** 分层渲染：该阶段的部位图标（emoji 占位；将来可换成切片 PNG 层） */
-  glyph?: string;
 }
 
 export interface MachineSlotDef {
@@ -75,8 +73,6 @@ export interface PartDef {
   viewId: string;
   material: MaterialId;
   hp: number;
-  /** 分层渲染：该部位的图层图标（emoji 占位；将来可换成切片 PNG 层） */
-  glyph?: string;
   stages: PartStageDef[];
   machineSlots: MachineSlotDef[];
   riskTriggers: RiskTriggerDef[];
