@@ -2,7 +2,8 @@
 export interface SellerDef {
   id: string;
   name: string;
-  emoji: string;
+  /** 手绘卖家立绘（public/game-art 路径，经 assetUrl 处理） */
+  portrait: string;
   /** 立绘对话台词（搞笑向），配合目标 intro 顺序播放 */
   lines: string[];
 }
@@ -10,8 +11,8 @@ export interface SellerDef {
 export const SELLERS: SellerDef[] = [
   {
     id: 'retired-safe-master',
+    portrait: '/game-art/icons/seller-seller-94y3hj.png',
     name: '退休锁匠·老周',
-    emoji: '🧓',
     lines: [
       '这柜子我开了三十年都没开开，最后一气之下把钥匙吞了。别问，问就是上头。',
       '里面要么是金条，要么是我前妻的离婚协议书，赌一把？',
@@ -21,8 +22,8 @@ export const SELLERS: SellerDef[] = [
   },
   {
     id: 'used-car-laozhang',
+    portrait: '/game-art/icons/seller-seller-15us0ur.png',
     name: '二手车·老张',
-    emoji: '🧔',
     lines: [
       '车不要钱，钱在后备箱里——大概吧，我反正没敢开。',
       '上一任车主特意叮嘱「底盘千万别碰」，然后他就再也没说过话了。',
@@ -32,8 +33,8 @@ export const SELLERS: SellerDef[] = [
   },
   {
     id: 'man-in-black',
+    portrait: '/game-art/icons/seller-seller-13x4fo5.png',
     name: '黑衣人',
-    emoji: '🕶️',
     lines: [
       '上次那单您砸得惊天动地，整条街都报了警，这次我特意挑了个「静音款」。',
       '来源？这东西没有来源，是它自己找上门的，我也很为难。',
@@ -43,8 +44,8 @@ export const SELLERS: SellerDef[] = [
   },
   {
     id: 'monolith',
+    portrait: '/game-art/icons/absurd-a-monolith.png',
     name: '黑方碑',
-    emoji: '⬛',
     lines: [
       '……（它一句没说，但你裤兜里多了一份合同，签名是你自己的笔迹。）',
       '你已经是这个月第七个走到这儿的「暴躁老哥」了。',

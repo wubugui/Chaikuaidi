@@ -9,7 +9,7 @@ import {
   TARGETS,
   TOOLS,
 } from '../content';
-import type { DamageSourceTag, PartDef, RiskLevel, TargetDef } from '../content/types';
+import type { PartDef, RiskLevel, TargetDef } from '../content/types';
 import { SELLER_MAP } from '../content/sellers';
 import { actions } from '../game/actions';
 import { onGameFx, type GameFxEvent } from '../game/runtimeEvents';
@@ -29,30 +29,21 @@ const TUTORIAL_COPY: Record<string, string> = {
   'missile-dont-touch': '这不是普通货。检查、远程试探、撤退都是真选项。',
 };
 
-/** 砸击源标签 → 表意 emoji（工具坞图标 + 鼠标光标用） */
-const TAG_EMOJI: Record<DamageSourceTag, string> = {
-  hand: '✊',
-  hammer: '🔨',
-  crowbar: '⛏️',
-  drill: '🪛',
-  hydraulic: '🦾',
-  pipeline: '🏭',
-  mecha: '🤖',
-  gundam: '🦿',
-  ultra: '🌟',
-  remote: '🎯',
-  absurd: '🌀',
+/** 砸击源 id → 手绘工具图标（工具坞 + 鼠标光标用） */
+const TOOL_ICON: Record<string, string> = {
+  hand: '/game-art/icons/tool-hand.png',
+  hammer: '/game-art/icons/tool-press.png',
+  crowbar: '/game-art/icons/tool-crowbar.png',
+  'remote-probe': '/game-art/icons/tool-disarm.png',
+  'mecha-fist': '/game-art/icons/mutation-mecharm.png',
+  'mecha-shoulder-ram': '/game-art/icons/tool-press.png',
+  'gundam-pile': '/game-art/icons/tool-laserrig.png',
+  'ultra-beam': '/game-art/icons/tool-laserrig.png',
+  'ultra-stomp': '/game-art/icons/mutation-sawlegs.png',
+  'ultra-flying-kick': '/game-art/icons/mutation-sawlegs.png',
 };
-
-function toolEmoji(tags: DamageSourceTag[]): string {
-  for (const tag of tags) if (TAG_EMOJI[tag]) return TAG_EMOJI[tag];
-  return '🔨';
-}
-
-/** 用当前工具 emoji 生成鼠标光标 —— 光标即工具 */
-function emojiCursor(emoji: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><text x="3" y="30" font-size="30">${emoji}</text></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 8 32, crosshair`;
+function toolIcon(id: string): string {
+  return TOOL_ICON[id] ?? '/game-art/icons/tool-hand.png';
 }
 
 type PanelId = 'targets' | 'market' | 'machines' | 'routes' | 'lore' | 'settings';
@@ -187,7 +178,7 @@ export function P1Campaign() {
   // 拥有的工具 → 工具坞 + 数字键热键
   const ownedTools = useMemo(() => TOOLS.filter((tool) => run.tools[tool.id]), [run.tools]);
   const activeTool = TOOLS.find((tool) => tool.id === run.selectedSourceId) ?? ownedTools[0];
-  const stageCursor = activeTool ? emojiCursor(toolEmoji(activeTool.tags)) : 'crosshair';
+  const stageCursor = activeTool ? `url("${assetUrl(toolIcon(activeTool.id))}") 16 16, crosshair` : 'crosshair';
 
   // 命中点（碎片/抖动定位）与目标整体损坏度（diegetic：越砸越暗越糙）
   const selectedHotspot = currentView?.hotspots.find((spot) => spot.partId === selectedPartId);
@@ -267,12 +258,12 @@ export function P1Campaign() {
   const showMachines = meta.discoveredTargets.includes('car-scrapyard') || meta.unlockedPanels.includes('factory');
   const showRoutes = meta.unlockedPanels.includes('factory') || meta.unlockedPanels.includes('expedition') || meta.giantForms.unlockedSourceIds.length > 0;
   const menu: Array<{ id: PanelId; icon: string; label: string; show: boolean }> = [
-    { id: 'targets', icon: '🎯', label: '目标', show: true },
-    { id: 'market', icon: '🕶️', label: '黑市', show: showMarket },
-    { id: 'machines', icon: '🦾', label: '机械', show: showMachines },
-    { id: 'routes', icon: '🛣️', label: '路线', show: showRoutes },
-    { id: 'lore', icon: '📁', label: '档案', show: true },
-    { id: 'settings', icon: '⚙️', label: '设置', show: true },
+    { id: 'targets', icon: '/game-art/icons/ui-target.png', label: '目标', show: true },
+    { id: 'market', icon: '/game-art/icons/ui-merchant.png', label: '黑市', show: showMarket },
+    { id: 'machines', icon: '/game-art/icons/ui-factory.png', label: '机械', show: showMachines },
+    { id: 'routes', icon: '/game-art/icons/ui-map.png', label: '路线', show: showRoutes },
+    { id: 'lore', icon: '/game-art/icons/ui-collection.png', label: '档案', show: true },
+    { id: 'settings', icon: '/game-art/icons/ui-workshop.png', label: '设置', show: true },
   ];
 
   return (
@@ -394,7 +385,7 @@ export function P1Campaign() {
           className="p1SellerVN"
           onClick={() => (sellerLine + 1 >= sellerLines.length ? setSellerOpen(false) : setSellerLine((line) => line + 1))}
         >
-          <div className="p1SellerVNPortrait">{seller.emoji}</div>
+          <img className="p1SellerVNPortrait" src={assetUrl(seller.portrait)} alt={seller.name} draggable={false} />
           <div className="p1SellerVNBox">
             <button className="p1SellerVNClose" onClick={(event) => { event.stopPropagation(); setSellerOpen(false); }} title="跳过">✕</button>
             <span className="p1SellerVNName">{seller.name}</span>
@@ -405,7 +396,7 @@ export function P1Campaign() {
       )}
       {seller && !sellerOpen && (
         <button className="p1SellerReopen" onClick={() => { setSellerLine(0); setSellerOpen(true); }} title={`${seller.name}：再听他叨叨`}>
-          {seller.emoji}
+          <img src={assetUrl(seller.portrait)} alt={seller.name} draggable={false} />
         </button>
       )}
 
@@ -456,7 +447,7 @@ export function P1Campaign() {
               onClick={() => actions.selectSource(tool.id)}
               title={`${tool.name}（按 ${index + 1}）`}
             >
-              <span className="p1ToolGlyph">{toolEmoji(tool.tags)}</span>
+              <img className="p1ToolGlyph" src={assetUrl(toolIcon(tool.id))} alt="" draggable={false} />
               <small>{index + 1}</small>
             </button>
           ))}
@@ -492,7 +483,7 @@ export function P1Campaign() {
               className={openPanel === item.id ? 'active' : ''}
               onClick={() => setOpenPanel((current) => (current === item.id ? null : item.id))}
             >
-              <span className="p1MenuGlyph">{item.icon}</span>
+              <img className="p1MenuGlyph" src={assetUrl(item.icon)} alt="" draggable={false} />
               <small>{item.label}</small>
             </button>
           ))}

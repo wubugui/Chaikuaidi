@@ -510,9 +510,9 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 @keyframes p1VNin { from { opacity: 0; } to { opacity: 1; } }
 .p1SellerVNPortrait {
-  font-size: clamp(180px, 42vh, 480px); line-height: 1; margin-bottom: -3vh;
-  filter: drop-shadow(0 16px 40px #000); animation: p1VNbob 3.2s ease-in-out infinite;
-  user-select: none;
+  height: clamp(300px, 60vh, 660px); width: auto; max-width: 62vw; object-fit: contain; margin-bottom: -2vh;
+  filter: drop-shadow(0 18px 44px #000); animation: p1VNbob 3.2s ease-in-out infinite;
+  user-select: none; image-rendering: auto;
 }
 @keyframes p1VNbob { 0%, 100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-12px) rotate(1.5deg); } }
 .p1SellerVNBox {
@@ -533,10 +533,11 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   position: absolute; top: 10px; right: 12px; min-height: 24px; padding: 0 8px; font-size: 12px; border-radius: 8px;
 }
 .p1Campaign .p1SellerReopen {
-  position: absolute; bottom: 96px; left: 16px; z-index: 8; width: 52px; height: 52px; padding: 0; border-radius: 50%;
-  font-size: 28px; display: grid; place-items: center; border: 1px solid #7a6440;
-  background: linear-gradient(180deg, #2a2018, #14100c); box-shadow: 0 4px 12px #0008;
+  position: absolute; bottom: 96px; left: 16px; z-index: 8; width: 56px; height: 56px; padding: 0; border-radius: 50%;
+  overflow: hidden; display: grid; place-items: center; border: 2px solid #7a6440;
+  background: #14100c; box-shadow: 0 4px 12px #0008;
 }
+.p1Campaign .p1SellerReopen img { width: 100%; height: 100%; object-fit: cover; }
 
 
 /* ---- 底部操作坞 ---- */
@@ -551,7 +552,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   position: relative; width: 54px; height: 54px; display: grid; place-items: center; padding: 0;
   border-radius: 12px;
 }
-.p1ToolGlyph { font-size: 26px; line-height: 1; filter: drop-shadow(0 2px 2px #000a); }
+.p1ToolGlyph { width: 36px; height: 36px; object-fit: contain; filter: drop-shadow(0 2px 2px #000a); }
 .p1ToolSlot small { position: absolute; right: 5px; bottom: 3px; font-size: 10px; font-weight: 900; opacity: 0.65; }
 .p1ToolSlot.active { border-color: var(--gold); background: linear-gradient(180deg, #7a5618, #35220e); box-shadow: 0 0 14px #ffce3a55, inset 0 1px 0 #fff2; }
 
@@ -573,7 +574,7 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 
 .p1MenuDock { display: flex; gap: 6px; }
 .p1MenuDock button { width: 52px; height: 54px; display: grid; place-items: center; gap: 1px; padding: 0; border-radius: 12px; }
-.p1MenuGlyph { font-size: 20px; line-height: 1; }
+.p1MenuGlyph { width: 28px; height: 28px; object-fit: contain; }
 .p1MenuDock small { font-size: 9px; font-weight: 800; color: #d7c7aa; }
 .p1MenuDock button.active small { color: #fff4d8; }
 
