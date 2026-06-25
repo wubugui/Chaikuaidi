@@ -76,10 +76,12 @@ export function P1Campaign() {
   const [audioVolume, setAudioVolumeState] = useState(() => getAudioVolume());
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
   const [shake, setShake] = useState('');
+  const [freeze, setFreeze] = useState(false);
   const [hoveredPart, setHoveredPart] = useState<string | null>(null);
   const [bursts, setBursts] = useState<Array<{ id: number; x: number; y: number; kind: string; bits: Array<{ tx: number; ty: number }> }>>([]);
   const holdTimer = useRef<number | null>(null);
   const shakeTimer = useRef<number | null>(null);
+  const freezeTimer = useRef<number | null>(null);
   const burstId = useRef(0);
   const hitPos = useRef({ x: 50, y: 46 });
   const didBoot = useRef(false);
@@ -135,6 +137,12 @@ export function P1Campaign() {
         setBursts((list) => [...list.slice(-6), { id, x: hitPos.current.x, y: hitPos.current.y, kind: event.kind, bits }]);
         window.setTimeout(() => setBursts((list) => list.filter((item) => item.id !== id)), 640);
       }
+      // 命中卡帧 hitstop：裂开/砸开瞬间短暂定格，强调打击感
+      if (event.kind === 'crack' || event.kind === 'final-break') {
+        setFreeze(true);
+        if (freezeTimer.current) window.clearTimeout(freezeTimer.current);
+        freezeTimer.current = window.setTimeout(() => setFreeze(false), event.kind === 'final-break' ? 130 : 55);
+      }
     });
   }, []);
 
@@ -142,6 +150,7 @@ export function P1Campaign() {
     return () => {
       if (holdTimer.current) window.clearInterval(holdTimer.current);
       if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
+      if (freezeTimer.current) window.clearTimeout(freezeTimer.current);
     };
   }, []);
 
@@ -253,7 +262,7 @@ export function P1Campaign() {
 
   return (
     <div
-      className={`p1Campaign ${target?.scale ?? 'idle'} ${Date.now() < run.rageBurstUntil ? 'rageBursting' : ''}`}
+      className={`p1Campaign ${target?.scale ?? 'idle'} ${Date.now() < run.rageBurstUntil ? 'rageBursting' : ''} ${freeze ? 'frozen' : ''}`}
       onContextMenu={(event) => event.preventDefault()}
       data-testid="p1-campaign"
     >

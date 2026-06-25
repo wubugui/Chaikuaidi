@@ -317,6 +317,12 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
   animation: p1Flash 0.24s ease-out forwards;
 }
 @keyframes p1Flash { from { opacity: 0.6; } to { opacity: 0; } }
+/* 命中卡帧 hitstop：裂开/砸开瞬间短暂暂停场景动画，制造打击定格 */
+.p1Campaign.frozen .p1Stage,
+.p1Campaign.frozen .p1TargetSprite,
+.p1Campaign.frozen .p1Particle,
+.p1Campaign.frozen .p1Fx,
+.p1Campaign.frozen .p1PartCut { animation-play-state: paused !important; }
 .p1StageBg, .p1StageShade { position: absolute; inset: 0; width: 100%; height: 100%; }
 .p1StageBg { object-fit: cover; filter: saturate(0.95) contrast(1.05) brightness(0.8); }
 .p1StageShade {
