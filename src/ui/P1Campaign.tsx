@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ACCIDENT_ARCHIVE_MAP,
   BLACK_MARKET_OFFER_MAP,
+  GOODS_SHOP,
+  ITEM_MAP,
   MACHINES,
   RISK_MAP,
   RUMOR_MAP,
@@ -46,7 +48,7 @@ function toolIcon(id: string): string {
   return TOOL_ICON[id] ?? '/game-art/icons/tool-hand.png';
 }
 
-type PanelId = 'targets' | 'market' | 'machines' | 'routes' | 'lore' | 'settings';
+type PanelId = 'targets' | 'goods' | 'market' | 'machines' | 'routes' | 'lore' | 'settings';
 
 function riskClass(level?: RiskLevel) {
   if (!level || level === 'unknown') return 'unknown';
@@ -293,10 +295,11 @@ export function P1Campaign() {
 
   // 底部菜单坞：低频面板按需打开，平时不在屏上
   const showMarket = meta.unlockedPanels.includes('black-market') || meta.rumors.includes('rumor-black-market-missile') || meta.rumors.includes('rumor-black-market-open');
-  const showMachines = meta.discoveredTargets.includes('car-scrapyard') || meta.unlockedPanels.includes('factory');
+  const showMachines = true; // 起手就有起步机械，随时可部署/升级
   const showRoutes = meta.unlockedPanels.includes('factory') || meta.unlockedPanels.includes('expedition') || meta.giantForms.unlockedSourceIds.length > 0;
   const menu: Array<{ id: PanelId; icon: string; label: string; show: boolean }> = [
     { id: 'targets', icon: '/game-art/icons/ui-target.png', label: '目标', show: true },
+    { id: 'goods', icon: '/game-art/icons/ui-merchant.png', label: '货架', show: true },
     { id: 'market', icon: '/game-art/icons/ui-merchant.png', label: '黑市', show: showMarket },
     { id: 'machines', icon: '/game-art/icons/ui-factory.png', label: '机械', show: showMachines },
     { id: 'routes', icon: '/game-art/icons/ui-map.png', label: '路线', show: showRoutes },
@@ -579,6 +582,67 @@ export function P1Campaign() {
                 </div>
               )}
 
+              {openPanel === 'goods' && (
+                <div className="p1GoodsPanel" data-testid="goods-panel">
+                  {/* 货架：买来的独一无二货物。同时只能砸一件，可随时切换，进度保留。 */}
+                  <div className="p1BlockHeader">
+                    <span className="p1Eyebrow">我的货架</span>
+                    <b>{run.ownedGoods.length} 件</b>
+                  </div>
+                  <div className="p1ShelfList">
+                    {run.ownedGoods.length === 0 ? (
+                      <em>货架空空。先拆快递攒钱，再到下面买点能砸的稀罕货。</em>
+                    ) : (
+                      run.ownedGoods.map((good) => {
+                        const def = TARGET_MAP[good.targetId];
+                        const totalMax = Object.values(good.runtime.parts).reduce((sum, p) => sum + p.maxHp, 0);
+                        const totalHp = Object.values(good.runtime.parts).reduce((sum, p) => sum + (p.destroyed ? 0 : p.hp), 0);
+                        const progress = totalMax > 0 ? Math.round((1 - totalHp / totalMax) * 100) : 0;
+                        const isActive = run.activeGoodInstanceId === good.instanceId;
+                        return (
+                          <div className={`p1ShelfItem ${isActive ? 'active' : ''}`} key={good.instanceId} data-testid="shelf-item">
+                            <img src={assetUrl(def?.icon ?? '')} alt="" draggable={false} />
+                            <div className="p1ShelfMeta">
+                              <strong>{good.revealed ? def?.name ?? good.targetId : '???（还没上手）'}</strong>
+                              <div className="p1ShelfBar"><i style={{ width: `${progress}%` }} /></div>
+                              <small>{isActive ? '正在工作台' : `进度 ${progress}%`}</small>
+                            </div>
+                            <div className="p1ShelfActions">
+                              <button disabled={isActive} onClick={() => { actions.activateGood(good.instanceId); setOpenPanel(null); }}>上台砸</button>
+                              <button className="ghost" onClick={() => { actions.activateGood(good.instanceId); actions.scrapSellCurrent(); }} title="当废铁卖了换废料">卖废铁</button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  {/* 商店：半盲购买。买之前只看外形、卖家吹嘘和价格，材质/门槛要砸了才知道。 */}
+                  <div className="p1BlockHeader">
+                    <span className="p1Eyebrow">黑市散货 · 半盲购买</span>
+                    <b>现金 ¥{Math.floor(run.money)}</b>
+                  </div>
+                  <div className="p1ShopList">
+                    {GOODS_SHOP.map((offer) => {
+                      const canPay = run.money >= offer.price;
+                      return (
+                        <div className={`p1ShopItem ${offer.tier}`} key={offer.id} data-testid="shop-item">
+                          <img src={assetUrl(offer.icon)} alt="" draggable={false} />
+                          <div className="p1ShopMeta">
+                            <strong>{offer.name}</strong>
+                            <p className="p1ShopHype">{offer.hype}</p>
+                            <small className="p1ShopHint">{offer.hint}</small>
+                          </div>
+                          <button className="p1BuyBtn" disabled={!canPay} onClick={() => { actions.buyGood(offer.id); setOpenPanel(null); }}>
+                            买 ¥{offer.price}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {openPanel === 'market' && (
                 <div data-testid="black-market-panel">
                   <div className="p1BlockHeader">
@@ -612,19 +676,43 @@ export function P1Campaign() {
               )}
 
               {openPanel === 'machines' && (
-                <div className="p1MachineGrid">
-                  {MACHINES.map((machine) => {
-                    const runtime = run.machines[machine.id];
-                    return (
-                      <div className={`p1Machine ${runtime?.jammed ? 'jammed' : ''}`} key={machine.id}>
-                        <strong>{machine.name}</strong>
-                        <span>{runtime?.deployedPartId ? `部署：${target?.parts.find((part) => part.id === runtime.deployedPartId)?.name ?? runtime.deployedPartId}` : '未部署'}</span>
-                        <div className="p1MachineMeter"><i style={{ width: `${runtime ? (runtime.durability / runtime.maxDurability) * 100 : 0}%` }} /></div>
-                        <button disabled={!runtime || !selectedPart || !target} onClick={() => selectedPart && actions.deployMachine(machine.id, selectedPart.id)}>部署到当前部位</button>
-                        <button disabled={!runtime} onClick={() => actions.repairMachine(machine.id)}>修理</button>
-                      </div>
-                    );
-                  })}
+                <div className="p1MachinePanel" data-testid="machines-panel">
+                  {/* 升级用稀有材料库存（砸特殊货物掉的） */}
+                  <div className="p1MatStrip">
+                    <span>废料 {Math.floor(run.scrap)}</span>
+                    {['m_hardcore', 'm_pressgem', 'm_oddmatter'].map((id) => (
+                      <span key={id} className={(run.materials[id] ?? 0) > 0 ? 'has' : ''}>
+                        {ITEM_MAP[id]?.name ?? id} {run.materials[id] ?? 0}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="p1MachineGrid">
+                    {MACHINES.map((machine) => {
+                      const runtime = run.machines[machine.id];
+                      const cost = runtime ? actions.machineUpgradeCost(machine.id) : null;
+                      const canUpgrade = !!cost
+                        && run.money >= cost.money
+                        && run.scrap >= cost.scrap
+                        && Object.entries(cost.materials).every(([id, n]) => (run.materials[id] ?? 0) >= n);
+                      return (
+                        <div className={`p1Machine ${runtime?.jammed ? 'jammed' : ''}`} key={machine.id}>
+                          <strong>{machine.name} <em className="p1MachineLv">Lv.{runtime?.level ?? 1}</em></strong>
+                          <span>{runtime?.deployedPartId ? `部署：${target?.parts.find((part) => part.id === runtime.deployedPartId)?.name ?? runtime.deployedPartId}` : '未部署'}</span>
+                          <div className="p1MachineMeter"><i style={{ width: `${runtime ? (runtime.durability / runtime.maxDurability) * 100 : 0}%` }} /></div>
+                          <button disabled={!runtime || !selectedPart || !target} onClick={() => selectedPart && actions.deployMachine(machine.id, selectedPart.id)}>部署到当前部位</button>
+                          <button disabled={!runtime} onClick={() => actions.repairMachine(machine.id)}>修理</button>
+                          {cost ? (
+                            <button className="p1UpgradeBtn" disabled={!canUpgrade} onClick={() => actions.upgradeMachine(machine.id)}>
+                              升级 → Lv.{(runtime?.level ?? 1) + 1}
+                              <small>¥{cost.money} · 废料{cost.scrap}{Object.entries(cost.materials).map(([id, n]) => ` · ${ITEM_MAP[id]?.name ?? id}×${n}`).join('')}</small>
+                            </button>
+                          ) : runtime ? (
+                            <button className="p1UpgradeBtn" disabled>已满级 Lv.{runtime.level}</button>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

@@ -641,6 +641,36 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .p1MachineMeter { height: 8px; border-radius: 999px; overflow: hidden; border: 1px solid #5a4932; background: #0e0a08; }
 .p1MachineMeter i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #54e08a, #ffce3a); }
 
+/* ---- 货架 / 商店 ---- */
+.p1GoodsPanel { display: grid; gap: 8px; }
+.p1ShelfList, .p1ShopList { display: grid; gap: 6px; }
+.p1ShelfList em { color: #d7c7aa; font-size: 12px; line-height: 1.4; }
+.p1ShelfItem, .p1ShopItem { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px; border: 1px solid #5c4a31; border-radius: 8px; background: #17110f; }
+.p1ShelfItem.active { border-color: #54e08a; box-shadow: 0 0 12px #54e08a44; }
+.p1ShelfItem img, .p1ShopItem img { width: 46px; height: 46px; object-fit: contain; }
+.p1ShelfMeta, .p1ShopMeta { display: grid; gap: 3px; min-width: 0; }
+.p1ShelfMeta strong, .p1ShopMeta strong { font-size: 13px; }
+.p1ShelfMeta small { color: #d7c7aa; font-size: 11px; }
+.p1ShelfBar { height: 7px; border-radius: 999px; overflow: hidden; border: 1px solid #5a4932; background: #0e0a08; }
+.p1ShelfBar i { display: block; height: 100%; background: linear-gradient(90deg, #54e08a, #ffce3a); }
+.p1ShelfActions { display: grid; gap: 4px; }
+.p1ShelfActions button { font-size: 11px; min-height: 26px; padding: 0 8px; }
+.p1ShopHype { color: #ffdca0; font-size: 11px; line-height: 1.35; margin: 0; }
+.p1ShopHint { color: #9c8e74; font-size: 11px; line-height: 1.3; }
+.p1ShopItem.top { border-color: #ffce3a; background: #221808; }
+.p1ShopItem.high { border-color: #b07ad6; }
+.p1BuyBtn { align-self: center; min-height: 34px; padding: 0 12px; font-weight: 900; white-space: nowrap; }
+
+/* ---- 机器升级 ---- */
+.p1MachinePanel { display: grid; gap: 8px; }
+.p1MatStrip { display: flex; flex-wrap: wrap; gap: 5px; }
+.p1MatStrip span { padding: 3px 8px; border-radius: 999px; border: 1px solid #5c4a31; background: #0f0b09; color: #9c8e74; font-size: 11px; font-weight: 800; }
+.p1MatStrip span.has { color: #ffce3a; border-color: #ffce3a88; }
+.p1MachineLv { color: #54e08a; font-style: normal; font-weight: 900; font-size: 12px; }
+.p1UpgradeBtn { display: grid; gap: 1px; min-height: 38px; padding: 4px 8px; border-color: #b9883a; }
+.p1UpgradeBtn:not(:disabled) { background: linear-gradient(180deg, #3a2a14, #1c1409); }
+.p1UpgradeBtn small { color: #d7c7aa; font-size: 10px; font-weight: 800; }
+
 .p1ProgressRows { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 8px; }
 .p1ProgressRows span { padding: 6px 8px; border: 1px solid #5c4a31; border-radius: 8px; background: #0f0b09; font-weight: 850; }
 .p1RouteGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
