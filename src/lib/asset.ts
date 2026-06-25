@@ -8,6 +8,7 @@ const BASE = import.meta.env.BASE_URL || '/';
 
 export function assetUrl(path: string): string {
   if (/^(https?:)?\/\//.test(path) || path.startsWith('data:')) return path; // 绝对外链/内联不动
+  if (!path.startsWith('/')) return path; // 已是相对/已前缀过，幂等返回，避免重复加 base
   const base = BASE.endsWith('/') ? BASE : BASE + '/';
   return base + path.replace(/^\/+/, '');
 }

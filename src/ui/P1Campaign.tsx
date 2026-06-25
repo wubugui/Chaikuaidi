@@ -14,6 +14,7 @@ import { actions } from '../game/actions';
 import { onGameFx, type GameFxEvent } from '../game/runtimeEvents';
 import { useRuntimeGame } from '../game/runtimeStore';
 import { getAudioVolume, setAudioVolume, sfxBonk, sfxBoom, sfxCash, sfxCrack, sfxRip } from '../lib/audio';
+import { assetUrl } from '../lib/asset';
 
 const TUTORIAL_COPY: Record<string, string> = {
   'parcel-basic': '按住发光热区，别松手。',
@@ -97,14 +98,15 @@ export function P1Campaign() {
   const selectedRisk = selectedRiskIds.map((id) => run.risks[id]).find(Boolean);
   const rageReady = run.rage >= 100 && Date.now() >= run.rageCooldownUntil;
   const rageState = Date.now() < run.rageBurstUntil ? '失控' : run.rage >= 100 ? '暴怒' : run.rage >= 55 ? '烦躁' : '平静';
-  const workerSrc =
+  const workerSrc = assetUrl(
     rageState === '失控'
       ? '/game-art/characters/worker-demon.png'
       : rageState === '暴怒'
         ? '/game-art/characters/worker-furious.png'
         : rageState === '烦躁'
           ? '/game-art/characters/worker-angry.png'
-          : '/game-art/characters/worker-neutral.png';
+          : '/game-art/characters/worker-neutral.png',
+  );
 
   const stopHold = () => {
     if (holdTimer.current) {
@@ -145,14 +147,14 @@ export function P1Campaign() {
     >
       <section className="p1StagePanel">
         <div className="p1StageFrame">
-          {currentView && <img className="p1StageBg" src={currentView.background} alt="" draggable={false} />}
+          {currentView && <img className="p1StageBg" src={assetUrl(currentView.background)} alt="" draggable={false} />}
           <div className="p1StageShade" />
           {target ? (
             <>
               <div className={`p1TargetAura ${target.scale}`} />
               <img
                 className={`p1TargetSprite ${target.scale}`}
-                src={selectedStage?.art ?? target.icon}
+                src={assetUrl(selectedStage?.art ?? target.icon)}
                 alt={target.name}
                 draggable={false}
               />
