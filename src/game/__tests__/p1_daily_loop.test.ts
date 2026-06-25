@@ -75,6 +75,31 @@ describe('daily parcel loop', () => {
     expect(state.run.currentTarget === null || state.run.currentTarget.targetId.startsWith('parcel-')).toBe(true);
   });
 
+  it('auto pipeline is a paid late upgrade: toggle is gated until bought', () => {
+    runtimeGameStore.setState({
+      ...runtimeGameStore.getState(),
+      run: { ...runtimeGameStore.getState().run, money: 100, autoPipeline: false, autoPipelineUnlocked: false },
+    });
+    // broke -> cannot toggle on
+    actions.toggleAutoPipeline();
+    expect(runtimeGameStore.getState().run.autoPipelineUnlocked).toBe(false);
+    expect(runtimeGameStore.getState().run.autoPipeline).toBe(false);
+
+    // enough money -> first toggle BUYS it and turns it on
+    runtimeGameStore.setState({
+      ...runtimeGameStore.getState(),
+      run: { ...runtimeGameStore.getState().run, money: 5000 },
+    });
+    actions.toggleAutoPipeline();
+    expect(runtimeGameStore.getState().run.autoPipelineUnlocked).toBe(true);
+    expect(runtimeGameStore.getState().run.autoPipeline).toBe(true);
+    expect(runtimeGameStore.getState().run.money).toBeLessThan(5000);
+
+    // now it just toggles for free
+    actions.toggleAutoPipeline();
+    expect(runtimeGameStore.getState().run.autoPipeline).toBe(false);
+  });
+
   it('auto pipeline does NOT auto-smash a special (non-parcel) good', () => {
     runtimeGameStore.setState({
       ...runtimeGameStore.getState(),

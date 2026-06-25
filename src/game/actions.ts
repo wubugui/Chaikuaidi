@@ -42,6 +42,8 @@ const PIPELINE_SOURCE_IDS = new Set(['heavy-crusher', 'crawler-press', 'rail-sma
 // 机器升级专用稀有材料：砸特殊货物时按计数掉进 run.materials，升级时消耗。
 const UPGRADE_MATERIAL_IDS = new Set(['m_hardcore', 'm_pressgem', 'm_oddmatter']);
 const MAX_MACHINE_LEVEL = 6;
+// 自动拆快递管线：后期里程碑升级，建好即被动收钱。
+const AUTO_PIPELINE_COST = 1200;
 let goodInstanceCounter = 0;
 
 export interface MachineUpgradeCost {
@@ -56,7 +58,7 @@ function machineUpgradeCost(machineId: string, currentLevel: number): MachineUpg
   const def = MACHINE_MAP[machineId];
   if (!def) return null;
   const nextLevel = currentLevel + 1;
-  const money = Math.round((90 + (def.power ?? 10) * 7) * Math.pow(nextLevel, 1.65));
+  const money = Math.round((60 + (def.power ?? 10) * 5) * Math.pow(nextLevel, 1.7));
   const scrap = 4 * nextLevel;
   // 第一级升级只要钱+废料（早期就能升），越往上越需要越稀有的材料。
   const materials: Record<string, number> = {};
@@ -1322,8 +1324,30 @@ export const actions = {
     }
   },
 
+  // 自动拆快递管线是后期升级，要花钱建（贵，是个里程碑）。建好后才能开自动。
+  buyAutoPipeline() {
+    const store = runtimeGameStore.getState();
+    if (store.run.autoPipelineUnlocked) return;
+    if (store.run.money < AUTO_PIPELINE_COST) {
+      emitGameFx({ kind: 'ineffective', intensity: 0.3, message: `还差点钱（需 ¥${AUTO_PIPELINE_COST}）。再拆一阵快递。` });
+      return;
+    }
+    store.setRun({
+      ...store.run,
+      money: store.run.money - AUTO_PIPELINE_COST,
+      autoPipelineUnlocked: true,
+      autoPipeline: true,
+      storyLog: [...store.run.storyLog, 'buy-auto-pipeline'],
+    });
+    emitGameFx({ kind: 'reward', intensity: 0.8, message: '自动拆快递管线建好了！钱自己来，老哥终于能歇着。' });
+  },
+
   toggleAutoPipeline() {
     const store = runtimeGameStore.getState();
+    if (!store.run.autoPipelineUnlocked) {
+      actions.buyAutoPipeline();
+      return;
+    }
     const next = !store.run.autoPipeline;
     store.setRun({ ...store.run, autoPipeline: next });
     emitGameFx({ kind: 'stage', targetId: store.run.currentTarget?.targetId, intensity: 0.5, message: next ? '自动管线已开启，老哥先歇着。' : '自动管线已关闭，亲手砸。' });

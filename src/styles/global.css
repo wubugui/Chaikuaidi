@@ -572,6 +572,9 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .p1AutoBtn.on span { color: #d8ffe6; }
 .p1AutoBtn.on small { color: #aef0c4; }
+.p1Campaign .p1AutoBtn.locked { border-color: #7a6a4a; background: linear-gradient(180deg, #221a10, #14100a); }
+.p1AutoBtn.locked span { color: #c7b48a; }
+.p1AutoBtn.locked small { color: #b9883a; font-size: 8px; }
 @keyframes p1AutoPulse { 0%, 100% { box-shadow: 0 0 12px #54e08a66, inset 0 1px 0 #fff2; } 50% { box-shadow: 0 0 22px #54e08acc, inset 0 1px 0 #fff2; } }
 .p1Campaign .p1ParcelBtn {
   width: 54px; height: 54px; padding: 0; border-radius: 12px; display: grid; place-items: center; gap: 1px;

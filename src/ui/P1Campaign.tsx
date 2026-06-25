@@ -491,12 +491,14 @@ export function P1Campaign() {
             <small>日常</small>
           </button>
           <button
-            className={`p1AutoBtn ${run.autoPipeline ? 'on' : ''}`}
+            className={`p1AutoBtn ${run.autoPipeline ? 'on' : ''} ${run.autoPipelineUnlocked ? '' : 'locked'}`}
             onClick={() => actions.toggleAutoPipeline()}
-            title="自动拆快递管线：开启后自动连拆快递、自动结算、自动开下一单（只对快递生效）"
+            title={run.autoPipelineUnlocked
+              ? '自动拆快递管线：开启后自动连拆快递、自动结算、自动开下一单（只对快递生效）'
+              : '后期里程碑升级：花 ¥1200 建一条自动拆快递管线，建好就被动收钱，老哥不用一直点'}
           >
             <span>自动拆</span>
-            <small>{run.autoPipeline ? '运行中' : '关'}</small>
+            <small>{!run.autoPipelineUnlocked ? '建¥1200' : run.autoPipeline ? '运行中' : '关'}</small>
           </button>
           {ownedTools.map((tool, index) => (
             <button

@@ -113,6 +113,7 @@ export interface RunState {
   selectedSourceId: string;
   hitMode: HitMode;
   autoPipeline: boolean;
+  autoPipelineUnlocked: boolean;
   currentTarget: TargetRuntimeState | null;
   ownedGoods: OwnedGoodState[];
   activeGoodInstanceId: string | null;
@@ -173,6 +174,7 @@ export function createInitialRunState(): RunState {
     selectedSourceId: 'hand',
     hitMode: 'melee',
     autoPipeline: false,
+    autoPipelineUnlocked: false,
     currentTarget: null,
     ownedGoods: [],
     activeGoodInstanceId: null,
