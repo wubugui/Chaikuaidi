@@ -374,26 +374,30 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 }
 .p1Campaign .p1Hotspot:hover:not(:disabled),
 .p1Campaign .p1Hotspot.selected { background: transparent; border-color: transparent; box-shadow: none; }
-/* 柔光本体：椭圆径向渐变 + screen 混合，像物体被轻轻点亮，无硬边 */
-.p1HotspotGlow {
-  position: absolute; inset: -10%; border-radius: 50%; pointer-events: none;
-  mix-blend-mode: screen; opacity: 0; transition: opacity 0.18s ease;
-  background: radial-gradient(ellipse at center, #ffe79036 0%, #ffce3a1c 38%, transparent 70%);
+/* 可砸区常驻准星：一眼就能看到（不是填充面板），危险部位转红 */
+.p1HotspotMark {
+  position: absolute; inset: -6%; border-radius: 50%; pointer-events: none;
+  border: 2px dashed #ffd86a; box-shadow: 0 0 10px #ffce3a66, inset 0 0 14px #ffce3a26;
+  opacity: 0.72; animation: p1MarkPulse 1.5s ease-in-out infinite;
 }
-.p1Hotspot:not(.destroyed) .p1HotspotGlow { animation: p1HotspotPulse 2s ease-in-out infinite; }
-@keyframes p1HotspotPulse { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.34; } }
-.p1Hotspot:hover:not(:disabled) .p1HotspotGlow { opacity: 0.9; animation: none; }
-.p1Hotspot.selected .p1HotspotGlow { opacity: 0.6; animation: none; }
-.p1Hotspot:active:not(:disabled) .p1HotspotGlow { opacity: 1; animation: none; }
-.p1Hotspot.suspicious .p1HotspotGlow { background: radial-gradient(ellipse at center, #ffdf7a44, #ffce3a22 38%, transparent 70%); }
-.p1Hotspot.dangerous .p1HotspotGlow,
-.p1Hotspot.critical .p1HotspotGlow { background: radial-gradient(ellipse at center, #ff8a9a55, #ff5a6e22 38%, transparent 72%); }
+.p1HotspotMark::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px;
+  border-radius: 50%; background: #ffe79a; box-shadow: 0 0 8px #ffce3a;
+}
+@keyframes p1MarkPulse { 0%, 100% { opacity: 0.6; transform: scale(0.95); } 50% { opacity: 0.96; transform: scale(1.03); } }
+.p1Hotspot:hover:not(:disabled) .p1HotspotMark,
+.p1Hotspot.selected .p1HotspotMark { opacity: 1; border-style: solid; box-shadow: 0 0 18px #ffce3a99, inset 0 0 16px #ffce3a33; animation: none; }
+.p1Hotspot:active:not(:disabled) .p1HotspotMark { transform: scale(0.9); }
+.p1Hotspot.dangerous .p1HotspotMark,
+.p1Hotspot.critical .p1HotspotMark { border-color: #ff7a8a; box-shadow: 0 0 12px #ff5a6e88, inset 0 0 14px #ff5a6e2a; }
+.p1Hotspot.dangerous .p1HotspotMark::after,
+.p1Hotspot.critical .p1HotspotMark::after { background: #ff9aa6; box-shadow: 0 0 8px #ff5a6e; }
 .p1Hotspot.destroyed { opacity: 0; pointer-events: none; }
-/* 部位名：无框文字，仅 hover/选中浮出 */
+/* 部位名：常驻可见（无框文字），hover/选中更亮 */
 .p1HotspotName {
-  position: absolute; left: 50%; top: 0; transform: translate(-50%, calc(-100% - 4px));
+  position: absolute; left: 50%; top: 0; transform: translate(-50%, calc(-100% - 6px));
   white-space: nowrap; font-size: 12px; font-weight: 800; color: #fff3d0;
-  text-shadow: 0 2px 4px #000, 0 0 10px #000a; opacity: 0; transition: opacity 0.15s ease; pointer-events: none;
+  text-shadow: 0 2px 4px #000, 0 0 10px #000c; opacity: 0.82; transition: opacity 0.15s ease; pointer-events: none;
 }
 .p1Hotspot:hover:not(:disabled) .p1HotspotName,
 .p1Hotspot.selected .p1HotspotName { opacity: 1; }

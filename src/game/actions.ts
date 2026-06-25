@@ -1,4 +1,4 @@
-import { applyPartHit, damageSourceExists } from '../core/damage';
+import { applyPartHit, damageSourceExists, previewDamage } from '../core/damage';
 import { calculateRiskOutcome } from '../core/risk';
 import {
   createInitialRunState,
@@ -16,6 +16,7 @@ import {
   BLACK_MARKET_OFFERS,
   MACHINE_MAP,
   MACHINES,
+  MATERIAL_MAP,
   RISK_MAP,
   TARGET_MAP,
   TARGETS,
@@ -37,6 +38,44 @@ const STARTER_TOOL_IDS = new Set(['hand', 'hammer', 'crowbar', 'remote-probe']);
 const STARTER_MACHINE_IDS = new Set(['hydraulic-hammer', 'scrap-arm']);
 const PIPELINE_SOURCE_IDS = new Set(['heavy-crusher', 'crawler-press', 'rail-smash-array']);
 const GIANT_SOURCE_IDS = new Set(['mecha-fist', 'mecha-shoulder-ram', 'gundam-pile', 'ultra-beam', 'ultra-stomp', 'ultra-flying-kick']);
+
+// 命中现象：正常表现（按材质）+ 危险征兆（用于"敢不敢继续砸"的决策）
+const NORMAL_PHENOMENA: Record<string, string[]> = {
+  paper: ['碎屑乱飞', '胶带崩开一道', '纸味窜出来'],
+  wood: ['木刺崩开', '咔嚓一声', '木屑四散'],
+  metal: ['火花四溅', '铛的一声', '砸凹一块'],
+  stone: ['石渣乱蹦', '闷响震手', '裂了道缝'],
+  organic: ['黏液溅了一下', '里面缩了缩', '腥味更重了'],
+  volatile: ['壳里晃了晃', '飘出一缕焦味', '咕嘟一声'],
+  anomaly: ['影子歪了一下', '一阵耳鸣', '空气凉了半度'],
+};
+const DANGER_PHENOMENA = ['发烫了！', '滴答声变快了', '鼓包了', '里面有东西在动', '冒出一缕青烟', '读数在跳'];
+const DROP_LINES = ['叮当', '抠出点东西', '掉了点零碎'];
+function pick<T>(list: T[]): T {
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+// 进入目标时自动选一把"砸得动"的工具，避免新手拿徒手砸金属保险柜毫无反馈
+function bestOwnedSourceFor(run: RunState, target: TargetDef, partId: string | null): string {
+  const partDef = target.parts.find((part) => part.id === partId) ?? target.parts[0];
+  const material = partDef ? MATERIAL_MAP[partDef.material] : undefined;
+  if (!material) return run.selectedSourceId;
+  let best = run.selectedSourceId;
+  let bestScore = -1;
+  for (const [toolId, toolState] of Object.entries(run.tools)) {
+    if (toolState.broken) continue;
+    if (GIANT_SOURCE_IDS.has(toolId) && target.scale === 'desktop') continue;
+    const source = sourceFor(toolId);
+    if (!source) continue;
+    const preview = previewDamage(source, material);
+    const score = (preview.effective ? 1000 : 0) + preview.amount;
+    if (score > bestScore) {
+      bestScore = score;
+      best = toolId;
+    }
+  }
+  return best;
+}
 
 function unique<T>(items: T[]): T[] {
   return Array.from(new Set(items));
@@ -579,6 +618,7 @@ export const actions = {
     store.setRun({
       ...paidRun,
       currentTarget: runtime,
+      selectedSourceId: bestOwnedSourceFor(paidRun, target, runtime.selectedPartId),
       combo: 0,
       comboExpiresAt: 0,
       activeHit: null,
@@ -671,28 +711,27 @@ export const actions = {
     const now = Date.now();
     const combo = now > run.comboExpiresAt ? 0 : run.combo;
     const rageBurst = now < run.rageBurstUntil;
+    const isMachine = MACHINE_IDS.has(sourceId);
     const hitMode: HitMode = source.tags.includes('remote') ? 'remote' : run.hitMode;
     const finalThreshold = Math.max(2, Math.ceil(partState.maxHp * 0.06));
 
-    if (MACHINE_IDS.has(sourceId) && isImportantTarget(target) && partState.hp <= finalThreshold) {
-      emitGameFx({
-        kind: 'final-ready',
-        targetId: target.id,
-        partId,
-        sourceId,
-        intensity: 0.75,
-        message: '机械已经削到临界，最后一击留给老哥。',
-      });
-      store.setRun({ ...run, combo, comboExpiresAt: now + COMBO_WINDOW_MS });
+    // 重要目标：机械削到临界就停手，最后一击留给玩家（偶尔提示一次，不刷屏）
+    if (isMachine && isImportantTarget(target) && partState.hp <= finalThreshold) {
+      if (Math.random() < 0.12) {
+        emitGameFx({ kind: 'final-ready', targetId: target.id, partId, sourceId, intensity: 0.75, message: '机械削到临界了，最后一击留给老哥。' });
+      }
       return;
     }
 
     const damageMultiplier = (rageBurst ? 2.35 : 1) * (hitMode === 'remote' ? 0.72 : 1);
     const hit = applyPartHit(run.currentTarget, partId, sourceId, combo, damageMultiplier);
-    const nextCombo = hit.effective ? Math.min(80, combo + 1) : Math.max(0, combo - 2);
-    const nextRage = hit.effective
-      ? Math.min(100, run.rage + (rageBurst ? 0 : hit.destroyed ? 10 : Math.max(1.5, hit.damage / 18)))
-      : run.rage;
+    // 机械自动砸不堆玩家连击/怒气（那是玩家亲手砸的奖励）
+    const nextCombo = isMachine ? combo : hit.effective ? Math.min(80, combo + 1) : Math.max(0, combo - 2);
+    const nextRage = isMachine
+      ? run.rage
+      : hit.effective
+        ? Math.min(100, run.rage + (rageBurst ? 0 : hit.destroyed ? 10 : Math.max(1.5, hit.damage / 18)))
+        : run.rage;
     const nextDurability = run.tools[sourceId]
       ? Math.max(0, run.tools[sourceId].durability - (partDef.material === 'metal' ? 1.2 : 0.6))
       : 0;
@@ -707,7 +746,7 @@ export const actions = {
       ...run,
       currentTarget: { ...hit.target, selectedPartId: partId },
       combo: nextCombo,
-      comboExpiresAt: now + COMBO_WINDOW_MS,
+      comboExpiresAt: isMachine ? run.comboExpiresAt : now + COMBO_WINDOW_MS,
       rage: nextRage,
       tools: nextTool ? { ...run.tools, [sourceId]: nextTool } : run.tools,
       hitMode,
@@ -720,7 +759,21 @@ export const actions = {
       ],
     };
     const riskResult = updateRiskFromHit(nextRunBase, target, partId, source, hitMode, rageBurst);
-    store.setRun(riskResult.run);
+    // 砸击过程中的小掉落 + 砸开一个部位必给奖励
+    let dropCash = 0;
+    let dropScrap = 0;
+    const partRewardItems: string[] = [];
+    if (hit.effective && Math.random() < 0.18) dropCash += 1 + Math.floor(Math.random() * 3);
+    if (hit.destroyed && !hit.completed) {
+      dropCash += Math.ceil((target.rewards.cash ?? 24) / Math.max(1, target.parts.length)) + 5;
+      if ((target.rewards.scrap ?? 0) > 0) dropScrap += 1 + Math.floor(Math.random() * 2);
+      if (target.rewards.items.length && Math.random() < 0.5) partRewardItems.push(pick(target.rewards.items));
+    }
+    store.setRun({ ...riskResult.run, money: riskResult.run.money + dropCash, scrap: riskResult.run.scrap + dropScrap });
+    if (partRewardItems.length) {
+      const latestMeta = runtimeGameStore.getState();
+      latestMeta.setMeta({ ...latestMeta.meta, collection: unique([...latestMeta.meta.collection, ...partRewardItems]) });
+    }
     if (nextTool?.broken && GIANT_SOURCE_IDS.has(sourceId)) {
       const latest = runtimeGameStore.getState();
       latest.setMeta({
@@ -741,6 +794,29 @@ export const actions = {
       message: hit.effective ? `-${hit.damage}` : '弹开了',
       value: hit.damage,
     });
+    // 现象提示：只在命中时弹（稍微高频），正常表现 / 危险征兆两类，辅助"敢不敢继续砸"
+    if (hit.effective && !hit.destroyed) {
+      const postHp = hit.target.parts[partId]?.hp ?? 0;
+      const hpRatio = partState.maxHp > 0 ? postHp / partState.maxHp : 0;
+      const risky = partDef.riskTriggers.length > 0;
+      const dangerChance = risky ? 0.2 + (1 - hpRatio) * 0.4 : 0;
+      if (risky && Math.random() < dangerChance) {
+        emitGameFx({ kind: 'danger', targetId: target.id, partId, intensity: 0.5, riskLevel: 'suspicious', message: pick(DANGER_PHENOMENA) });
+      } else if (Math.random() < 0.34) {
+        emitGameFx({ kind: 'float', targetId: target.id, partId, intensity: 0.3, message: pick(NORMAL_PHENOMENA[partDef.material] ?? NORMAL_PHENOMENA.paper) });
+      }
+    }
+    // 掉落飘字
+    if (dropCash > 0 && !hit.completed) {
+      emitGameFx({
+        kind: 'reward',
+        targetId: target.id,
+        partId,
+        intensity: hit.destroyed ? 0.7 : 0.3,
+        value: dropCash,
+        message: hit.destroyed ? `部位砸开 +${dropCash}` : `${pick(DROP_LINES)} +${dropCash}`,
+      });
+    }
     if (hit.stageChanged) {
       const stage = partDef.stages.find((item) => item.id === hit.target.parts[partId].stageId);
       emitGameFx({
@@ -865,7 +941,7 @@ export const actions = {
       ...store.run,
       machines: {
         ...store.run.machines,
-        [machineId]: { ...machine, deployedPartId: partId, jammed: false, repairing: false },
+        [machineId]: { ...machine, deployedPartId: partId, overheat: 0, jammed: false, repairing: false },
       },
       storyLog: [...store.run.storyLog, `deploy:${machineId}:${partId}`],
     });
@@ -879,47 +955,53 @@ export const actions = {
     const combo = now > run.comboExpiresAt ? 0 : run.combo;
     const rage = run.activeHit || now < run.rageBurstUntil ? run.rage : Math.max(0, run.rage - dtSec * 2.2);
     run = { ...run, combo, rage };
-
-    if (run.currentTarget) {
-      let machines = run.machines;
-      for (const [machineId, machine] of Object.entries(run.machines)) {
-        if (!machine.deployedPartId || machine.jammed || machine.durability <= 0) continue;
-        const def = MACHINES.find((item) => item.id === machineId);
-        if (!def) continue;
-        const overheat = machine.overheat + dtSec;
-        const jammed = overheat >= def.overheatSeconds;
-        machines = {
-          ...machines,
-          [machineId]: {
-            ...machine,
-            overheat,
-            jammed,
-            durability: Math.max(0, machine.durability - dtSec * 1.8),
-          },
-        };
-        if (jammed) {
-          emitGameFx({
-            kind: 'danger',
-            targetId: run.currentTarget.targetId,
-            partId: machine.deployedPartId,
-            sourceId: machineId,
-            intensity: 0.65,
-            message: `${def.name} 过热卡住了。`,
-          });
-        }
-      }
-      run = { ...run, machines };
-    }
     store.setRun(run);
   },
 
   tickMachines() {
     const store = runtimeGameStore.getState();
-    if (!store.run.currentTarget) return;
-    for (const [machineId, machine] of Object.entries(store.run.machines)) {
-      if (!machine.deployedPartId || machine.jammed || machine.durability <= 0) continue;
-      actions.hitPart(machine.deployedPartId, machineId);
+    const run = store.run;
+    if (!run.currentTarget) return;
+    const dt = 0.65;
+    let machines = run.machines;
+    let changed = false;
+    const toHit: Array<[string, string]> = [];
+    // 每台机械各自独立处理（可同时挂在不同部位；一台机械只占一个部位）
+    for (const [machineId, machine] of Object.entries(run.machines)) {
+      if (!machine.deployedPartId) continue;
+      const def = MACHINES.find((item) => item.id === machineId);
+      if (!def) continue;
+      const partState = run.currentTarget.parts[machine.deployedPartId];
+      // 部位已砸开 -> 自动撤下，别再对着空气砸（修掉"无效命中刷屏"）
+      if (!partState || partState.destroyed) {
+        machines = { ...machines, [machineId]: { ...machine, deployedPartId: null, overheat: 0, jammed: false } };
+        changed = true;
+        continue;
+      }
+      if (machine.durability <= 0) continue;
+      // 卡死自动冷却，降到阈值以下自动恢复（不必每次手动修）
+      if (machine.jammed) {
+        const cooled = Math.max(0, machine.overheat - dt * 1.6);
+        machines = { ...machines, [machineId]: { ...machine, overheat: cooled, jammed: cooled > def.overheatSeconds * 0.35 } };
+        changed = true;
+        continue;
+      }
+      const overheat = machine.overheat + dt;
+      const jammed = overheat >= def.overheatSeconds;
+      const durability = Math.max(0, machine.durability - dt * 1.0);
+      machines = { ...machines, [machineId]: { ...machine, overheat, jammed, durability } };
+      changed = true;
+      if (jammed) {
+        emitGameFx({ kind: 'danger', targetId: run.currentTarget.targetId, partId: machine.deployedPartId, sourceId: machineId, intensity: 0.5, message: `${def.name} 过热，正在冷却。` });
+        continue;
+      }
+      toHit.push([machineId, machine.deployedPartId]);
     }
+    if (changed) {
+      const latest = runtimeGameStore.getState();
+      latest.setRun({ ...latest.run, machines });
+    }
+    for (const [machineId, partId] of toHit) actions.hitPart(partId, machineId);
   },
 
   repairMachine(machineId: string) {

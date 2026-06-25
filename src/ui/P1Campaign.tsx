@@ -343,7 +343,7 @@ export function P1Campaign() {
                   }}
                   onClick={(event) => event.stopPropagation()}
                 >
-                  {target.scale === 'desktop' && <span className="p1HotspotGlow" aria-hidden="true" />}
+                  <span className="p1HotspotMark" aria-hidden="true" />
                   <span className="p1HotspotName">{part.name}</span>
                 </button>
               );
