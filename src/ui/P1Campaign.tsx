@@ -388,24 +388,23 @@ export function P1Campaign() {
         )}
       </div>
 
-      {/* ===== 卖家对白气泡 ===== */}
+      {/* ===== 卖家全屏立绘对话（视觉小说式） ===== */}
       {seller && sellerOpen && (
-        <div className="p1Seller">
-          <button className="p1SellerAvatar" onClick={() => setSellerLine((line) => line + 1)} title="再听一句">
-            {seller.emoji}
-          </button>
-          <div className="p1SellerBubble">
-            <div className="p1SellerHead">
-              <b>{seller.name}</b>
-              <button className="p1SellerClose" onClick={() => setSellerOpen(false)} title="收起">✕</button>
-            </div>
-            <p>{sellerText}</p>
-            {sellerLines.length > 1 && <small>点头像再听一句</small>}
+        <div
+          className="p1SellerVN"
+          onClick={() => (sellerLine + 1 >= sellerLines.length ? setSellerOpen(false) : setSellerLine((line) => line + 1))}
+        >
+          <div className="p1SellerVNPortrait">{seller.emoji}</div>
+          <div className="p1SellerVNBox">
+            <button className="p1SellerVNClose" onClick={(event) => { event.stopPropagation(); setSellerOpen(false); }} title="跳过">✕</button>
+            <span className="p1SellerVNName">{seller.name}</span>
+            <p className="p1SellerVNText">{sellerText}</p>
+            <span className="p1SellerVNHint">{sellerLine + 1 >= sellerLines.length ? '点一下 · 开砸！' : '点一下 · 还有呢 ▶'}</span>
           </div>
         </div>
       )}
       {seller && !sellerOpen && (
-        <button className="p1SellerReopen" onClick={() => setSellerOpen(true)} title={`${seller.name}：再聊两句`}>
+        <button className="p1SellerReopen" onClick={() => { setSellerLine(0); setSellerOpen(true); }} title={`${seller.name}：再听他叨叨`}>
           {seller.emoji}
         </button>
       )}
