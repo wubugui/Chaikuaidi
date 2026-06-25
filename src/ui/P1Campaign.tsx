@@ -9,7 +9,7 @@ import {
   TARGETS,
   TOOLS,
 } from '../content';
-import type { PartDef, RiskLevel, TargetDef } from '../content/types';
+import type { DamageSourceTag, PartDef, RiskLevel, TargetDef } from '../content/types';
 import { actions } from '../game/actions';
 import { onGameFx, type GameFxEvent } from '../game/runtimeEvents';
 import { useRuntimeGame } from '../game/runtimeStore';
@@ -27,6 +27,34 @@ const TUTORIAL_COPY: Record<string, string> = {
   'car-scrapyard': '切视角、部署机械，但最后一击尽量亲手来。',
   'missile-dont-touch': '这不是普通货。检查、远程试探、撤退都是真选项。',
 };
+
+/** 砸击源标签 → 表意 emoji（工具坞图标 + 鼠标光标用） */
+const TAG_EMOJI: Record<DamageSourceTag, string> = {
+  hand: '✊',
+  hammer: '🔨',
+  crowbar: '⛏️',
+  drill: '🪛',
+  hydraulic: '🦾',
+  pipeline: '🏭',
+  mecha: '🤖',
+  gundam: '🦿',
+  ultra: '🌟',
+  remote: '🎯',
+  absurd: '🌀',
+};
+
+function toolEmoji(tags: DamageSourceTag[]): string {
+  for (const tag of tags) if (TAG_EMOJI[tag]) return TAG_EMOJI[tag];
+  return '🔨';
+}
+
+/** 用当前工具 emoji 生成鼠标光标 —— 光标即工具 */
+function emojiCursor(emoji: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><text x="3" y="30" font-size="30">${emoji}</text></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 8 32, crosshair`;
+}
+
+type PanelId = 'targets' | 'market' | 'machines' | 'routes' | 'lore' | 'settings';
 
 function riskClass(level?: RiskLevel) {
   if (!level || level === 'unknown') return 'unknown';
@@ -46,7 +74,10 @@ export function P1Campaign() {
   const meta = useRuntimeGame((state) => state.meta);
   const [fxEvents, setFxEvents] = useState<GameFxEvent[]>([]);
   const [audioVolume, setAudioVolumeState] = useState(() => getAudioVolume());
+  const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
+  const [shake, setShake] = useState('');
   const holdTimer = useRef<number | null>(null);
+  const shakeTimer = useRef<number | null>(null);
   const didBoot = useRef(false);
 
   useEffect(() => {
@@ -75,12 +106,27 @@ export function P1Campaign() {
       if (event.kind === 'crack' || event.kind === 'final-break') sfxCrack();
       if (event.kind === 'accident') sfxBoom();
       if (event.kind === 'reward') sfxCash();
+      // 砸感：按事件强度触发震屏 / 闪白
+      const level =
+        event.kind === 'final-break' || event.kind === 'accident'
+          ? 'shakeL flash'
+          : event.kind === 'crack'
+            ? 'shakeM'
+            : event.kind === 'hit'
+              ? 'shakeS'
+              : '';
+      if (level) {
+        setShake(level);
+        if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
+        shakeTimer.current = window.setTimeout(() => setShake(''), 240);
+      }
     });
   }, []);
 
   useEffect(() => {
     return () => {
       if (holdTimer.current) window.clearInterval(holdTimer.current);
+      if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
     };
   }, []);
 
@@ -108,6 +154,23 @@ export function P1Campaign() {
           : '/game-art/characters/worker-neutral.png',
   );
 
+  // 拥有的工具 → 工具坞 + 数字键热键
+  const ownedTools = useMemo(() => TOOLS.filter((tool) => run.tools[tool.id]), [run.tools]);
+  const activeTool = TOOLS.find((tool) => tool.id === run.selectedSourceId) ?? ownedTools[0];
+  const stageCursor = activeTool ? emojiCursor(toolEmoji(activeTool.tags)) : 'crosshair';
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenPanel(null);
+      const num = Number(event.key);
+      if (num >= 1 && num <= 9 && ownedTools[num - 1]) {
+        actions.selectSource(ownedTools[num - 1].id);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ownedTools]);
+
   const stopHold = () => {
     if (holdTimer.current) {
       window.clearInterval(holdTimer.current);
@@ -128,6 +191,7 @@ export function P1Campaign() {
 
   const startTarget = (targetId: string) => {
     stopHold();
+    setOpenPanel(null);
     actions.dismissResult();
     actions.startTarget(targetId);
   };
@@ -138,324 +202,319 @@ export function P1Campaign() {
     if (result?.reason === 'completed') actions.startRecommendedTarget();
   };
 
+  // 底部菜单坞：低频面板按需打开，平时不在屏上
+  const showMarket = meta.unlockedPanels.includes('black-market') || meta.rumors.includes('rumor-black-market-missile') || meta.rumors.includes('rumor-black-market-open');
+  const showMachines = meta.discoveredTargets.includes('car-scrapyard') || meta.unlockedPanels.includes('factory');
+  const showRoutes = meta.unlockedPanels.includes('factory') || meta.unlockedPanels.includes('expedition') || meta.giantForms.unlockedSourceIds.length > 0;
+  const menu: Array<{ id: PanelId; icon: string; label: string; show: boolean }> = [
+    { id: 'targets', icon: '🎯', label: '目标', show: true },
+    { id: 'market', icon: '🕶️', label: '黑市', show: showMarket },
+    { id: 'machines', icon: '🦾', label: '机械', show: showMachines },
+    { id: 'routes', icon: '🛣️', label: '路线', show: showRoutes },
+    { id: 'lore', icon: '📁', label: '档案', show: true },
+    { id: 'settings', icon: '⚙️', label: '设置', show: true },
+  ];
+
   return (
     <div
       className={`p1Campaign ${target?.scale ?? 'idle'} ${Date.now() < run.rageBurstUntil ? 'rageBursting' : ''}`}
-      onPointerDown={(event) => event.stopPropagation()}
       onContextMenu={(event) => event.preventDefault()}
       data-testid="p1-campaign"
     >
-      <section className="p1StagePanel">
-        <div className="p1StageFrame">
-          {currentView && <img className="p1StageBg" src={assetUrl(currentView.background)} alt="" draggable={false} />}
-          <div className="p1StageShade" />
-          {target ? (
+      {/* ===== 砸击现场：铺满整窗 ===== */}
+      <div className={`p1Stage ${shake}`} style={{ cursor: target ? stageCursor : 'default' }}>
+        {currentView && <img className="p1StageBg" src={assetUrl(currentView.background)} alt="" draggable={false} />}
+        <div className="p1StageShade" />
+        {target ? (
+          <>
+            <div className={`p1TargetAura ${target.scale}`} />
+            <img
+              className={`p1TargetSprite ${target.scale}`}
+              src={assetUrl(selectedStage?.art ?? target.icon)}
+              alt={target.name}
+              draggable={false}
+            />
+            <div className="p1Worker" title={`老哥状态：${rageState}`}>
+              <img src={workerSrc} alt="" draggable={false} />
+            </div>
+            {currentView?.hotspots.map((hotspot) => {
+              const part = target.parts.find((item) => item.id === hotspot.partId);
+              const runtimePart = run.currentTarget?.parts[hotspot.partId];
+              if (!part || !runtimePart?.exposed) return null;
+              const pct = Math.max(0, runtimePart.hp / runtimePart.maxHp);
+              const partRisk = part.riskTriggers.map((trigger) => run.risks[trigger.riskId]).find(Boolean);
+              return (
+                <button
+                  key={hotspot.id}
+                  className={`p1Hotspot ${runtimePart.destroyed ? 'destroyed' : ''} ${selectedPartId === part.id ? 'selected' : ''} ${riskClass(partRisk?.level)}`}
+                  style={{
+                    left: `${hotspot.x * 100}%`,
+                    top: `${hotspot.y * 100}%`,
+                    width: `${hotspot.width * 100}%`,
+                    height: `${hotspot.height * 100}%`,
+                  }}
+                  disabled={runtimePart.destroyed}
+                  onPointerDown={(event) => {
+                    actions.selectSource(run.selectedSourceId);
+                    startHold(part.id, event);
+                  }}
+                  onPointerEnter={() => selectedPartId !== part.id && actions.tickRuntime(0)}
+                  onPointerUp={stopHold}
+                  onPointerCancel={stopHold}
+                  onPointerLeave={stopHold}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="p1HotspotName">{part.name}</span>
+                  <i style={{ width: `${pct * 100}%` }} />
+                </button>
+              );
+            })}
+            <div className="p1FxLayer" aria-hidden="true">
+              {fxEvents.map((event, index) => (
+                <span
+                  key={event.id}
+                  className={`p1Fx ${event.kind}`}
+                  style={{ left: `${30 + ((event.id * 17) % 42)}%`, top: `${28 + ((index * 13) % 34)}%` }}
+                >
+                  {event.message}
+                </span>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="p1NoTarget">
+            <strong>本轮作业空闲</strong>
+            <span>打开底部「目标」选一个已解锁目标开砸。</span>
+          </div>
+        )}
+      </div>
+
+      {/* ===== 顶部极简 HUD ===== */}
+      <header className="p1Hud">
+        <div className="p1Brand">
+          <b>暴躁老哥砸万物</b>
+          {target && <span className="p1NowTarget">{target.name}</span>}
+        </div>
+        <div className="p1StatusStrip">
+          <span className="chip money">¥{Math.floor(run.money)}</span>
+          <span className="chip scrap">废料 {Math.floor(run.scrap)}</span>
+          <span className="chip rep">信誉 {meta.reputation}</span>
+          {run.combo > 1 && <span className="chip combo">连击 ×{run.combo}</span>}
+        </div>
+        <div className={`p1RageWrap ${rageState === '失控' || rageState === '暴怒' ? 'hot' : ''}`} title={`老哥状态：${rageState}`}>
+          <span className="p1RageLabel">怒气 · {rageState}</span>
+          <div className="p1RageMeter"><i style={{ width: `${Math.min(100, run.rage)}%` }} /></div>
+        </div>
+      </header>
+
+      {/* ===== 视角切换（场景内，多视角才出现） ===== */}
+      {target && run.currentTarget && target.views.length > 1 && (
+        <div className="p1ViewSwitch">
+          {target.views.map((view) => {
+            const unlocked = run.currentTarget?.unlockedViews.includes(view.id);
+            return (
+              <button key={view.id} disabled={!unlocked} className={view.id === currentView?.id ? 'active' : ''} onClick={() => actions.switchView(view.id)}>
+                {view.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ===== 底部操作坞 ===== */}
+      <footer className="p1Dock">
+        <div className="p1ToolDock" onWheel={(event) => {
+          if (ownedTools.length < 2) return;
+          const idx = ownedTools.findIndex((tool) => tool.id === activeTool?.id);
+          const next = ownedTools[(idx + (event.deltaY > 0 ? 1 : -1) + ownedTools.length) % ownedTools.length];
+          if (next) actions.selectSource(next.id);
+        }}>
+          {ownedTools.map((tool, index) => (
+            <button
+              key={tool.id}
+              className={`p1ToolSlot ${activeTool?.id === tool.id ? 'active' : ''}`}
+              onClick={() => actions.selectSource(tool.id)}
+              title={`${tool.name}（按 ${index + 1}）`}
+            >
+              <span className="p1ToolGlyph">{toolEmoji(tool.tags)}</span>
+              <small>{index + 1}</small>
+            </button>
+          ))}
+        </div>
+
+        <div className="p1PartHud">
+          {selectedPart && selectedPartState ? (
             <>
-              <div className={`p1TargetAura ${target.scale}`} />
-              <img
-                className={`p1TargetSprite ${target.scale}`}
-                src={assetUrl(selectedStage?.art ?? target.icon)}
-                alt={target.name}
-                draggable={false}
-              />
-              <div className="p1Worker" title={`老哥状态：${rageState}`}>
-                <img src={workerSrc} alt="" draggable={false} />
-                <span>{rageState}</span>
+              <div className="p1PartLine">
+                <strong>{selectedPart.name}</strong>
+                <em>{selectedStage?.label}</em>
+                {selectedRisk && <span className={`p1RiskTag ${riskClass(selectedRisk.level)}`}>{RISK_MAP[selectedRisk.riskId]?.name ?? '风险'}</span>}
               </div>
-              {currentView?.hotspots.map((hotspot) => {
-                const part = target.parts.find((item) => item.id === hotspot.partId);
-                const runtimePart = run.currentTarget?.parts[hotspot.partId];
-                if (!part || !runtimePart?.exposed) return null;
-                const pct = Math.max(0, runtimePart.hp / runtimePart.maxHp);
-                const partRisk = part.riskTriggers.map((trigger) => run.risks[trigger.riskId]).find(Boolean);
-                return (
-                  <button
-                    key={hotspot.id}
-                    className={`p1Hotspot ${runtimePart.destroyed ? 'destroyed' : ''} ${selectedPartId === part.id ? 'selected' : ''} ${riskClass(partRisk?.level)}`}
-                    style={{
-                      left: `${hotspot.x * 100}%`,
-                      top: `${hotspot.y * 100}%`,
-                      width: `${hotspot.width * 100}%`,
-                      height: `${hotspot.height * 100}%`,
-                    }}
-                    disabled={runtimePart.destroyed}
-                    onPointerDown={(event) => startHold(part.id, event)}
-                    onPointerUp={stopHold}
-                    onPointerCancel={stopHold}
-                    onPointerLeave={stopHold}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <span>{part.name}</span>
-                    <i style={{ width: `${pct * 100}%` }} />
-                  </button>
-                );
-              })}
-              <div className="p1FxLayer" aria-hidden="true">
-                {fxEvents.map((event, index) => (
-                  <span
-                    key={event.id}
-                    className={`p1Fx ${event.kind}`}
-                    style={{
-                      left: `${18 + ((event.id * 17) % 62)}%`,
-                      top: `${24 + ((index * 13) % 38)}%`,
-                    }}
-                  >
-                    {event.message}
-                  </span>
-                ))}
+              <div className="p1Hp"><i style={{ width: `${Math.max(0, (selectedPartState.hp / selectedPartState.maxHp) * 100)}%` }} /></div>
+              <div className="p1PartActions">
+                <button onClick={() => actions.inspectPart(selectedPart.id)}>检查</button>
+                <button onClick={() => actions.setHitMode(run.hitMode === 'melee' ? 'remote' : 'melee')}>
+                  {run.hitMode === 'melee' ? '近身砸' : '远程试探'}
+                </button>
+                <button className="danger" disabled={!rageReady} onClick={() => actions.useRageBurst(selectedPart.id)}>暴走砸</button>
+                <button className="ghost" disabled={!target} onClick={() => actions.retreatTarget()}>撤退</button>
               </div>
             </>
           ) : (
-            <div className="p1NoTarget">
-              <strong>本轮作业空闲</strong>
-              <span>从右侧选择一个已解锁目标。</span>
-            </div>
+            <div className="p1PartIdle">{target ? TUTORIAL_COPY[target.id] ?? target.intro : '打开「目标」开始作业。'}</div>
           )}
         </div>
-        <div className="p1StatusStrip">
-          <span>本轮现金 ¥{Math.floor(run.money)}</span>
-          <span>废料 {Math.floor(run.scrap)}</span>
-          <span>信誉 {meta.reputation}</span>
-          <span>连击 {run.combo}</span>
-          <span>怒气 {Math.floor(run.rage)}%</span>
-        </div>
-      </section>
 
-      <aside className="p1ControlPanel">
-        <div className="p1PanelBlock p1TargetHeader">
-          <div>
-            <span className="p1Eyebrow">作业目标</span>
-            <h2>{target?.name ?? '选择目标'}</h2>
-          </div>
-          {target && <span className={`p1Scale ${target.scale}`}>{target.phase.toUpperCase()} · {target.scale}</span>}
-          <p>{target ? TUTORIAL_COPY[target.id] ?? target.intro : '从快递热身一路推进到黑市、厂房、远征、巨型形态和终局目标。'}</p>
-        </div>
+        <nav className="p1MenuDock">
+          {menu.filter((item) => item.show).map((item) => (
+            <button
+              key={item.id}
+              className={openPanel === item.id ? 'active' : ''}
+              onClick={() => setOpenPanel((current) => (current === item.id ? null : item.id))}
+            >
+              <span className="p1MenuGlyph">{item.icon}</span>
+              <small>{item.label}</small>
+            </button>
+          ))}
+        </nav>
+      </footer>
 
-        {target && run.currentTarget && (
-          <div className="p1PanelBlock">
-            <div className="p1ViewTabs">
-              {target.views.map((view) => {
-                const unlocked = run.currentTarget?.unlockedViews.includes(view.id);
-                return (
-                  <button key={view.id} disabled={!unlocked} className={view.id === currentView?.id ? 'active' : ''} onClick={() => actions.switchView(view.id)}>
-                    {view.name}
-                  </button>
-                );
-              })}
+      {/* ===== 聚焦面板（按需打开） ===== */}
+      {openPanel && (
+        <div className="p1Overlay" onPointerDown={() => setOpenPanel(null)}>
+          <div className="p1OverlayCard" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="p1OverlayHead">
+              <b>{menu.find((item) => item.id === openPanel)?.label}</b>
+              <button className="p1OverlayClose" onClick={() => setOpenPanel(null)}>✕</button>
             </div>
-            {selectedPart && selectedPartState && (
-              <div className="p1PartCard">
-                <div className="p1PartTop">
-                  <strong>{selectedPart.name}</strong>
-                  <span>{selectedStage?.label}</span>
+            <div className="p1OverlayBody">
+              {openPanel === 'targets' && (
+                <div className="p1TargetList">
+                  {TARGETS.map((item) => {
+                    const unlocked = meta.discoveredTargets.includes(item.id);
+                    const completed = meta.completedTargets.includes(item.id);
+                    const canAfford = (!item.entryCost?.money || run.money >= item.entryCost.money) && (!item.entryCost?.reputation || meta.reputation >= item.entryCost.reputation);
+                    return (
+                      <button
+                        key={item.id}
+                        className={`${target?.id === item.id ? 'active' : ''} ${completed ? 'done' : ''}`}
+                        disabled={!unlocked || !canAfford}
+                        onClick={() => startTarget(item.id)}
+                      >
+                        <span>{unlocked ? item.name : '???'}</span>
+                        <small>
+                          {completed ? '已砸开' : !unlocked ? `${item.phase.toUpperCase()} 传闻锁定` : item.entryCost?.money ? `入场 ¥${item.entryCost.money}` : `${item.phase.toUpperCase()} · ${item.scale}`}
+                        </small>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="p1Hp">
-                  <i style={{ width: `${Math.max(0, (selectedPartState.hp / selectedPartState.maxHp) * 100)}%` }} />
-                </div>
-                <div className="p1PartActions">
-                  <button onClick={() => actions.inspectPart(selectedPart.id)}>检查</button>
-                  <button onClick={() => actions.setHitMode(run.hitMode === 'melee' ? 'remote' : 'melee')}>
-                    {run.hitMode === 'melee' ? '近身砸' : '远程试探'}
-                  </button>
-                  <button className="danger" disabled={!rageReady} onClick={() => actions.useRageBurst(selectedPart.id)}>
-                    暴走砸
-                  </button>
-                </div>
-                {selectedRisk && (
-                  <div className={`p1Risk ${riskClass(selectedRisk.level)}`}>
-                    <b>{RISK_MAP[selectedRisk.riskId]?.name ?? selectedRisk.riskId}</b>
-                    <span>{selectedRisk.clues[selectedRisk.clues.length - 1] ?? '风险未知，检查后再决定。'}</span>
+              )}
+
+              {openPanel === 'market' && (
+                <div data-testid="black-market-panel">
+                  <div className="p1BlockHeader">
+                    <span className="p1Eyebrow">黑市委托</span>
+                    <b>卖家信任 {meta.blackMarket.sellerTrust}</b>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="p1PanelBlock">
-          <span className="p1Eyebrow">工具</span>
-          <div className="p1ToolGrid">
-            {TOOLS.map((tool) => {
-              const owned = !!run.tools[tool.id];
-              const selected = run.selectedSourceId === tool.id;
-              return (
-                <button key={tool.id} className={selected ? 'active' : ''} disabled={!owned} onClick={() => actions.selectSource(tool.id)}>
-                  <strong>{tool.name}</strong>
-                  <span>{owned ? `耐久 ${Math.ceil(run.tools[tool.id].durability)}` : `¥${tool.price}`}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {(meta.discoveredTargets.includes('car-scrapyard') || meta.unlockedPanels.includes('factory')) && (
-          <div className="p1PanelBlock">
-            <span className="p1Eyebrow">机械</span>
-            <div className="p1MachineGrid">
-              {MACHINES.map((machine) => {
-                const runtime = run.machines[machine.id];
-                return (
-                  <div className={`p1Machine ${runtime?.jammed ? 'jammed' : ''}`} key={machine.id}>
-                    <strong>{machine.name}</strong>
-                    <span>
-                      {runtime?.deployedPartId ? `部署：${target?.parts.find((part) => part.id === runtime.deployedPartId)?.name ?? runtime.deployedPartId}` : '未部署'}
-                    </span>
-                    <div className="p1MachineMeter">
-                      <i style={{ width: `${runtime ? (runtime.durability / runtime.maxDurability) * 100 : 0}%` }} />
-                    </div>
-                    <button disabled={!runtime || !selectedPart || !target} onClick={() => selectedPart && actions.deployMachine(machine.id, selectedPart.id)}>
-                      部署到当前部位
-                    </button>
-                    <button disabled={!runtime} onClick={() => actions.repairMachine(machine.id)}>修理</button>
+                  <button onClick={() => actions.refreshBlackMarket()}>刷新委托</button>
+                  <div className="p1OfferList">
+                    {meta.blackMarket.currentOfferIds.length === 0 ? (
+                      <em>暂无可接委托。</em>
+                    ) : (
+                      meta.blackMarket.currentOfferIds.map((offerId) => {
+                        const offer = BLACK_MARKET_OFFER_MAP[offerId];
+                        if (!offer) return null;
+                        const canPay = run.money >= (offer.cost.money ?? 0) && meta.reputation >= (offer.cost.reputation ?? 0);
+                        return (
+                          <div className={`p1Offer ${offer.rarity}`} key={offer.id}>
+                            <strong>{offer.title}</strong>
+                            <span>{TARGET_MAP[offer.targetId]?.name ?? offer.targetId}</span>
+                            <small>¥{offer.cost.money ?? 0} · 信誉 {offer.cost.reputation ?? 0} · {offer.unique ? '独一无二' : '限时'}</small>
+                            <div>
+                              <button disabled={!canPay} onClick={() => { actions.acceptBlackMarketOffer(offer.id); setOpenPanel(null); }}>接单开砸</button>
+                              <button className="ghost" onClick={() => actions.declineBlackMarketOffer(offer.id)}>拒单</button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                </div>
+              )}
 
-        {(meta.unlockedPanels.includes('black-market') || meta.rumors.includes('rumor-black-market-missile') || meta.rumors.includes('rumor-black-market-open')) && (
-          <div className="p1PanelBlock p1BlackMarket" data-testid="black-market-panel">
-            <div className="p1BlockHeader">
-              <span className="p1Eyebrow">黑市委托</span>
-              <b>卖家信任 {meta.blackMarket.sellerTrust}</b>
-            </div>
-            <button onClick={() => actions.refreshBlackMarket()}>刷新委托</button>
-            <div className="p1OfferList">
-              {meta.blackMarket.currentOfferIds.length === 0 ? (
-                <em>暂无可接委托。</em>
-              ) : (
-                meta.blackMarket.currentOfferIds.map((offerId) => {
-                  const offer = BLACK_MARKET_OFFER_MAP[offerId];
-                  const canPay = !!offer && run.money >= (offer.cost.money ?? 0) && meta.reputation >= (offer.cost.reputation ?? 0);
-                  if (!offer) return null;
-                  return (
-                    <div className={`p1Offer ${offer.rarity}`} key={offer.id}>
-                      <strong>{offer.title}</strong>
-                      <span>{TARGET_MAP[offer.targetId]?.name ?? offer.targetId}</span>
-                      <small>¥{offer.cost.money ?? 0} · 信誉 {offer.cost.reputation ?? 0} · {offer.unique ? '独一无二' : '限时'}</small>
-                      <div>
-                        <button disabled={!canPay} onClick={() => actions.acceptBlackMarketOffer(offer.id)}>接单开砸</button>
-                        <button className="ghost" onClick={() => actions.declineBlackMarketOffer(offer.id)}>拒单</button>
+              {openPanel === 'machines' && (
+                <div className="p1MachineGrid">
+                  {MACHINES.map((machine) => {
+                    const runtime = run.machines[machine.id];
+                    return (
+                      <div className={`p1Machine ${runtime?.jammed ? 'jammed' : ''}`} key={machine.id}>
+                        <strong>{machine.name}</strong>
+                        <span>{runtime?.deployedPartId ? `部署：${target?.parts.find((part) => part.id === runtime.deployedPartId)?.name ?? runtime.deployedPartId}` : '未部署'}</span>
+                        <div className="p1MachineMeter"><i style={{ width: `${runtime ? (runtime.durability / runtime.maxDurability) * 100 : 0}%` }} /></div>
+                        <button disabled={!runtime || !selectedPart || !target} onClick={() => selectedPart && actions.deployMachine(machine.id, selectedPart.id)}>部署到当前部位</button>
+                        <button disabled={!runtime} onClick={() => actions.repairMachine(machine.id)}>修理</button>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
+              )}
+
+              {openPanel === 'routes' && (
+                <div className="p1Progression">
+                  <div className="p1ProgressRows">
+                    <span>厂房 Lv.{meta.factory.level} · {meta.factory.usedSlots}/{meta.factory.capacity}</span>
+                    <span>管线 {meta.factory.unlockedPipelineIds.length}/3</span>
+                    <span>远征完成 {meta.expedition.completedLocationIds.length}</span>
+                    <span>巨型形态 {meta.giantForms.unlockedSourceIds.length}/6</span>
+                  </div>
+                  <div className="p1RouteGrid">
+                    {meta.unlockedPanels.includes('factory') && <button onClick={() => actions.upgradeFactory()}>扩建厂房</button>}
+                    {meta.giantForms.unlockedSourceIds.map((sourceId) => (
+                      <button key={sourceId} className={meta.giantForms.activeSourceId === sourceId ? 'active' : ''} onClick={() => actions.activateGiantForm(sourceId)}>
+                        {TOOLS.find((tool) => tool.id === sourceId)?.name ?? sourceId}
+                      </button>
+                    ))}
+                    {meta.giantForms.repairsDue.map((sourceId) => (
+                      <button key={`repair-${sourceId}`} onClick={() => actions.repairGiantForm(sourceId)}>修理 {TOOLS.find((tool) => tool.id === sourceId)?.name ?? sourceId}</button>
+                    ))}
+                    {['赚钱路线', '事故档案路线', '变异路线', '黑市路线', '机械路线', 'Boss路线'].map((route) => (
+                      <button key={route} className={meta.routeFocus === route ? 'active' : ''} onClick={() => actions.setRouteFocus(route)}>{route}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {openPanel === 'lore' && (
+                <div className="p1Lore">
+                  <span className="p1Eyebrow">传闻</span>
+                  <div>{meta.rumors.length === 0 ? <em>还没有传闻。</em> : meta.rumors.map((id) => <span key={id}>{RUMOR_MAP[id]?.title ?? id}</span>)}</div>
+                  <span className="p1Eyebrow">事故档案</span>
+                  <div>{meta.accidentArchives.length === 0 ? <em>事故档案为空。</em> : meta.accidentArchives.map((id) => <span key={id}>{ACCIDENT_ARCHIVE_MAP[id]?.title ?? id}</span>)}</div>
+                </div>
+              )}
+
+              {openPanel === 'settings' && (
+                <div className="p1Settings">
+                  <label>
+                    <span>音量 {Math.round(audioVolume * 100)}%</span>
+                    <input type="range" min="0" max="1" step="0.05" value={audioVolume} onChange={(event) => { const next = Number(event.currentTarget.value); setAudioVolume(next); setAudioVolumeState(next); }} />
+                  </label>
+                  <small>震屏和闪光使用低强度默认值，危险提示同时显示文字。数字键 1-9 切工具，滚轮也行。</small>
+                </div>
               )}
             </div>
           </div>
-        )}
-
-        {(meta.unlockedPanels.includes('factory') || meta.unlockedPanels.includes('expedition') || meta.giantForms.unlockedSourceIds.length > 0) && (
-          <div className="p1PanelBlock p1Progression">
-            <span className="p1Eyebrow">路线 / 设施</span>
-            <div className="p1ProgressRows">
-              <span>厂房 Lv.{meta.factory.level} · {meta.factory.usedSlots}/{meta.factory.capacity}</span>
-              <span>管线 {meta.factory.unlockedPipelineIds.length}/3</span>
-              <span>远征完成 {meta.expedition.completedLocationIds.length}</span>
-              <span>巨型形态 {meta.giantForms.unlockedSourceIds.length}/6</span>
-            </div>
-            <div className="p1RouteGrid">
-              {meta.unlockedPanels.includes('factory') && (
-                <button onClick={() => actions.upgradeFactory()}>
-                  扩建厂房
-                </button>
-              )}
-              {meta.giantForms.unlockedSourceIds.map((sourceId) => (
-                <button key={sourceId} className={meta.giantForms.activeSourceId === sourceId ? 'active' : ''} onClick={() => actions.activateGiantForm(sourceId)}>
-                  {TOOLS.find((tool) => tool.id === sourceId)?.name ?? sourceId}
-                </button>
-              ))}
-              {meta.giantForms.repairsDue.map((sourceId) => (
-                <button key={`repair-${sourceId}`} onClick={() => actions.repairGiantForm(sourceId)}>
-                  修理 {TOOLS.find((tool) => tool.id === sourceId)?.name ?? sourceId}
-                </button>
-              ))}
-              {['赚钱路线', '事故档案路线', '变异路线', '黑市路线', '机械路线', 'Boss路线'].map((route) => (
-                <button key={route} className={meta.routeFocus === route ? 'active' : ''} onClick={() => actions.setRouteFocus(route)}>
-                  {route}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="p1PanelBlock">
-          <span className="p1Eyebrow">目标清单</span>
-          <div className="p1TargetList">
-            {TARGETS.map((item) => {
-              const unlocked = meta.discoveredTargets.includes(item.id);
-              const completed = meta.completedTargets.includes(item.id);
-              const canAfford = (!item.entryCost?.money || run.money >= item.entryCost.money) && (!item.entryCost?.reputation || meta.reputation >= item.entryCost.reputation);
-              return (
-                <button
-                  key={item.id}
-                  className={`${target?.id === item.id ? 'active' : ''} ${completed ? 'done' : ''}`}
-                  disabled={!unlocked || !canAfford}
-                  onClick={() => startTarget(item.id)}
-                >
-                  <span>{unlocked ? item.name : '???'}</span>
-                  <small>
-                    {completed
-                      ? '已砸开'
-                      : !unlocked
-                        ? `${item.phase.toUpperCase()} 传闻锁定`
-                        : item.entryCost?.money
-                          ? `入场 ¥${item.entryCost.money}`
-                          : `${item.phase.toUpperCase()} · ${item.scale}`}
-                  </small>
-                </button>
-              );
-            })}
-          </div>
-          <button className="p1Retreat" disabled={!target} onClick={() => actions.retreatTarget()}>
-            撤退并结算情报
-          </button>
         </div>
+      )}
 
-        <div className="p1PanelBlock p1Lore">
-          <span className="p1Eyebrow">传闻 / 档案</span>
-          <div>
-            {meta.rumors.length === 0 ? <em>还没有传闻。</em> : meta.rumors.map((id) => <span key={id}>{RUMOR_MAP[id]?.title ?? id}</span>)}
-          </div>
-          <div>
-            {meta.accidentArchives.length === 0 ? <em>事故档案为空。</em> : meta.accidentArchives.map((id) => <span key={id}>{ACCIDENT_ARCHIVE_MAP[id]?.title ?? id}</span>)}
-          </div>
-        </div>
-
-        <div className="p1PanelBlock p1Settings">
-          <span className="p1Eyebrow">设置</span>
-          <label>
-            <span>音量 {Math.round(audioVolume * 100)}%</span>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={audioVolume}
-              onChange={(event) => {
-                const next = Number(event.currentTarget.value);
-                setAudioVolume(next);
-                setAudioVolumeState(next);
-              }}
-            />
-          </label>
-          <small>震屏和闪光使用低强度默认值，危险提示同时显示文字。</small>
-        </div>
-      </aside>
-
+      {/* ===== 结算 ===== */}
       {run.runResult && (
         <div className="p1ResultOverlay" role="dialog" aria-modal="true">
           <div className="p1ResultCard">
             <span className="p1Eyebrow">本次结算</span>
             <h2>
-              {run.runResult.reason === 'completed'
-                ? '砸开了'
-                : run.runResult.reason === 'retreated'
-                  ? '撤退成功'
-                  : run.runResult.reason === 'death'
-                    ? '本轮结束'
-                    : '事故记录'}
+              {run.runResult.reason === 'completed' ? '砸开了' : run.runResult.reason === 'retreated' ? '撤退成功' : run.runResult.reason === 'death' ? '本轮结束' : '事故记录'}
             </h2>
             <p>{run.accident?.summary ?? (run.runResult.reason === 'completed' ? '奖励已入账，下一个更离谱。' : '情报保留，长期进度不会清空。')}</p>
             <div className="p1ResultStats">
