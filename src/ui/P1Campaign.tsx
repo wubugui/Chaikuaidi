@@ -703,7 +703,7 @@ export function P1Campaign() {
                           <button disabled={!runtime} onClick={() => actions.repairMachine(machine.id)}>修理</button>
                           {cost ? (
                             <button className="p1UpgradeBtn" disabled={!canUpgrade} onClick={() => actions.upgradeMachine(machine.id)}>
-                              升级 → Lv.{(runtime?.level ?? 1) + 1}
+                              升到 Lv.{(runtime?.level ?? 1) + 1}
                               <small>¥{cost.money} · 废料{cost.scrap}{Object.entries(cost.materials).map(([id, n]) => ` · ${ITEM_MAP[id]?.name ?? id}×${n}`).join('')}</small>
                             </button>
                           ) : runtime ? (
