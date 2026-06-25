@@ -644,6 +644,16 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .p1MachineMeter { height: 8px; border-radius: 999px; overflow: hidden; border: 1px solid #5a4932; background: #0e0a08; }
 .p1MachineMeter i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #54e08a, #ffce3a); }
 
+/* ---- 新手向导提示 ---- */
+.p1Coach {
+  position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 9;
+  max-width: min(560px, 86%); padding: 8px 16px; border-radius: 999px;
+  border: 1px solid #ffce3a88; background: #1a1206e8; color: #ffe6ad;
+  font-size: 12.5px; font-weight: 800; line-height: 1.4; text-align: center;
+  box-shadow: 0 6px 20px #0008; animation: p1CoachIn 0.3s ease; pointer-events: none;
+}
+@keyframes p1CoachIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
 /* ---- 货架 / 商店 ---- */
 .p1GoodsPanel { display: grid; gap: 8px; }
 .p1ToolShop { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }

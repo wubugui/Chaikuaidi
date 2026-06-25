@@ -203,6 +203,19 @@ export function P1Campaign() {
   const activeTool = TOOLS.find((tool) => tool.id === run.selectedSourceId) ?? ownedTools[0];
   const stageCursor = activeTool ? `url("${assetUrl(toolIcon(activeTool.id))}") 16 16, crosshair` : 'crosshair';
 
+  // 新手向导：根据当前处境给"下一步该干嘛"的一句话提示（条件满足即自动消失，不啰嗦）
+  const onParcel = !!target && target.id.startsWith('parcel-');
+  const onlyHand = ownedTools.length <= 1;
+  const cheapestGood = Math.min(...GOODS_SHOP.map((g) => g.price));
+  const coachTip: string | null = (() => {
+    if (run.runResult) return null;
+    if (target && !onParcel && onlyHand) return '徒手砸不动这种硬货 —— 开「货架」买把趁手工具，或「当废铁卖」换废料、回去拆快递。';
+    if (onParcel && onlyHand && run.money >= 120) return '钱够了！开「货架」里的工具铺，买把大锤拆得更快。';
+    if (run.ownedGoods.length === 0 && run.money >= cheapestGood && !onlyHand) return '攒够钱了，开「货架」买件稀罕货，砸开看看里面是什么。';
+    if (!run.autoPipelineUnlocked && run.money >= 1200) return '钱够建「自动拆快递管线」了：点工具坞的「自动拆」，以后躺着收钱。';
+    return null;
+  })();
+
   // 命中点（碎片/抖动定位）与目标整体损坏度（diegetic：越砸越暗越糙）
   const selectedHotspot = currentView?.hotspots.find((spot) => spot.partId === selectedPartId);
   if (selectedHotspot) {
@@ -472,6 +485,11 @@ export function P1Campaign() {
             );
           })}
         </div>
+      )}
+
+      {/* ===== 新手向导：一句话下一步（满足条件自动消失） ===== */}
+      {coachTip && !openPanel && (
+        <div className="p1Coach" data-testid="coach-tip">{coachTip}</div>
       )}
 
       {/* ===== 底部操作坞 ===== */}
