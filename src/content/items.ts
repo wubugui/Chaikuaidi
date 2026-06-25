@@ -70,6 +70,11 @@ export const ITEMS: ItemDef[] = [
   { id: 'r_wireharness', name: '线束', kind: 'material', rarity: 'common', baseValue: 3 },
   { id: 'r_alloyblock', name: '合金块', kind: 'material', rarity: 'rare', baseValue: 8 },
 
+  // ---- 机器升级专用稀有材料（砸特殊货物掉落，越逆天的升级越难凑齐）----
+  { id: 'm_hardcore', name: '硬核料', kind: 'material', rarity: 'rare', baseValue: 12 },
+  { id: 'm_pressgem', name: '压力晶核', kind: 'material', rarity: 'epic', baseValue: 28 },
+  { id: 'm_oddmatter', name: '异常物质', kind: 'material', rarity: 'legendary', baseValue: 70 },
+
   // ---- 元素 ----
   { id: 'e_iron', name: '铁', kind: 'element', rarity: 'common', baseValue: 5 },
   { id: 'e_titanium', name: '钛', kind: 'element', rarity: 'rare', baseValue: 18 },

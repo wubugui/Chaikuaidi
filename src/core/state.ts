@@ -31,6 +31,7 @@ export interface MachineRuntimeState {
   overheat: number;
   jammed: boolean;
   repairing: boolean;
+  level: number;
 }
 
 export interface ToolRuntimeState {
@@ -39,6 +40,17 @@ export interface ToolRuntimeState {
   maxDurability: number;
   broken: boolean;
   tags: DamageSourceTag[];
+}
+
+// 货架上的一件独一无二货物：玩家可以拥有很多件，但同时只能把一件放上工作台砸。
+// runtime 持久化每件货物自己的砸击进度，切换时不丢。revealed=半盲购买：买来时只看外形，
+// 真正的材质/结构要砸了才知道。
+export interface OwnedGoodState {
+  instanceId: string;
+  targetId: string;
+  runtime: TargetRuntimeState;
+  revealed: boolean;
+  acquiredAt: number;
 }
 
 export interface RiskRuntimeState {
@@ -102,6 +114,10 @@ export interface RunState {
   hitMode: HitMode;
   autoPipeline: boolean;
   currentTarget: TargetRuntimeState | null;
+  ownedGoods: OwnedGoodState[];
+  activeGoodInstanceId: string | null;
+  // 稀有升级材料的计数库存：砸特殊货物掉落，用来升级自动砸机器（越逆天的升级越难凑齐）。
+  materials: Record<string, number>;
   tools: Record<string, ToolRuntimeState>;
   machines: Record<string, MachineRuntimeState>;
   risks: Record<string, RiskRuntimeState>;
@@ -158,6 +174,9 @@ export function createInitialRunState(): RunState {
     hitMode: 'melee',
     autoPipeline: false,
     currentTarget: null,
+    ownedGoods: [],
+    activeGoodInstanceId: null,
+    materials: {},
     tools: {},
     machines: {},
     risks: {},

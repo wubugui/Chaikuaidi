@@ -1,4 +1,5 @@
 import { ITEM_MAP } from './items';
+export { ITEM_MAP } from './items';
 import { P2_BLACK_MARKET_OFFER_MAP, P2_BLACK_MARKET_OFFERS } from './blackMarket/p2';
 import { P1_MACHINES } from './machines/p1';
 import { P2_MACHINES } from './machines/p2';
@@ -17,6 +18,7 @@ import {
   targetSchema,
   toolSchema,
 } from './schemas';
+import { P1_GOODS_SHOP, P1_GOODS_SHOP_MAP } from './goods/p1';
 import { P1_TARGETS } from './targets/p1';
 import { P2_TARGETS } from './targets/p2';
 import { P1_TOOLS } from './tools/p1';
@@ -31,6 +33,8 @@ export const TOOLS = [...P1_TOOLS, ...P2_TOOLS];
 export const MACHINES = [...P1_MACHINES, ...P2_MACHINES];
 export const MATERIALS = P1_MATERIALS;
 export const BLACK_MARKET_OFFERS = P2_BLACK_MARKET_OFFERS;
+export const GOODS_SHOP = P1_GOODS_SHOP;
+export const GOODS_SHOP_MAP = P1_GOODS_SHOP_MAP;
 
 export const TARGET_MAP = Object.fromEntries(TARGETS.map((target) => [target.id, target]));
 export const RISK_MAP = { ...P1_RISK_MAP, ...P2_RISK_MAP };
@@ -152,6 +156,10 @@ export function validateContent(): ContentValidationIssue[] {
   for (const material of CONTENT.materials) {
     const result = materialSchema.safeParse(material);
     if (!result.success) pushIssue(issues, material.id, result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; '));
+  }
+  for (const good of GOODS_SHOP) {
+    if (!TARGET_MAP[good.targetId]) pushIssue(issues, good.id, `goods shop offer target ${good.targetId} is missing`);
+    if (good.price <= 0) pushIssue(issues, good.id, 'goods shop offer must have a positive price');
   }
   for (const offer of CONTENT.blackMarketOffers) {
     const result = blackMarketOfferSchema.safeParse(offer);

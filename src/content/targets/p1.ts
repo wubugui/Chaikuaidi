@@ -624,4 +624,44 @@ export const P1_TARGETS: TargetDef[] = [
   },
 ];
 
+// 货架商店专属：一个"看起来很牛逼但徒手/大锤根本砸不动"的怪东西。
+// requiredTags=['remote'] —— 没有远程试探架就是 0 伤害，逼出博弈：当废铁卖 / 瞎砸 / 换货 / 回去拆快递。
+// 一旦凑到远程装置，它就能砸开，掉落机器升级用的稀有材料。
+P1_TARGETS.push({
+  id: 'oddity-blackball',
+  name: '不讲道理的黑铁球',
+  scale: 'desktop',
+  presentation: 'workbench',
+  phase: 'p1',
+  intro: '卖家说这是「陨星压缩核」，沉得像有人在里面拽。徒手和大锤砸上去只有闷响，连个白印都没有。',
+  icon: safeArt,
+  views: [
+    {
+      id: 'front',
+      name: '工作台',
+      background: marketBg,
+      hotspots: [{ id: 'blackball-hotspot', partId: 'blackball-core', x: 0.38, y: 0.34, width: 0.24, height: 0.26 }],
+    },
+  ],
+  parts: [
+    {
+      id: 'blackball-core',
+      name: '致密核',
+      viewId: 'front',
+      material: 'volatile',
+      hp: 110,
+      requiredTags: ['remote'],
+      stages: [
+        { id: 'sealed', threshold: 1, art: safeArt, label: '一点都没动' },
+        { id: 'humming', threshold: 0.5, art: safeArt, label: '开始低频嗡鸣' },
+        { id: 'cracked', threshold: 0, art: safeArt, label: '核裂开了' },
+      ],
+      machineSlots: [{ id: 'blackball-remote-slot', accepts: ['remote'], x: 0.5, y: 0.46 }],
+      riskTriggers: [],
+    },
+  ],
+  risks: [],
+  rewards: { cash: 260, scrap: 8, items: ['m_hardcore', 'm_pressgem', 'goldbar'], rumors: [], accidentArchives: [] },
+});
+
 export const P1_TARGET_MAP = Object.fromEntries(P1_TARGETS.map((target) => [target.id, target]));

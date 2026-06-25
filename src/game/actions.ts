@@ -6,6 +6,7 @@ import {
   type MetaState,
   type HitMode,
   type MachineRuntimeState,
+  type OwnedGoodState,
   type RunResult,
   type RunState,
   type ToolRuntimeState,
@@ -14,6 +15,7 @@ import { createTargetRuntime } from '../core/target';
 import {
   ACCIDENT_ARCHIVES,
   BLACK_MARKET_OFFERS,
+  GOODS_SHOP_MAP,
   MACHINE_MAP,
   MACHINES,
   MATERIAL_MAP,
@@ -37,6 +39,41 @@ const MACHINE_IDS = new Set(MACHINES.map((machine) => machine.id));
 const STARTER_TOOL_IDS = new Set(['hand', 'hammer', 'crowbar', 'remote-probe']);
 const STARTER_MACHINE_IDS = new Set(['hydraulic-hammer', 'scrap-arm']);
 const PIPELINE_SOURCE_IDS = new Set(['heavy-crusher', 'crawler-press', 'rail-smash-array']);
+// 机器升级专用稀有材料：砸特殊货物时按计数掉进 run.materials，升级时消耗。
+const UPGRADE_MATERIAL_IDS = new Set(['m_hardcore', 'm_pressgem', 'm_oddmatter']);
+const MAX_MACHINE_LEVEL = 6;
+let goodInstanceCounter = 0;
+
+export interface MachineUpgradeCost {
+  money: number;
+  scrap: number;
+  materials: Record<string, number>;
+}
+
+// 机器升级花费曲线：越往上越贵，而且需要越来越稀有、越难凑齐的材料。
+function machineUpgradeCost(machineId: string, currentLevel: number): MachineUpgradeCost | null {
+  if (currentLevel >= MAX_MACHINE_LEVEL) return null;
+  const def = MACHINE_MAP[machineId];
+  if (!def) return null;
+  const nextLevel = currentLevel + 1;
+  const money = Math.round((90 + (def.power ?? 10) * 7) * Math.pow(nextLevel, 1.65));
+  const scrap = 4 * nextLevel;
+  // 第一级升级只要钱+废料（早期就能升），越往上越需要越稀有的材料。
+  const materials: Record<string, number> = {};
+  if (nextLevel >= 3) materials.m_hardcore = nextLevel - 2;
+  if (nextLevel >= 4) materials.m_pressgem = nextLevel - 3;
+  if (nextLevel >= 6) materials.m_oddmatter = nextLevel - 5;
+  return { money, scrap, materials };
+}
+
+function canAffordUpgrade(run: RunState, cost: MachineUpgradeCost): boolean {
+  if (run.money < cost.money) return false;
+  if (run.scrap < cost.scrap) return false;
+  for (const [id, count] of Object.entries(cost.materials)) {
+    if ((run.materials[id] ?? 0) < count) return false;
+  }
+  return true;
+}
 const GIANT_SOURCE_IDS = new Set(['mecha-fist', 'mecha-shoulder-ram', 'gundam-pile', 'ultra-beam', 'ultra-stomp', 'ultra-flying-kick']);
 
 // 命中现象：正常表现（按材质）+ 危险征兆（用于"敢不敢继续砸"的决策）
@@ -165,6 +202,7 @@ function createStarterRun(meta: MetaState, startMoney = 0): RunState {
         overheat: 0,
         jammed: false,
         repairing: false,
+        level: 1,
       },
     ]),
   );
@@ -192,6 +230,19 @@ function pickParcelTargetId(meta: MetaState): string | null {
   const best = Math.max(...parcels.map((target) => target.rewards.cash ?? 0));
   const pool = parcels.filter((target) => (target.rewards.cash ?? 0) >= best * 0.5);
   return pick(pool.length > 0 ? pool : parcels).id;
+}
+
+// 把当前工作台上这件特殊货物的砸击进度写回货架（切换/撤退/拆快递前调用，保证进度不丢）。
+// 快递不是货架货物（activeGoodInstanceId 为空），直接原样返回。
+function persistActiveGood(run: RunState): RunState {
+  if (!run.activeGoodInstanceId || !run.currentTarget) return run;
+  const idx = run.ownedGoods.findIndex((good) => good.instanceId === run.activeGoodInstanceId);
+  if (idx < 0) return run;
+  const active = run.ownedGoods[idx];
+  if (active.targetId !== run.currentTarget.targetId) return run;
+  const ownedGoods = run.ownedGoods.slice();
+  ownedGoods[idx] = { ...active, runtime: run.currentTarget };
+  return { ...run, ownedGoods };
 }
 
 function archiveForRisk(riskId: string): string | undefined {
@@ -234,6 +285,7 @@ function sourceRuntime(sourceId: string): { kind: 'tool'; runtime: ToolRuntimeSt
         overheat: 0,
         jammed: false,
         repairing: false,
+        level: 1,
       },
     };
   }
@@ -474,10 +526,24 @@ function settleCompletedTarget(target: TargetDef, manualFinalBonus: boolean) {
   const expeditionLocationIds = target.scale === 'site' ? [target.id] : [];
   const runWithSources = runWithUnlockedSources(store.run, unlockedSources);
 
+  // 砸开的若是货架货物，从货架移除该实例；它掉落的升级材料按计数进入 run.materials。
+  const completedInstanceId = runWithSources.activeGoodInstanceId;
+  const remainingGoods = completedInstanceId
+    ? runWithSources.ownedGoods.filter((good) => good.instanceId !== completedInstanceId)
+    : runWithSources.ownedGoods;
+  const wasOwnedGood = remainingGoods.length !== runWithSources.ownedGoods.length;
+  const nextMaterials = { ...runWithSources.materials };
+  for (const itemId of target.rewards.items) {
+    if (UPGRADE_MATERIAL_IDS.has(itemId)) nextMaterials[itemId] = (nextMaterials[itemId] ?? 0) + 1;
+  }
+
   store.setRun({
     ...runWithSources,
     money: runWithSources.money + result.money,
     scrap: runWithSources.scrap + result.scrap,
+    materials: nextMaterials,
+    ownedGoods: remainingGoods,
+    activeGoodInstanceId: wasOwnedGood ? null : runWithSources.activeGoodInstanceId,
     combo: 0,
     activeHit: null,
     currentTarget: null,
@@ -728,12 +794,84 @@ export const actions = {
   },
 
   // 拆快递：主角的日常工作。永远可用、可重复，是没钱时的兜底收入。
+  // 切回快递前，先把当前货架货物的进度存好（保留进度），并清空"在砸的货物"指针。
   openParcel() {
     const store = runtimeGameStore.getState();
     const parcelId = pickParcelTargetId(store.meta);
     if (!parcelId) return;
-    if (store.run.runResult) store.setRun({ ...store.run, runResult: null });
+    const persisted = persistActiveGood(store.run);
+    store.setRun({ ...persisted, activeGoodInstanceId: null, runResult: null });
     actions.startTarget(parcelId, { ignoreCost: true });
+  },
+
+  // 半盲购买：花钱买下一件独一无二货物，进货架，并直接放上工作台。
+  // 买之前只看得到外形/吹嘘/价格，真正的材质和门槛要砸了才知道（revealed 在 activateGood 里翻开）。
+  buyGood(offerId: string) {
+    const store = runtimeGameStore.getState();
+    const offer = GOODS_SHOP_MAP[offerId];
+    if (!offer) return;
+    if (store.run.money < offer.price) {
+      emitGameFx({ kind: 'ineffective', intensity: 0.3, message: '钱不够，先去拆几个快递。' });
+      return;
+    }
+    const target = TARGET_MAP[offer.targetId];
+    if (!target) return;
+    const instanceId = `${offer.targetId}-${Date.now()}-${++goodInstanceCounter}`;
+    const good: OwnedGoodState = {
+      instanceId,
+      targetId: offer.targetId,
+      runtime: createTargetRuntime(target),
+      revealed: false,
+      acquiredAt: Date.now(),
+    };
+    const persisted = persistActiveGood(store.run);
+    store.setRun({
+      ...persisted,
+      money: persisted.money - offer.price,
+      ownedGoods: [...persisted.ownedGoods, good],
+      runResult: null,
+      storyLog: [...persisted.storyLog, `buy-good:${offer.targetId}`],
+    });
+    // 把刚买的货确保在已发现列表里，然后激活上台。
+    if (!store.meta.discoveredTargets.includes(offer.targetId)) {
+      store.setMeta({ ...store.meta, discoveredTargets: unique([...store.meta.discoveredTargets, offer.targetId]) });
+    }
+    actions.activateGood(instanceId);
+    emitGameFx({ kind: 'stage', targetId: offer.targetId, intensity: 0.6, message: `买下了：${offer.name}。砸砸看里面是什么。` });
+  },
+
+  // 切换到货架里的某件货物：先存好当前货物进度，再把目标货物的进度装回工作台（保留进度）。
+  activateGood(instanceId: string) {
+    const store = runtimeGameStore.getState();
+    const persisted = persistActiveGood(store.run);
+    const idx = persisted.ownedGoods.findIndex((good) => good.instanceId === instanceId);
+    if (idx < 0) return;
+    const good = persisted.ownedGoods[idx];
+    const target = TARGET_MAP[good.targetId];
+    if (!target) return;
+    const ownedGoods = persisted.ownedGoods.slice();
+    // 第一次上台即翻开半盲信息。
+    if (!good.revealed) ownedGoods[idx] = { ...good, revealed: true };
+    const riskStates = Object.fromEntries(
+      target.risks.map((risk) => [
+        risk.riskId,
+        persisted.risks[risk.riskId] ?? { riskId: risk.riskId, level: 'unknown' as RiskLevel, clues: [], triggered: false },
+      ]),
+    );
+    store.setRun({
+      ...persisted,
+      ownedGoods,
+      activeGoodInstanceId: instanceId,
+      currentTarget: good.runtime,
+      selectedSourceId: bestOwnedSourceFor(persisted, target, good.runtime.selectedPartId),
+      combo: 0,
+      comboExpiresAt: 0,
+      activeHit: null,
+      accident: null,
+      runResult: null,
+      risks: { ...persisted.risks, ...riskStates },
+      storyLog: [...persisted.storyLog, `activate-good:${good.targetId}`],
+    });
   },
 
   // 博弈逃生口之一："当废铁卖了"。放弃当前砸不动的特殊货物，按其价值折算一笔废料。
@@ -745,10 +883,16 @@ export const actions = {
     if (!target || isParcel(target)) return;
     const value = target.entryCost?.money ?? Math.ceil((target.rewards.cash ?? 0) * 0.3);
     const scrapGain = Math.max(1, Math.ceil(value * 0.3));
+    // 卖掉的这件货从货架移除（按当前激活的实例）。
+    const ownedGoods = store.run.activeGoodInstanceId
+      ? store.run.ownedGoods.filter((good) => good.instanceId !== store.run.activeGoodInstanceId)
+      : store.run.ownedGoods;
     store.setRun({
       ...store.run,
       activeHit: null,
       currentTarget: null,
+      ownedGoods,
+      activeGoodInstanceId: null,
       scrap: store.run.scrap + scrapGain,
       runResult: {
         reason: 'retreated',
@@ -839,7 +983,10 @@ export const actions = {
       return;
     }
 
-    const damageMultiplier = (rageBurst ? 2.35 : 1) * (hitMode === 'remote' ? 0.72 : 1);
+    // 机器升级：每级 +45% 砸击力（越逆天越能啃硬货）
+    const machineLevel = isMachine ? run.machines[sourceId]?.level ?? 1 : 1;
+    const machineLevelFactor = 1 + (machineLevel - 1) * 0.45;
+    const damageMultiplier = (rageBurst ? 2.35 : 1) * (hitMode === 'remote' ? 0.72 : 1) * machineLevelFactor;
     const hit = applyPartHit(run.currentTarget, partId, sourceId, combo, damageMultiplier);
     // 机械自动砸不堆玩家连击/怒气（那是玩家亲手砸的奖励）
     const nextCombo = isMachine ? combo : hit.effective ? Math.min(80, combo + 1) : Math.max(0, combo - 2);
@@ -1166,6 +1313,56 @@ export const actions = {
     });
   },
 
+  // 给 UI 用：查询某台机器下一级的升级花费（已满级返回 null）。
+  machineUpgradeCost(machineId: string): MachineUpgradeCost | null {
+    const machine = runtimeGameStore.getState().run.machines[machineId];
+    if (!machine) return null;
+    return machineUpgradeCost(machineId, machine.level);
+  },
+
+  // 升级自动砸机器：消耗钱 + 废料 + 稀有材料，换更高的砸击力和耐久。越逆天越贵越难凑。
+  upgradeMachine(machineId: string) {
+    const store = runtimeGameStore.getState();
+    const machine = store.run.machines[machineId];
+    const def = MACHINE_MAP[machineId];
+    if (!machine || !def) return;
+    const cost = machineUpgradeCost(machineId, machine.level);
+    if (!cost) {
+      emitGameFx({ kind: 'ineffective', sourceId: machineId, intensity: 0.3, message: `${def.name} 已经顶级了。` });
+      return;
+    }
+    if (!canAffordUpgrade(store.run, cost)) {
+      emitGameFx({ kind: 'ineffective', sourceId: machineId, intensity: 0.3, message: '材料或钱不够，先去砸点货。' });
+      return;
+    }
+    const nextMaterials = { ...store.run.materials };
+    for (const [id, count] of Object.entries(cost.materials)) {
+      nextMaterials[id] = (nextMaterials[id] ?? 0) - count;
+    }
+    const nextLevel = machine.level + 1;
+    const baseDurability = def.durability ?? 100;
+    const nextMaxDurability = Math.round(baseDurability * (1 + (nextLevel - 1) * 0.3));
+    store.setRun({
+      ...store.run,
+      money: store.run.money - cost.money,
+      scrap: store.run.scrap - cost.scrap,
+      materials: nextMaterials,
+      machines: {
+        ...store.run.machines,
+        [machineId]: {
+          ...machine,
+          level: nextLevel,
+          maxDurability: nextMaxDurability,
+          durability: nextMaxDurability,
+          overheat: 0,
+          jammed: false,
+        },
+      },
+      storyLog: [...store.run.storyLog, `upgrade-machine:${machineId}:${nextLevel}`],
+    });
+    emitGameFx({ kind: 'reward', sourceId: machineId, intensity: 0.7, message: `${def.name} 升到 Lv.${nextLevel}，砸击力更逆天了。` });
+  },
+
   retreatTarget() {
     const store = runtimeGameStore.getState();
     const targetId = store.run.currentTarget?.targetId;
@@ -1179,12 +1376,15 @@ export const actions = {
       accidentArchives: [],
       worldChanges: targetId ? [`老哥从 ${TARGET_MAP[targetId]?.name ?? targetId} 前撤退，账本上多了一条“下次再说”。`] : [],
     };
+    // 撤退保留进度：货架货物的当前损坏状态存回，下次从货架接着砸。
+    const persisted = persistActiveGood(store.run);
     store.setRun({
-      ...store.run,
+      ...persisted,
       activeHit: null,
       currentTarget: null,
+      activeGoodInstanceId: null,
       runResult: result,
-      storyLog: [...store.run.storyLog, 'retreat'],
+      storyLog: [...persisted.storyLog, 'retreat'],
     });
     store.setMeta({
       ...store.meta,
