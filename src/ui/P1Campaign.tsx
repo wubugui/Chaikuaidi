@@ -76,8 +76,11 @@ export function P1Campaign() {
   const [audioVolume, setAudioVolumeState] = useState(() => getAudioVolume());
   const [openPanel, setOpenPanel] = useState<PanelId | null>(null);
   const [shake, setShake] = useState('');
+  const [bursts, setBursts] = useState<Array<{ id: number; x: number; y: number; kind: string; bits: Array<{ tx: number; ty: number }> }>>([]);
   const holdTimer = useRef<number | null>(null);
   const shakeTimer = useRef<number | null>(null);
+  const burstId = useRef(0);
+  const hitPos = useRef({ x: 50, y: 46 });
   const didBoot = useRef(false);
 
   useEffect(() => {
@@ -120,6 +123,17 @@ export function P1Campaign() {
         if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
         shakeTimer.current = window.setTimeout(() => setShake(''), 240);
       }
+      // 砸感：在命中点炸出碎片
+      if (event.kind === 'hit' || event.kind === 'crack' || event.kind === 'final-break') {
+        const count = event.kind === 'final-break' ? 14 : event.kind === 'crack' ? 9 : 5;
+        const bits = Array.from({ length: count }, () => ({
+          tx: Math.round((Math.random() - 0.5) * 90),
+          ty: Math.round(-10 - Math.random() * 70),
+        }));
+        const id = ++burstId.current;
+        setBursts((list) => [...list.slice(-6), { id, x: hitPos.current.x, y: hitPos.current.y, kind: event.kind, bits }]);
+        window.setTimeout(() => setBursts((list) => list.filter((item) => item.id !== id)), 640);
+      }
     });
   }, []);
 
@@ -158,6 +172,27 @@ export function P1Campaign() {
   const ownedTools = useMemo(() => TOOLS.filter((tool) => run.tools[tool.id]), [run.tools]);
   const activeTool = TOOLS.find((tool) => tool.id === run.selectedSourceId) ?? ownedTools[0];
   const stageCursor = activeTool ? emojiCursor(toolEmoji(activeTool.tags)) : 'crosshair';
+
+  // 命中点（碎片/抖动定位）与目标整体损坏度（diegetic：越砸越暗越糙）
+  const selectedHotspot = currentView?.hotspots.find((spot) => spot.partId === selectedPartId);
+  if (selectedHotspot) {
+    hitPos.current = {
+      x: (selectedHotspot.x + selectedHotspot.width / 2) * 100,
+      y: (selectedHotspot.y + selectedHotspot.height / 2) * 100,
+    };
+  }
+  let dmgHp = 0;
+  let dmgMax = 0;
+  if (run.currentTarget) {
+    for (const partState of Object.values(run.currentTarget.parts)) {
+      if (partState.exposed) {
+        dmgHp += partState.hp;
+        dmgMax += partState.maxHp;
+      }
+    }
+  }
+  const targetDamage = dmgMax > 0 ? Math.min(1, Math.max(0, 1 - dmgHp / dmgMax)) : 0;
+  const spriteFilter = `drop-shadow(0 26px 20px #000c) brightness(${(1 - targetDamage * 0.3).toFixed(3)}) contrast(${(1 + targetDamage * 0.28).toFixed(3)}) saturate(${(1 - targetDamage * 0.34).toFixed(3)})`;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -233,6 +268,7 @@ export function P1Campaign() {
               src={assetUrl(selectedStage?.art ?? target.icon)}
               alt={target.name}
               draggable={false}
+              style={{ filter: spriteFilter }}
             />
             <div className="p1Worker" title={`老哥状态：${rageState}`}>
               <img src={workerSrc} alt="" draggable={false} />
@@ -269,6 +305,17 @@ export function P1Campaign() {
                 </button>
               );
             })}
+            <div className="p1Particles" aria-hidden="true">
+              {bursts.map((burst) =>
+                burst.bits.map((bit, index) => (
+                  <span
+                    key={`${burst.id}-${index}`}
+                    className={`p1Particle ${burst.kind}`}
+                    style={{ left: `${burst.x}%`, top: `${burst.y}%`, ['--tx']: `${bit.tx}px`, ['--ty']: `${bit.ty}px` } as React.CSSProperties}
+                  />
+                )),
+              )}
+            </div>
             <div className="p1FxLayer" aria-hidden="true">
               {fxEvents.map((event, index) => (
                 <span

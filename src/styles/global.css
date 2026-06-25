@@ -379,6 +379,29 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .p1Fx.reward { color: #ffdf70; border-color: #ffce3a; }
 @keyframes p1Float { 0% { transform: translateY(0) scale(0.9); opacity: 0; } 14% { opacity: 1; } 100% { transform: translateY(-46px) scale(1.05); opacity: 0; } }
 
+/* 命中反应：目标 squash 抖动（骑在 shake 状态上，每次命中重放） */
+.p1Stage.shakeS .p1TargetSprite,
+.p1Stage.shakeM .p1TargetSprite,
+.p1Stage.shakeL .p1TargetSprite { animation: p1Jolt 0.18s ease-out; }
+@keyframes p1Jolt {
+  0% { transform: translate(-50%, -50%) scale(1, 1); }
+  30% { transform: translate(-50%, -47%) scale(1.07, 0.93); }
+  60% { transform: translate(-50%, -51%) scale(0.97, 1.04); }
+  100% { transform: translate(-50%, -50%) scale(1, 1); }
+}
+
+/* 碎片：命中点炸屑 */
+.p1Particles { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.p1Particle {
+  position: absolute; width: 7px; height: 7px; margin: -3px 0 0 -3px; border-radius: 2px;
+  background: #ffd36a; box-shadow: 0 0 6px #ffce6a; animation: p1Burst 0.62s ease-out forwards;
+}
+.p1Particle.crack, .p1Particle.final-break { background: #c4ecd0; box-shadow: 0 0 6px #8ef0b0; }
+@keyframes p1Burst {
+  0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--tx, 0), var(--ty, -40px)) scale(0.35) rotate(200deg); }
+}
+
 .p1NoTarget {
   position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
   display: grid; gap: 6px; justify-items: center; padding: 18px 24px; border-radius: 10px;
