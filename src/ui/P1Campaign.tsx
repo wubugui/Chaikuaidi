@@ -14,7 +14,7 @@ import { SELLER_MAP } from '../content/sellers';
 import { actions } from '../game/actions';
 import { onGameFx, type GameFxEvent } from '../game/runtimeEvents';
 import { useRuntimeGame } from '../game/runtimeStore';
-import { getAudioVolume, setAudioVolume, sfxBonk, sfxBoom, sfxCash, sfxCrack, sfxRip } from '../lib/audio';
+import { getAudioVolume, setAudioVolume, sfxBonk, sfxBoom, sfxCash, sfxCrack, sfxMaterialHit } from '../lib/audio';
 import { assetUrl } from '../lib/asset';
 
 const TUTORIAL_COPY: Record<string, string> = {
@@ -110,7 +110,10 @@ export function P1Campaign() {
     return onGameFx((event) => {
       setFxEvents((events) => [...events.slice(-12), event]);
       window.setTimeout(() => setFxEvents((events) => events.filter((item) => item.id !== event.id)), 1150);
-      if (event.kind === 'hit') sfxRip();
+      if (event.kind === 'hit') {
+        const material = event.targetId && event.partId ? TARGET_MAP[event.targetId]?.parts.find((part) => part.id === event.partId)?.material : undefined;
+        sfxMaterialHit(material ?? 'paper');
+      }
       if (event.kind === 'ineffective') sfxBonk();
       if (event.kind === 'crack' || event.kind === 'final-break') sfxCrack();
       if (event.kind === 'accident') sfxBoom();
@@ -292,6 +295,9 @@ export function P1Campaign() {
               draggable={false}
               style={{ filter: spriteFilter }}
             />
+            {targetDamage > 0.06 && (
+              <div className={`p1Damage ${target.scale}`} style={{ opacity: Math.min(0.9, targetDamage) }} aria-hidden="true" />
+            )}
             <div className="p1Worker" title={`老哥状态：${rageState}`}>
               <img src={workerSrc} alt="" draggable={false} />
             </div>

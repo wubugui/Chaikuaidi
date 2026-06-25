@@ -349,6 +349,17 @@ button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
 .p1TargetSprite.scene { width: clamp(440px, 56vw, 860px); max-height: 70%; }
 .p1TargetSprite.site { width: clamp(500px, 64vw, 980px); max-height: 74%; }
 
+/* 破坏可视化：裂纹随整体血量加深（multiply 叠在真实美术上，越砸越多裂痕） */
+.p1Damage {
+  position: absolute; left: 50%; top: 47%; transform: translate(-50%, -50%);
+  width: clamp(220px, 30vw, 420px); height: 50%; z-index: 3; pointer-events: none;
+  mix-blend-mode: multiply; background-repeat: no-repeat; background-position: center; background-size: 100% 100%;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%20preserveAspectRatio='none'%3E%3Cg%20fill='none'%20stroke='%23120c08'%20stroke-width='1.4'%20stroke-linecap='round'%3E%3Cpath%20d='M50%2050%20L34%2030%20L36%2022%20M34%2030%20L26%2026'/%3E%3Cpath%20d='M50%2050%20L70%2028%20L78%2030%20M70%2028%20L72%2020'/%3E%3Cpath%20d='M50%2050%20L73%2066%20L81%2064%20M73%2066%20L75%2074'/%3E%3Cpath%20d='M50%2050%20L30%2070%20L22%2073%20M30%2070%20L28%2079'/%3E%3Cpath%20d='M50%2050%20L50%2022'/%3E%3Cpath%20d='M50%2050%20L22%2050'/%3E%3Cpath%20d='M50%2050%20L82%2052'/%3E%3C/g%3E%3C/svg%3E");
+}
+.p1Damage.closeup { width: clamp(300px, 38vw, 540px); height: 58%; }
+.p1Damage.scene { width: clamp(440px, 56vw, 860px); height: 62%; }
+.p1Damage.site { width: clamp(500px, 64vw, 980px); height: 66%; }
+
 .p1Worker { position: absolute; left: 28px; bottom: 104px; pointer-events: none; z-index: 6; }
 .p1Worker img {
   width: clamp(120px, 13vw, 190px); height: clamp(150px, 17vw, 230px);

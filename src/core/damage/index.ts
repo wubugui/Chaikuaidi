@@ -72,7 +72,7 @@ export function applyPartHit(
   }
 
   const preview = previewDamage(source, material);
-  const comboMultiplier = Math.min(2.5, 1 + combo * 0.02);
+  const comboMultiplier = Math.min(3, 1 + combo * 0.028);
   const damage = Math.max(1, Math.round(preview.amount * comboMultiplier * damageMultiplier));
   const nextHp = Math.max(0, partState.hp - damage);
   const nextStageId = stageForHp(partDef, nextHp, partState.maxHp);

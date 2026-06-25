@@ -65,6 +65,41 @@ export function sfxRip() {
   noise(0.06, 0.04);
 }
 
+/** 按材质区分的命中音：纸/木/金属/石/生物/危险/异常各一套 */
+export function sfxMaterialHit(material: string) {
+  switch (material) {
+    case 'paper':
+      noise(0.05, 0.038);
+      break;
+    case 'wood':
+      blip(190, 0.05, 'square', 0.05);
+      noise(0.03, 0.02);
+      break;
+    case 'metal':
+      blip(540, 0.04, 'square', 0.05);
+      blip(820, 0.06, 'triangle', 0.03);
+      noise(0.02, 0.018);
+      break;
+    case 'stone':
+      blip(120, 0.06, 'sine', 0.06);
+      noise(0.05, 0.04);
+      break;
+    case 'organic':
+      blip(90, 0.09, 'sine', 0.05);
+      noise(0.06, 0.03);
+      break;
+    case 'volatile':
+      blip(680, 0.03, 'square', 0.04);
+      break;
+    case 'anomaly':
+      blip(330, 0.05, 'sawtooth', 0.04);
+      setTimeout(() => blip(247, 0.06, 'sawtooth', 0.03), 30);
+      break;
+    default:
+      noise(0.05, 0.035);
+  }
+}
+
 /** 撬不动：沉闷的低音闷响 */
 export function sfxBonk() {
   blip(140, 0.07, 'sine', 0.05);
